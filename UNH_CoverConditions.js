@@ -163,7 +163,7 @@ Game_Battler.prototype.coverChance = function() {
 	  break;
     }
   }
-  return Math.RandomInt(10000) <= Math.round(coverChance * 100);
+  return Math.randomInt(10000) <= Math.round(coverChance * 100);
 };
 
 Game_Battler.prototype.coverRandom = function() {
