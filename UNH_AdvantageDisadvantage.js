@@ -160,14 +160,14 @@ Game_BattlerBase.prototype.advCount = function(target) {
       const evalDis = eval(state.meta.DisInflict);
       if (!!evalAdv) {
         if (typeof evalAdv === 'number') {
-          advCount += evalAdv;
+          advCount += Math.max(evalAdv, 0);
         } else {
           advCount++;
         }
       }
       if (!!evalDis) {
         if (typeof evalDis === 'number') {
-          advCount -= evalDis;
+          advCount -= Math.max(evalDis, 0);
         } else {
           advCount--;
         }
@@ -180,14 +180,14 @@ Game_BattlerBase.prototype.advCount = function(target) {
       const evalDis = eval(state.meta.DisResist);
       if (!!evalAdv) {
         if (typeof evalAdv === 'number') {
-          advCount -= evalAdv;
+          advCount -= Math.max(evalAdv, 0);
         } else {
           advCount--;
         }
       }
       if (!!evalDis) {
         if (typeof evalDis === 'number') {
-          advCount += evalDis;
+          advCount += Math.max(evalDis, 0);
         } else {
           advCount++;
         }
@@ -201,23 +201,19 @@ UNH_AdvantageDisadvantage.Action_itemEffectAddAttackState = Game_Action.prototyp
 Game_Action.prototype.itemEffectAddAttackState = function(target, effect) {
   const user = this.subject();
   const advCount = user.advCount(target);
-  if (advCount === 0) {
-    UNH_AdvantageDisadvantage.Action_itemEffectAddAttackState.call(this, target, effect);
-  } else {
-    for (const stateId of user.attackStates()) {
-      let chance = effect.value1;
-      chance *= target.stateRate(stateId);
-      chance *= this.subject().attackStatesRate(stateId);
-      chance *= this.lukEffectRate(target);
-      if (advCount > 0) {
-        chance = 1 - Math.pow((1 - chance), (advCount + 1));
-      } else if (advCount < 0) {
-        chance = Math.pow(chance, (advCount + 1));
-      }
-      if (Math.random() < chance) {
-        target.addState(stateId);
-        this.makeSuccess(target);
-      }
+  for (const stateId of user.attackStates()) {
+    let chance = effect.value1;
+    chance *= target.stateRate(stateId);
+    chance *= this.subject().attackStatesRate(stateId);
+    chance *= this.lukEffectRate(target);
+    if (advCount > 0) {
+      chance = 1 - Math.pow(1 - chance, advCount + 1);
+    } else if (advCount < 0) {
+      chance = Math.pow(chance, Math.abs(advCount) + 1);
+    }
+    if (Math.random() < chance) {
+      target.addState(stateId);
+      this.makeSuccess(target);
     }
   }
 };
@@ -230,9 +226,9 @@ Game_Action.prototype.itemEffectAddNormalState = function(target, effect) {
   chance *= target.stateRate(effect.dataId);
   chance *= this.lukEffectRate(target);
   if (advCount > 0) {
-    chance = 1 - Math.pow((1 - chance), (advCount + 1));
+    chance = 1 - Math.pow(1 - chance, advCount + 1);
   } else if (advCount < 0) {
-    chance = Math.pow(chance, (advCount + 1));
+    chance = Math.pow(chance, Math.abs(advCount) + 1);
   }
   if (Math.random() < chance) {
     target.addState(effect.dataId);
@@ -245,9 +241,9 @@ Game_Action.prototype.itemEffectAddDebuff = function(target, effect) {
   const advCount = user.advCount(target);
   let chance = target.debuffRate(effect.dataId) * this.lukEffectRate(target);
   if (advCount > 0) {
-    chance = 1 - Math.pow((1 - chance), (advCount + 1));
+    chance = 1 - Math.pow(1 - chance, advCount + 1);
   } else if (advCount < 0) {
-    chance = Math.pow(chance, (advCount + 1));
+    chance = Math.pow(chance, Math.abs(advCount) + 1);
   }
   if (Math.random() < chance) {
     target.addDebuff(effect.dataId, effect.value1);
@@ -264,9 +260,9 @@ Game_Action.prototype.itemEffectRemoveState = function(target, effect) {
   let chance = effect.value1;
   chance *= this.lukEffectRate(target);
   if (advCount > 0) {
-    chance = 1 - Math.pow((1 - chance), (advCount + 1));
+    chance = 1 - Math.pow(1 - chance, advCount + 1);
   } else if (advCount < 0) {
-    chance = Math.pow(chance, (advCount + 1));
+    chance = Math.pow(chance, Math.abs(advCount) + 1);
   }
   if (Math.random() < chance) {
     target.removeState(effect.dataId);
@@ -280,9 +276,9 @@ Game_Action.prototype.itemEffectRemoveBuff = function(target, effect) {
   if (target.isBuffAffected(effect.dataId)) {
     let chance = target.debuffRate(effect.dataId) * this.lukEffectRate(target);
     if (advCount > 0) {
-      chance = 1 - Math.pow((1 - chance), (advCount + 1));
+      chance = 1 - Math.pow(1 - chance, advCount + 1);
     } else if (advCount < 0) {
-      chance = Math.pow(chance, (advCount + 1));
+      chance = Math.pow(chance, Math.abs(advCount) + 1);
     }
     if (Math.random() < chance) {
       target.removeBuff(effect.dataId);
