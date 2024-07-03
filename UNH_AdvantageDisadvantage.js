@@ -158,24 +158,19 @@ Game_BattlerBase.prototype.advCount = function(target) {
     for (const state in userAdvStates) {
       const evalAdv = eval(state.meta.AdvInflict);
       const evalDis = eval(state.meta.DisInflict);
-      if (!evalAdv) {
-        advCount++;
-      } else if (typeof evalAdv === 'number') {
-        advCount += evalAdv;
-      } else {
-        advCount++;
+      if (!!evalAdv) {
+        if (typeof evalAdv === 'number') {
+          advCount += evalAdv;
+        } else {
+          advCount++;
+        }
       }
-      if (!evalDis) {
-        advCount--;
-      } else if (typeof evalDis === 'number') {
-        advCount -= evalDis;
-      } else {
-        advCount--;
-      }
-      if (typeof state.meta.DisInflict === 'number') {
-        advCount -= state.meta.DisInflict;
-      } else {
-        advCount--;
+      if (!!evalDis) {
+        if (typeof evalDis === 'number') {
+          advCount -= evalDis;
+        } else {
+          advCount--;
+        }
       }
     }
   }
@@ -183,19 +178,19 @@ Game_BattlerBase.prototype.advCount = function(target) {
     for (const state in targetAdvStates) {
       const evalAdv = eval(state.meta.AdvResist);
       const evalDis = eval(state.meta.DisResist);
-      if (!evalAdv) {
-        advCount--;
-      } else if (typeof evalAdv === 'number') {
-        advCount -= state.meta.AdvResist;
-      } else {
-        advCount--;
+      if (!!evalAdv) {
+        if (typeof evalAdv === 'number') {
+          advCount -= evalAdv;
+        } else {
+          advCount--;
+        }
       }
-      if (!evalDis) {
-        advCount++;
-      } else if (typeof evalDis === 'number') {
-        advCount += state.meta.DisResist;
-      } else {
-        advCount++;
+      if (!!evalDis) {
+        if (typeof evalDis === 'number') {
+          advCount += evalDis;
+        } else {
+          advCount++;
+        }
       }
     }
   }
