@@ -341,12 +341,13 @@ Game_Battler.prototype.unhSetOverflow = function(stateId, value) {
   if (typeof value !== 'number') value = 0;
   if (value < 0) value = 0;
   if (stateId === 0) {
-  this._unhOverflow[stateId] = value;
-  if (!!Imported.VisuMZ_1_SkillsStatesCore) {
-    if (value > 0) {
-      this.setStateDisplay(stateId, value);
-    } else {
-      this.clearStateDisplay(stateId);
+    this._unhOverflow[stateId] = value;
+    if (!!Imported.VisuMZ_1_SkillsStatesCore) {
+      if (value > 0) {
+        this.setStateDisplay(stateId, value);
+      } else {
+        this.clearStateDisplay(stateId);
+      }
     }
   }
 };
