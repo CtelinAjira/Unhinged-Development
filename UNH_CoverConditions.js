@@ -43,27 +43,6 @@
  * <Cover Condition: Certain>
  * - Use for States
  * - Affected battler can only cover against the selected hit type
- * 
- * ============================================================================
- * New Functions
- * ============================================================================
- *
- * battler.unhSkillLevel(id)
- * - returns the level in that skill ID
- * battler.unhSkillLevel(id)
- * - returns the level in that skill ID
- * battler.unhSetSkillLevel(id, value)
- * - sets the level in that skill ID to a new value
- * battler.unhAddSkillLevel(id, value)
- * - increases the level in that skill ID by a value
- * battler.unhSkillExp(id)
- * - returns the current skill experience for that skill ID
- * battler.unhSetSkillExp(id, value)
- * - sets the skill experience in that skill ID to a new value
- * - if above EXP to Level, will adjust level accordingly
- * battler.unhAddSkillExp(id, value)
- * - increases the skill experience for that skill ID by a value
- * - if above EXP to Level, will adjust level accordingly
  */
 //=============================================================================
 
