@@ -90,7 +90,9 @@ DataManager.processUnhCoverNotetags = function(group) {
     obj.coverState = 0;
     obj.coverTarget = undefined;
     obj.coverChance = 0;
-    obj.coverAttack = -1;
+    obj.coverPhys = undefined;
+    obj.coverMag = undefined;
+    obj.coverCert = undefined;
     obj.coverRandom = undefined;
     obj.coverDying = undefined;
 
@@ -103,11 +105,13 @@ DataManager.processUnhCoverNotetags = function(group) {
         obj.coverRandom = true;
       }
       if (line.match(/<(?:COVER CONDITION):[ ](?:CERTAIN)>/i)) {
-        obj.coverAttack = 0;
-      } else if (line.match(/<(?:COVER CONDITION):[ ](?:PHYSICAL)>/i)) {
-        obj.coverAttack = 1;
-      } else if (line.match(/<(?:COVER CONDITION):[ ](?:MAGICAL)>/i)) {
-        obj.coverAttack = 2;
+        obj.coverCert = true;
+      }
+      if (line.match(/<(?:COVER CONDITION):[ ](?:PHYSICAL)>/i)) {
+        obj.coverPhys = true;
+      }
+      if (line.match(/<(?:COVER CONDITION):[ ](?:MAGICAL)>/i)) {
+        obj.coverMag = true;
       }
       if (line.match(/<(?:COVER CONDITION):[ ](?:HAS STATE)[ ](\d+)>/i)) {
         obj.coverState = parseInt(RegExp.$1);
@@ -141,15 +145,31 @@ Game_Battler.prototype.coverTarget = function() {
 
 Game_Battler.prototype.coverAttack = function() {
   const states = this.states();
-  let coverAttack = -1;
+  let coverAttack = [];
   for (let i = 0; i < states.length; i++) {
     const state = states[i];
-    if (state.coverAttack >= 0) {
-      coverAttack = state.coverAttack;
-	  break;
+    if (!!state.coverCert) {
+      if (!coverAttack.includes(0)) {
+        coverAttack.push(0);
+      }
+    }
+    if (!!state.coverPhys) {
+      if (!coverAttack.includes(1)) {
+        coverAttack.push(1);
+      }
+    }
+    if (!!state.coverMag) {
+      if (!coverAttack.includes(2)) {
+        coverAttack.push(2);
+      }
+    }
+    if (coverAttack.includes(0) && coverAttack.includes(1) && coverAttack.includes(2)) {
+      break;
     }
   }
-  return coverAttack;
+  return coverAttack.sort(function(a, b) {
+    return a - b;
+  });
 };
 
 Game_Battler.prototype.coverChance = function() {
@@ -223,7 +243,7 @@ BattleManager.checkSubstitute = function(target) {
   const coverRandom = user.coverRandom();
   const coverState = user.coverState();
   const coverSingle = user.coverTarget();
-  const coverHitType = user.coverAttack();
+  const coverHitTypes = user.coverAttack();
   const coverChance = user.coverChance();
   let isCover = coverDying;
   if (isCover) {
@@ -241,14 +261,19 @@ BattleManager.checkSubstitute = function(target) {
       isCover = target.isStateAffected(coverState);
     }
   }
-  if (isCover) {
-    if (coverHitType === 0) {
-      isCover = action.isCertainHit();
-    } else if (coverHitType === 1) {
-      isCover = action.isPhysical();
-    } else if (coverHitType === 2) {
-      isCover = action.Magical();
+  if (isCover && coverHitTypes.length > 0) {
+    let isHitTypeValid = false;
+    for (const hitType of coverHitTypes) {
+      if (hitType === 0) {
+        isHitTypeValid = action.isCertainHit();
+      } else if (hitType === 1) {
+        isHitTypeValid = action.isPhysical();
+      } else if (hitType === 2) {
+        isHitTypeValid = action.isMagical();
+      }
+      if (!!isHitTypeValid) break;
     }
+    isCover = isHitTypeValid;
   }
   if (isCover) {
     isCover = coverChance;
