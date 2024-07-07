@@ -43,7 +43,6 @@
  * <Cover Condition: Certain>
  * - Use for States
  * - Affected battler can only cover against the selected hit type
- *   - Only one at a time
  * 
  * ============================================================================
  * New Functions
