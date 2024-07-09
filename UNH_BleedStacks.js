@@ -446,16 +446,16 @@ Game_Battler.prototype.addState = function(stateId) {
   var meta = $dataStates[stateId].meta;
   if (!!meta) {
     if (!!meta.UnhOverheal) {
-      this.unhSetOverheal(stateId, eval($dataStates[stateId].meta.UnhOverheal));
-      this.unhSetMaxOverheal(stateId, Math.max(eval($dataStates[stateId].meta.UnhOverheal), this.unhOverheal()));
+      this.unhSetOverheal(stateId, eval(meta.UnhOverheal));
+      this.unhSetMaxOverheal(stateId, Math.max(eval(meta.UnhOverheal), this.unhOverheal()));
     }
     if (!!meta.UnhOverflow) {
-      this.unhSetOverflow(stateId, eval($dataStates[stateId].meta.UnhOverflow));
-      this.unhSetMaxOverflow(stateId, Math.max(eval($dataStates[stateId].meta.UnhOverflow), this.unhOverflow()));
+      this.unhSetOverflow(stateId, eval(meta.UnhOverflow));
+      this.unhSetMaxOverflow(stateId, Math.max(eval(meta.UnhOverflow), this.unhOverflow()));
     }
     if (!!meta.UnhBleed) {
-      this.unhSetBleed(stateId, eval($dataStates[stateId].meta.UnhBleed));
-      this.unhSetMaxBleed(stateId, Math.max(eval($dataStates[stateId].meta.UnhBleed), this.unhBleed()));
+      this.unhSetBleed(stateId, eval(meta.UnhBleed));
+      this.unhSetMaxBleed(stateId, Math.max(eval(meta.UnhBleed), this.unhBleed()));
     }
   }
 };
