@@ -403,6 +403,19 @@ Game_BattlerBase.prototype.overflowStates = function() {
   });
 };
 
+Game_Battler.prototype.applyBleed = function(value) {
+  var bleedStates = target.bleedStates();
+  var bleedStatesTemp = JsonEx.makeDeepCopy(bleedStates);
+  for (var state of bleedStatesTemp) {
+    var offset = Math.min(this.unhOverheal(state.id), Math.abs(value));
+    value -= offset;
+    this.unhAddOverheal(state.id, -offset);
+    if (value <= 0) break;
+    if (target.unhOverheal(state.id) <= 0) continue;
+  }
+  return value;
+};
+
 UNH_BleedStacks.Battler_addState = Game_Battler.prototype.addState;
 Game_Battler.prototype.addState = function(stateId) {
   var user = this;
@@ -468,7 +481,7 @@ Game_Action.prototype.executeHpDamage = function(target, value) {
       value += offset;
       target.unhAddBleed(state.id, -offset);
       if (value >= 0) break;
-      if (target.unhBleed(state.id) <= 0) break;
+      if (target.unhBleed(state.id) <= 0) continue;
     }
   }
   var popupValue = Math.abs(oldValue - value);
@@ -508,7 +521,7 @@ Game_Action.prototype.executeMpDamage = function(target, value) {
       value -= offset;
       target.unhAddOverflow(state.id, -offset);
       if (value <= 0) break;
-      if (target.unhOverflow(state.id) <= 0) break;
+      if (target.unhOverflow(state.id) <= 0) continue;
     }
   }
   var popupValue = Math.abs(oldValue - value);
