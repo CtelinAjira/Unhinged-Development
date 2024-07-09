@@ -407,6 +407,19 @@ Game_Battler.prototype.applyBleed = function(value) {
   var bleedStates = target.bleedStates();
   var bleedStatesTemp = JsonEx.makeDeepCopy(bleedStates);
   for (var state of bleedStatesTemp) {
+    var offset = Math.min(this.unhBleed(state.id), Math.abs(value));
+    value -= offset;
+    this.unhAddBleed(state.id, -offset);
+    if (value <= 0) break;
+    if (target.unhBleed(state.id) <= 0) continue;
+  }
+  return value;
+};
+
+Game_Battler.prototype.applyOverheal = function(value) {
+  var overhealStates = target.overhealStates();
+  var overhealStatesTemp = JsonEx.makeDeepCopy(overhealStates);
+  for (var state of overhealStatesTemp) {
     var offset = Math.min(this.unhOverheal(state.id), Math.abs(value));
     value -= offset;
     this.unhAddOverheal(state.id, -offset);
