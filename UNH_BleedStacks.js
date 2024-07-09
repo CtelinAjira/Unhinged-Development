@@ -404,6 +404,7 @@ Game_BattlerBase.prototype.overflowStates = function() {
 };
 
 Game_Battler.prototype.applyBleed = function(value, states) {
+  if (states === undefined) states = JsonEx.makeDeepCopy(this.bleedStates());
   for (var state of states) {
     var offset = Math.min(target.unhBleed(state.id), Math.abs(value));
     value -= offset;
@@ -415,6 +416,7 @@ Game_Battler.prototype.applyBleed = function(value, states) {
 };
 
 Game_Battler.prototype.applyOverheal = function(value, states) {
+  if (states === undefined) states = JsonEx.makeDeepCopy(this.overhealStates());
   for (var state of states) {
     var offset = Math.min(target.unhOverheal(state.id), Math.abs(value));
     value -= offset;
@@ -426,7 +428,8 @@ Game_Battler.prototype.applyOverheal = function(value, states) {
 };
 
 Game_Battler.prototype.applyOverflow = function(value, states) {
-  for (var state of overhealStatesTemp) {
+  if (states === undefined) states = JsonEx.makeDeepCopy(this.overflowStates());
+  for (var state of states) {
     var offset = Math.min(this.unhOverflow(state.id), Math.abs(value));
     value -= offset;
     this.unhAddOverflow(state.id, -offset);
