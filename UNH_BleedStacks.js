@@ -403,28 +403,35 @@ Game_BattlerBase.prototype.overflowStates = function() {
   });
 };
 
-Game_Battler.prototype.applyBleed = function(value) {
-  var bleedStates = target.bleedStates();
-  var bleedStatesTemp = JsonEx.makeDeepCopy(bleedStates);
-  for (var state of bleedStatesTemp) {
-    var offset = Math.min(this.unhBleed(state.id), Math.abs(value));
+Game_Battler.prototype.applyBleed = function(value, states) {
+  for (var state of states) {
+    var offset = Math.min(target.unhBleed(state.id), Math.abs(value));
     value -= offset;
-    this.unhAddBleed(state.id, -offset);
+    target.unhAddBleed(state.id, -offset);
     if (value <= 0) break;
     if (target.unhBleed(state.id) <= 0) continue;
   }
   return value;
 };
 
-Game_Battler.prototype.applyOverheal = function(value) {
-  var overhealStates = target.overhealStates();
-  var overhealStatesTemp = JsonEx.makeDeepCopy(overhealStates);
-  for (var state of overhealStatesTemp) {
-    var offset = Math.min(this.unhOverheal(state.id), Math.abs(value));
+Game_Battler.prototype.applyOverheal = function(value, states) {
+  for (var state of states) {
+    var offset = Math.min(target.unhOverheal(state.id), Math.abs(value));
     value -= offset;
-    this.unhAddOverheal(state.id, -offset);
+    target.unhAddOverheal(state.id, -offset);
     if (value <= 0) break;
-    if (target.unhOverheal(state.id) <= 0) continue;
+    if (target.unhOverheal(state.id) <= 0) break;
+  }
+  return value;
+};
+
+Game_Battler.prototype.applyOverflow = function(value, states) {
+  for (var state of overhealStatesTemp) {
+    var offset = Math.min(this.unhOverflow(state.id), Math.abs(value));
+    value -= offset;
+    this.unhAddOverflow(state.id, -offset);
+    if (value <= 0) break;
+    if (target.unhOverflow(state.id) <= 0) continue;
   }
   return value;
 };
@@ -480,22 +487,10 @@ Game_Action.prototype.executeHpDamage = function(target, value) {
   var bleedStatesTemp = JsonEx.makeDeepCopy(bleedStates);
   var overhealStatesTemp = JsonEx.makeDeepCopy(overhealStates);
   if (value > 0 && !this.unhIgnoreOverheal() && !user.unhIgnoreOverheal()) {
-    for (var state of overhealStatesTemp) {
-      var offset = Math.min(target.unhOverheal(state.id), Math.abs(value));
-      value -= offset;
-      target.unhAddOverheal(state.id, -offset);
-      if (value <= 0) break;
-      if (target.unhOverheal(state.id) <= 0) break;
-    }
+    value = target.applyOverheal(value, overhealStatesTemp);
   }
   if (value < 0 && !this.unhIgnoreBleed() && !user.unhIgnoreBleed()) {
-    for (var state of bleedStatesTemp) {
-      var offset = Math.min(target.unhBleed(state.id), Math.abs(value));
-      value += offset;
-      target.unhAddBleed(state.id, -offset);
-      if (value >= 0) break;
-      if (target.unhBleed(state.id) <= 0) continue;
-    }
+    value = -target.applyBleed(-value, bleedStatesTemp);
   }
   var popupValue = Math.abs(oldValue - value);
   if (oldValue > 0) {
@@ -529,13 +524,7 @@ Game_Action.prototype.executeMpDamage = function(target, value) {
   var overflowStates = target.overflowStates();
   var overflowStatesTemp = JsonEx.makeDeepCopy(overflowStates);
   if (value > 0 && !this.unhIgnoreOverflow() && !user.unhIgnoreOverflow()) {
-    for (var state of overflowStatesTemp) {
-      var offset = Math.min(target.unhOverflow(state.id), Math.abs(value));
-      value -= offset;
-      target.unhAddOverflow(state.id, -offset);
-      if (value <= 0) break;
-      if (target.unhOverflow(state.id) <= 0) continue;
-    }
+    value = target.applyOverflow(value, overflowStatesTemp);
   }
   var popupValue = Math.abs(oldValue - value);
   if (oldValue > 0) {
