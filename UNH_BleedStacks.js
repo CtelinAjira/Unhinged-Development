@@ -422,7 +422,7 @@ Game_Battler.prototype.applyOverheal = function(value, states) {
     value -= offset;
     target.unhAddOverheal(state.id, -offset);
     if (value <= 0) break;
-    if (target.unhOverheal(state.id) <= 0) break;
+    if (target.unhOverheal(state.id) <= 0) continue;
   }
   return value;
 };
@@ -495,13 +495,6 @@ Game_Action.prototype.executeHpDamage = function(target, value) {
   if (value < 0 && !this.unhIgnoreBleed() && !user.unhIgnoreBleed()) {
     value = -target.applyBleed(-value, bleedStatesTemp);
   }
-  var popupValue = Math.abs(oldValue - value);
-  if (oldValue > 0) {
-    //for later when I figure out the Open Sorcery that is UI
-  }
-  if (oldValue < 0) {
-    //for later when I figure out the Open Sorcery that is UI
-  }
   UNH_BleedStacks.Action_executeHpDamage.call(this, target, value);
   if (bleedStatesTemp.length > 0) {
     for (var state of bleedStatesTemp) {
@@ -528,13 +521,6 @@ Game_Action.prototype.executeMpDamage = function(target, value) {
   var overflowStatesTemp = JsonEx.makeDeepCopy(overflowStates);
   if (value > 0 && !this.unhIgnoreOverflow() && !user.unhIgnoreOverflow()) {
     value = target.applyOverflow(value, overflowStatesTemp);
-  }
-  var popupValue = Math.abs(oldValue - value);
-  if (oldValue > 0) {
-    //for later when I figure out the Open Sorcery that is UI
-  }
-  if (oldValue < 0) {
-    //for later when I figure out the Open Sorcery that is UI
   }
   UNH_BleedStacks.Action_executeMpDamage.call(this, target, value);
   if (overflowStatesTemp.length > 0) {
