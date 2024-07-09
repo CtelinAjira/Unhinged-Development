@@ -18,8 +18,7 @@
  * - Use for Actors
  * - Actor takes X experience to level up (JavaScript)
  *   - user - the actor in question
- *   - level - the target level
- *   - currentLevel - the actor's current level
+ *   - level - the next level
  * - CASE SENSITIVE
  *
  * Example: 
@@ -40,6 +39,6 @@ Game_Actor.prototype.expForLevel = function(level) {
     return UNH_LevelCurves.Actor_expForLevel.call(this, level);
   }
   const user = this;
-  let currentLevel = level - 1;
+  level = level - 1;
   return eval(this.actor().meta.ExpToNext) * currentLevel;
 };
