@@ -15,7 +15,7 @@
  * @text Base Aggro
  * @desc The aggro value that corresponds to 100% TGR
  * @type string
- * @default 50 * user.mhp / currentClass.params[0][1];
+ * @default 50 * user.mhp / currentClass.params[0][1]
  *
  * @param HurtingAggro
  * @text Hurting Aggro
@@ -186,7 +186,7 @@ Game_BattlerBase.prototype.unhAggroRate = function() {
     if (!state.meta) continue;
     if (!state.meta.unhAggroRate) continue;
     if (typeof state.meta.unhAggroRate !== 'number') continue;
-    aggroPlus *= state.meta.unhAggroRate;
+    aggroRate *= state.meta.unhAggroRate;
   }
   return aggroRate;
 };
@@ -196,7 +196,7 @@ Game_Enemy.prototype.unhAggroRate = function() {
   if (!!this.enemy().meta) {
     if (!!this.enemy().meta.unhAggroRate) {
       if (typeof this.enemy().meta.unhAggroRate !== 'number') {
-        aggroRate += this.enemy().meta.unhAggroRate;
+        aggroRate *= this.enemy().meta.unhAggroRate;
       }
     }
   }
@@ -208,7 +208,7 @@ Game_Actor.prototype.unhAggroRate = function() {
   if (!!this.actor().meta) {
     if (!!this.actor().meta.unhAggroRate) {
       if (typeof this.actor().meta.unhAggroRate !== 'number') {
-        aggroRate += this.actor().meta.unhAggroRate;
+        aggroRate *= this.actor().meta.unhAggroRate;
       }
     }
   }
@@ -216,7 +216,7 @@ Game_Actor.prototype.unhAggroRate = function() {
     if (!equip.meta) continue;
     if (!equip.meta.unhAggroRate) continue;
     if (typeof equip.meta.unhAggroRate !== 'number') continue;
-    aggroRate += equip.meta.unhAggroRate;
+    aggroRate *= equip.meta.unhAggroRate;
   }
   return aggroRate;
 };
@@ -227,7 +227,7 @@ Game_Action.prototype.unhAggroRate = function() {
   if (!!item.meta) {
     if (!!item.meta.unhAggroRate) {
       if (typeof item.meta.unhAggroRate !== 'number'){
-        aggroRate += item.meta.unhAggroRate;
+        aggroRate *= item.meta.unhAggroRate;
       }
     }
   }
