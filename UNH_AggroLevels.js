@@ -8,7 +8,7 @@
  * @target MZ
  * @orderAfter UNH_BleedStacks
  * @orderAfter VisuMZ_0_CoreEngine
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [AggroLevels]
+ * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [AggroLevels]
  * @author Unhinged Developer
  *
  * @param BaseAggro
@@ -62,6 +62,15 @@
  * - Use for Actors/Skills/Weapons/Armors/Enemies/States
  * - Manipulates TGR changes (X is a Number)
  *   - delta_TGR = ((damage_dealt + unhAggroPlus) * unhAggroRate) + unhAggroFlat
+ * <unhAddUserAggro:X>
+ * - Use for Skills
+ * - Adds X to the user's aggro (X is a JS formula)
+ *   - user - the user
+ * <unhAddTargetAggro:X>
+ * - Use for Skills
+ * - Adds X to the target's aggro (X is a JS formula)
+ *   - user - the user
+ *   - target - the target
  * 
  * ============================================================================
  * New Functions
@@ -328,6 +337,22 @@ UNH_AggroLevels.Battler_onBattleEnd = Game_Battler.prototype.onBattleEnd;
 Game_Battler.prototype.onBattleEnd = function() {
   UNH_AggroLevels.Battler_onBattleEnd.call(this);
   this.unhInitAggro();
+};
+
+UNH_AggroLevels.Action_apply = Game_Action.prototype.apply;
+Game_Action.prototype.apply = function(target) {
+  const action = this;
+  const item = this.item();
+  const user = this.subject();
+  if (!!item.meta) {
+    if (!!item.meta.unhAddUserAggro) {
+      user.unhAddAggro(eval(item.meta.unhAddUserAggro));
+    }
+    if (!!item.meta.unhAddTargetAggro) {
+      target.unhAddAggro(eval(item.meta.unhAddTargetAggro));
+    }
+  }
+  UNH_AggroLevels.Action_apply.call(this);
 };
 
 UNH_AggroLevels.Action_executeHpDamage = Game_Action.prototype.executeHpDamage;
