@@ -76,6 +76,10 @@
  * New Functions
  * ============================================================================
  *
+ * unit.unhMaxAggro()
+ * - returns the highest aggro total for the party
+ * battler.unhAggroBase()
+ * - returns the current aggro total for the battler
  * battler.unhAggroPlus()
  * action.unhAggroPlus()
  * - returns the current total for (unhAggroPlus)
@@ -130,17 +134,17 @@ Game_BattlerBase.prototype.unhInitAggro = function() {
   this._unhAggroBase = this.unhDefaultAggro();
 };
 
-Game_Unit.prototype.unhMaxAggro = function() {
-  let maxAggro = 0;
-  for (const member of this.aliveMembers()) {
-    maxAggro = Math.max(member.unhInitAggro(), maxAggro);
-  }
-  return maxAggro;
-};
-
 Game_BattlerBase.prototype.unhAggroBase = function() {
   if (this._unhAggroBase === undefined) this.unhInitAggro();
   return this._unhAggroBase;
+};
+
+Game_Unit.prototype.unhMaxAggro = function() {
+  let maxAggro = 0;
+  for (const member of this.aliveMembers()) {
+    maxAggro = Math.max(member.unhAggroBase(), maxAggro);
+  }
+  return maxAggro;
 };
 
 Game_BattlerBase.prototype.unhAggroPlus = function() {
