@@ -130,6 +130,14 @@ Game_BattlerBase.prototype.unhInitAggro = function() {
   this._unhAggroBase = this.unhDefaultAggro();
 };
 
+Game_Unit.prototype.unhMaxAggro = function() {
+  let maxAggro = 0;
+  for (const member of this.aliveMembers()) {
+    maxAggro = Math.max(member.unhInitAggro(), maxAggro);
+  }
+  return maxAggro;
+};
+
 Game_BattlerBase.prototype.unhAggroBase = function() {
   if (this._unhAggroBase === undefined) this.unhInitAggro();
   return this._unhAggroBase;
