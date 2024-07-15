@@ -357,6 +357,7 @@ Game_Action.prototype.apply = function(target) {
   const action = this;
   const item = this.item();
   const user = this.subject();
+  UNH_AggroLevels.Action_apply.call(this);
   if (!!item.meta) {
     if (!!item.meta.unhAddUserAggro) {
       user.unhAddAggro(eval(item.meta.unhAddUserAggro), false);
@@ -365,7 +366,6 @@ Game_Action.prototype.apply = function(target) {
       target.unhAddAggro(eval(item.meta.unhAddTargetAggro), false);
     }
   }
-  UNH_AggroLevels.Action_apply.call(this);
 };
 
 UNH_AggroLevels.Action_executeHpDamage = Game_Action.prototype.executeHpDamage;
