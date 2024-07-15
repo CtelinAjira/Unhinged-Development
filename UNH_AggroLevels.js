@@ -76,8 +76,9 @@
  * New Functions
  * ============================================================================
  *
- * unit.unhMaxAggro()
- * - returns the highest aggro total for the party
+ * $gameParty.unhMaxAggro()
+ * $gameTroop.unhMaxAggro()
+ * - returns the highest aggro total for the chosen unit
  * battler.unhAggroBase()
  * - returns the current aggro total for the battler
  * battler.unhAggroPlus()
