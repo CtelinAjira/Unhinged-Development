@@ -62,8 +62,6 @@
  * - returns the maximum level for that skill ID
  * battler.unhSkillLevel(id)
  * - returns the level in that skill ID
- * battler.unhSkillLevel(id)
- * - returns the level in that skill ID
  * battler.unhSetSkillLevel(id, value)
  * - sets the level in that skill ID to a new value
  * battler.unhAddSkillLevel(id, value)
