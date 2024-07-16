@@ -22,6 +22,7 @@
 
 const UNH_FleeSwitch = {};
 UNH_FleeSwitch.pluginName = 'UNH_FleeSwitch';
+UNH_FleeSwitch.parameters = PluginManager.parameters(UNH_FleeSwitch.pluginName);
 UNH_FleeSwitch.FleeSwitchID = Number(UNH_FleeSwitch.parameters['FleeSwitchID'] || 0);
 
 UNH_FleeSwitch.processEscape = BattleManager.processEscape;
