@@ -16,104 +16,93 @@
 const UNH_ForceMetaReadable = {};
 UNH_ForceMetaReadable.pluginName = 'UNH_ForceMetaReadable';
 
-UNH_ForceMetaReadable.Actors_actor = Game_Actors.prototype.actor;
-Game_Actors.prototype.actor = function(actorId) {
-  const actor = UNH_ForceMetaReadable.Actors_actor.call(this, actorId);
-  if (actor !== null) {
-    if (!$dataActors[actorId].meta) {
-      DataManager.extractMetadata($dataActors[actorId]);
-      actor.meta = {};
-      for (const [key, value] of Object.entries($dataActors[actorId].meta)) {
-        actor.meta[key] = value;
+Object.defineProperty(Game_Actor.prototype, 'meta', {
+    get: function() {
+        return this.getMeta();
+    },
+    configurable: true
+});
+
+Object.defineProperty(Game_Enemy.prototype, 'meta', {
+    get: function() {
+        return this.getMeta();
+    },
+    configurable: true
+});
+
+Object.defineProperty(Game_Item.prototype, 'meta', {
+    get: function() {
+        return this.getMeta();
+    },
+    configurable: true
+});
+
+Object.defineProperty(Game_Action.prototype, 'meta', {
+    get: function() {
+        return this.getMeta();
+    },
+    configurable: true
+});
+
+UNH_ForceMetaReadable.concatMetadata = function(obj, meta) {
+  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+  if (obj !== undefined) {
+    if (obj !== null) {
+      DataManager.extractMetadata(obj);
+      for (const [key, value] of Object.entries(obj.meta)) {
+        if (meta[key] !== undefined) {
+          if (typeof meta[key] === 'number') {
+            meta[key] += value;
+          } else {
+            meta[key] = value;
+          }
+        } else {
+          meta[key] = value;
+        }
       }
     }
   }
-  return actor;
+  return meta;
 };
 
-UNH_ForceMetaReadable.Battler_onBattleStart = Game_Battler.prototype.onBattleStart;
-Game_Battler.prototype.onBattleStart = function(advantageous) {
-  UNH_ForceMetaReadable.Battler_onBattleStart.call(this, advantageous);
-  if (this.isEnemy()) {
-    if (!this.enemy().meta) {
-      DataManager.extractMetadata(this.enemy());
-      this.meta = {};
-      for (const [key, value] of Object.entries(this.enemy().meta)) {
-        this.meta[key] = value;
-      }
-    }
+Game_BattlerBase.prototype.getMeta = function(meta) {
+  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+  for (const state of this.states()) {
+    meta = UNH_ForceMetaReadable.concatMetadata(state, meta);
   }
+  return meta;
 };
 
-UNH_ForceMetaReadable.Item_setObject = Game_Item.prototype.setObject;
-Game_Item.prototype.setObject = function(item) {
-  UNH_ForceMetaReadable.Item_setObject.call(this, item);
-  if (item) {
-    if (!item.meta) {
-      DataManager.extractMetadata(item);
-      this.meta = {};
-      for (const [key, value] of Object.entries(item.meta)) {
-        this.meta[key] = value;
-      }
-    }
-  }
+Game_Enemy.prototype.getMeta = function(meta) {
+  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+  meta = UNH_ForceMetaReadable.concatMetadata(this.enemy(), meta);
+  return Game_BattlerBase.prototype.getMeta.call(this, meta);
 };
 
-UNH_ForceMetaReadable.Item_setEquip = Game_Item.prototype.setEquip;
-Game_Item.prototype.setEquip = function(isWeapon, itemId) {
-  UNH_ForceMetaReadable.Item_setEquip.call(this, isWeapon, itemId);
-  const item = isWeapon ? $dataWeapons[itemId] : $dataArmors[itemId];
-  if (item) {
-    if (!item.meta) {
-      DataManager.extractMetadata(item);
-      this.meta = {};
-      for (const [key, value] of Object.entries(item.meta)) {
-        this.meta[key] = value;
-      }
-    }
+Game_Actor.prototype.getMeta = function(meta) {
+  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+  meta = UNH_ForceMetaReadable.concatMetadata(this.actor(), meta);
+  meta = UNH_ForceMetaReadable.concatMetadata(this.currentClass(), meta);
+  for (const equip of this.equips()) {
+    meta = UNH_ForceMetaReadable.concatMetadata(equip, meta);
   }
+  return Game_BattlerBase.prototype.getMeta.call(this, meta);
 };
 
-UNH_ForceMetaReadable.Action_setItem = Game_Action.prototype.setItem;
-Game_Action.prototype.setItem = function(itemId) {
-  UNH_ForceMetaReadable.Action_setItem.call(this, itemId);
-  const item = $dataItems[itemId];
-  if (item) {
-    if (!item.meta) {
-      DataManager.extractMetadata(item);
-      this.meta = {};
-      for (const [key, value] of Object.entries(item.meta)) {
-        this.meta[key] = value;
-      }
-    }
+Game_Item.prototype.getMeta = function(meta) {
+  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+  const item = this.object();
+  if (item !== null) {
+    meta = UNH_ForceMetaReadable.concatMetadata(item, meta);
   }
+  return meta;
 };
 
-UNH_ForceMetaReadable.Action_setSkill = Game_Action.prototype.setSkill;
-Game_Action.prototype.setSkill = function(skillId) {
-  UNH_ForceMetaReadable.Action_setSkill.call(this, skillId);
-  const item = $dataSkills[skillId];
-  if (item) {
-    if (!item.meta) {
-      DataManager.extractMetadata(item);
-      this.meta = {};
-      for (const [key, value] of Object.entries(item.meta)) {
-        this.meta[key] = value;
-      }
-    }
+Game_Action.prototype.getMeta = function(meta) {
+  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+  const item = this.item();
+  if (item !== null) {
+    meta = UNH_ForceMetaReadable.concatMetadata(item, meta);
   }
-};
-
-UNH_ForceMetaReadable.Action_setItemObject = Game_Action.prototype.setItemObject;
-Game_Action.prototype.setItemObject = function(object) {
-  UNH_ForceMetaReadable.Action_setItemObject.call(this, object);
-  if (object) {
-    if (!object.meta) {
-      DataManager.extractMetadata(object);
-      this.meta = {};
-      for (const [key, value] of Object.entries(object.meta)) {
-        this.meta[key] = value;
-      }
-    }
-  }
+  return meta;
 };
