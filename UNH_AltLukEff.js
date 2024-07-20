@@ -6,14 +6,14 @@
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [AltLukEff]
+ * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [AltLukEff]
  * @author Unhinged Developer
  *
  * @param LukEffect
  * @text LUK Effect
  * @desc The new code when lukEffectRate is called
- * @type note
- * @default "const user = this.subject();\nconst lukDiff = user.luk - target.luk;\n\nreturn Math.max(1.0 + (lukDiff * 0.001), 0.0);"
+ * @type string
+ * @default 1 + ((user.luk - target.luk) * 0.001)
  *
  * @help
  */
@@ -29,5 +29,7 @@ Game_Action.prototype.lukEffectRate = function(target) {
   if (UNH_AltLukEff.LukEffect === '') {
     return UNH_AltLukEff.Action_lukEffectRate.call(this);
   }
-  eval(UNH_AltLukEff.LukEffect);
+  const user = this.subject();
+  const lukDiff = user.luk - target.luk;
+  return Math.max(eval(UNH_AltLukEff.LukEffect), 0);
 };
