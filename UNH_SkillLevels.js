@@ -6,7 +6,7 @@
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [SkillLevels]
+ * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [SkillLevels]
  * @author Unhinged Developer
  *
  * @param PluginMode
@@ -28,6 +28,68 @@
  * @desc The required skill experience amount per skill level
  * @type string
  * @default 100
+ *
+ * @command AlterLevel
+ * @text Alter Level
+ * @desc Alter an actor's level to a number
+ *
+ * @arg actorArr
+ * @text Actors
+ * @type actor[]
+ * @desc The actors being altered
+ * @default 0
+ *
+ * @arg skillArr
+ * @text Skills
+ * @type skill[]
+ * @desc The skills getting level changes
+ * @default 0
+ *
+ * @arg targetLevel
+ * @text Level
+ * @type number
+ * @desc The number of levels being worked with
+ * @default 0
+ *
+ * @arg mathAction
+ * @text Operation
+ * @type select
+ * @desc The operation of Level onto Skill
+ * @option Set (=)
+ * @option Add (+)
+ * @option Sub (-)
+ * @default Set (=)
+ *
+ * @command AlterExp
+ * @text Alter Experience
+ * @desc Alter an actor's skill EXP to a number
+ *
+ * @arg actorArr
+ * @text Actors
+ * @type actor[]
+ * @desc The actors being altered
+ * @default 0
+ *
+ * @arg skillArr
+ * @text Skills
+ * @type skill[]
+ * @desc The skills getting level changes
+ * @default 0
+ *
+ * @arg targetExp
+ * @text EXP
+ * @type number
+ * @desc The number of EXP being worked with
+ * @default 0
+ *
+ * @arg mathAction
+ * @text Operation
+ * @type select
+ * @desc The operation of Level onto Skill
+ * @option Set (=)
+ * @option Add (+)
+ * @option Sub (-)
+ * @default Set (=)
  *
  * @help
  * ============================================================================
@@ -162,23 +224,89 @@ DataManager.processUnhSkillExpNotetags = function(group) {
   }
 };
 
-UNH_SkillLevels.Actors_actor = Game_Actors.prototype.actor;
+PluginManager.registerCommand(UNH_SkillLevels.pluginName, "AlterLevel", function(args) {
+  const actorArr = args.actorArr;
+  if (actorArr === undefined) return;
+  if (!Array.isArray(actorArr)) return;
+  if (actorArr.length <= 0) return;
+  const actors = [];
+  for (const actorId of actorArr) {
+    actors.push($gameActors.actor(actorId));
+  }
+  const skillArr = args.skillArr;
+  if (skillArr === undefined) return;
+  if (!Array.isArray(skillArr)) return;
+  if (skillArr.length <= 0) return;
+  let targetLevel = 0;
+  const mathAction = args.mathAction.toUpperCase().trim();
+  for (const actor of actors) {
+    if (mathAction === 'ADD (+)') {
+      targetLevel = Math.min(Math.max(args.targetLevel, 0), actor.unhMaxSkillLevel(skillId) - actor.unhSkillExp(skillId));
+      for (const skillId of skillArr) {
+        actor.unhAddSkillLevel(skillId, targetLevel);
+      }
+    } else if (mathAction === 'SUB (-)') {
+      targetLevel = Math.min(Math.max(args.targetLevel, 0), actor.unhSkillExp(skillId));
+      for (const skillId in skillArr) {
+        actor.unhAddSkillLevel(skillId, -targetLevel);
+      }
+    } else {
+      targetLevel = Math.min(Math.max(args.targetLevel, 0), actor.unhMaxSkillLevel(skillId));
+      for (const skillId in skillArr) {
+        actor.unhSetSkillLevel(skillId, targetLevel);
+      }
+    }
+  }
+});
+
+PluginManager.registerCommand(UNH_SkillLevels.pluginName, "AlterExp", function(args) {
+  const actorArr = args.actorArr;
+  if (actorArr === undefined) return;
+  if (!Array.isArray(actorArr)) return;
+  if (actorArr.length <= 0) return;
+  const actors = [];
+  for (const actorId of actorArr) {
+    actors.push($gameActors.actor(actorId));
+  }
+  const skillArr = args.skillArr;
+  if (skillArr === undefined) return;
+  if (!Array.isArray(skillArr)) return;
+  if (skillArr.length <= 0) return;
+  let targetExp = 0;
+  const mathAction = args.mathAction.toUpperCase().trim();
+  for (const actor of actors) {
+    if (mathAction === 'ADD (+)') {
+      targetExp = Math.min(Math.max(args.targetExp, 0), actor.unhExpToLevel(skillId) - actor.unhSkillLevel(skillId));
+      for (const skillId of skillArr) {
+        actor.unhAddSkillExp(skillId, targetExp);
+      }
+    } else if (mathAction === 'SUB (-)') {
+      targetExp = Math.min(Math.max(args.targetExp, 0), actor.unhSkillLevel(skillId));
+      for (const skillId in skillArr) {
+        actor.unhAddSkillExp(skillId, -targetExp);
+      }
+    } else {
+      targetExp = Math.min(Math.max(args.targetExp, 0), actor.unhExpToLevel(skillId));
+      for (const skillId in skillArr) {
+        actor.unhSetSkillExp(skillId, targetExp);
+      }
+    }
+  }
+});
+
+/*UNH_SkillLevels.Actors_actor = Game_Actors.prototype.actor;
 Game_Actors.prototype.actor = function(actorId) {
   actor = UNH_SkillLevels.Actors_actor.call(this, actorId);
   if (actor !== null) {
-    if (!actor._unhIsSkillInit) {
-      actor.unhInitSkillLevels();
-    }
+    actor.unhInitSkillLevels();
   }
   return actor;
 };
 
 Game_Enemy.prototype.onBattleStart = function(advantageous) {
   Game_Battler.prototype.onBattleStart.call(this, advantageous);
-  if (!this._unhIsSkillInit) {
-    this.unhInitSkillLevels();
-  }
-};
+  this.unhInitSkillLevels();
+};*/
 
 Game_BattlerBase.prototype.unhMaxSkillLevel = function(index) {
   if (index === undefined) index = 0;
@@ -200,26 +328,34 @@ Game_BattlerBase.prototype.unhExpToLevel = function(index, level) {
 };
 
 Game_BattlerBase.prototype.unhInitSkillLevels = function() {
+  const isInit = !!this._unhIsSkillInit;
+  if (!isInit) this._unhSkillLevel = [];
   this._unhIsSkillInit = true;
-  this._unhSkillLevel = [];
+  return isInit;
 };
 
 Game_Enemy.prototype.unhInitSkillLevels = function() {
-  Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
-  for (const r of this.enemy().levels) {
-    this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+  const isInit = Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
+  if (!isInit) {
+    for (const r of this.enemy().levels) {
+      this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+    }
   }
+  return isInit;
 };
 
 Game_Actor.prototype.unhInitSkillLevels = function() {
-  Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
-  for (const r of this.actor().levels) {
-    this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+  const isInit = Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
+  if (!isInit) {
+    for (const r of this.actor().levels) {
+      this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+    }
   }
+  return isInit;
 };
 
 Game_BattlerBase.prototype.unhSkillLevel = function(index) {
-  if (this._unhSkillLevel === undefined) this.unhInitSkillLevels();
+  this.unhInitSkillLevels();
   if (index === undefined) index = 0;
   index = index % $dataSkills.length;
   if (this._unhSkillLevel[index] === undefined) {
@@ -230,7 +366,7 @@ Game_BattlerBase.prototype.unhSkillLevel = function(index) {
 };
 
 Game_BattlerBase.prototype.unhSetSkillLevel = function(index, value) {
-  if (this._unhSkillLevel === undefined) this.unhInitSkillLevels();
+  this.unhInitSkillLevels();
   if (index === undefined) index = 0;
   index = index % $dataSkills.length;
   if (value === undefined) value = 0;
@@ -248,7 +384,7 @@ Game_BattlerBase.prototype.unhAddSkillLevel = function(index, value) {
 };
 
 Game_BattlerBase.prototype.unhSkillExp = function(index) {
-  if (this._unhSkillLevel === undefined) this.unhInitSkillLevels();
+  this.unhInitSkillLevels();
   if (index === undefined) index = 0;
   index = index % $dataSkills.length;
   if (this._unhSkillLevel[index] === undefined) {
@@ -259,7 +395,7 @@ Game_BattlerBase.prototype.unhSkillExp = function(index) {
 };
 
 Game_BattlerBase.prototype.unhSetSkillExp = function(index, value) {
-  if (this._unhSkillLevel === undefined) this.unhInitSkillLevels();
+  this.unhInitSkillLevels();
   if (index === undefined) index = 0;
   index = index % $dataSkills.length;
   if (value === undefined) value = 0;
@@ -290,8 +426,10 @@ UNH_SkillLevels.Action_apply = Game_Action.prototype.apply;
 Game_Action.prototype.apply = function(target) {
   UNH_SkillLevels.Action_apply.call(this, target);
   if (UNH_SkillLevels.PluginMode) {
-    const user = this.subject();
-    const item = this.item();
-    user.unhAddSkillExp(item.id, 1);
+    if (this.isSkill()) {
+      const user = this.subject();
+      const item = this.item();
+      user.unhAddSkillExp(item.id, 1);
+    }
   }
 };
