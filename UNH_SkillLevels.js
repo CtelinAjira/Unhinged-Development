@@ -6,7 +6,7 @@
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [SkillLevels]
+ * @plugindesc [RPG Maker MZ] [Version 1.02] [Unhinged] [SkillLevels]
  * @author Unhinged Developer
  *
  * @param PluginMode
@@ -294,7 +294,7 @@ PluginManager.registerCommand(UNH_SkillLevels.pluginName, "AlterExp", function(a
   }
 });
 
-/*UNH_SkillLevels.Actors_actor = Game_Actors.prototype.actor;
+UNH_SkillLevels.Actors_actor = Game_Actors.prototype.actor;
 Game_Actors.prototype.actor = function(actorId) {
   actor = UNH_SkillLevels.Actors_actor.call(this, actorId);
   if (actor !== null) {
@@ -303,10 +303,11 @@ Game_Actors.prototype.actor = function(actorId) {
   return actor;
 };
 
-Game_Enemy.prototype.onBattleStart = function(advantageous) {
-  Game_Battler.prototype.onBattleStart.call(this, advantageous);
+UNH_SkillLevels.Battler_onBattleStart = Game_Battler.prototype.onBattleStart;
+Game_Battler.prototype.onBattleStart = function(advantageous) {
+  UNH_SkillLevels.Battler_onBattleStart.call(this, advantageous);
   this.unhInitSkillLevels();
-};*/
+};
 
 Game_BattlerBase.prototype.unhMaxSkillLevel = function(index) {
   if (index === undefined) index = 0;
@@ -361,8 +362,8 @@ Game_BattlerBase.prototype.unhSkillLevel = function(index) {
   if (this._unhSkillLevel[index] === undefined) {
     this._unhSkillLevel[index] = {level:0, exp:0};
   }
-  this._unhSkillLevel[index].level = Math.min(this._unhSkillLevel[index].level, this.unhMaxSkillLevel(index));
-  return this._unhSkillLevel[index].level;
+  const currentLevel = this._unhSkillLevel[index];
+  return Math.min(currentLevel.level, this.unhMaxSkillLevel(index));
 };
 
 Game_BattlerBase.prototype.unhSetSkillLevel = function(index, value) {
@@ -373,14 +374,15 @@ Game_BattlerBase.prototype.unhSetSkillLevel = function(index, value) {
   if (this._unhSkillLevel[index] === undefined) {
     this._unhSkillLevel[index] = {level:0, exp:0};
   }
-  this._unhSkillLevel[index].level = Math.min(value, this.unhMaxSkillLevel());
+  const currentLevel = this._unhSkillLevel[index];
+  this._unhSkillLevel[index] = {level:Math.min(value, this.unhMaxSkillLevel()), exp:currentLevel.exp};
 };
 
 Game_BattlerBase.prototype.unhAddSkillLevel = function(index, value) {
   if (index === undefined) index = 0;
   index = index % $dataSkills.length;
   if (value === undefined) value = 0;
-  this.unhSetSkillLevel(index, index + value);
+  this.unhSetSkillLevel(index, this.unhSkillLevel(index) + value);
 };
 
 Game_BattlerBase.prototype.unhSkillExp = function(index) {
@@ -390,8 +392,8 @@ Game_BattlerBase.prototype.unhSkillExp = function(index) {
   if (this._unhSkillLevel[index] === undefined) {
     this._unhSkillLevel[index] = {level:0, exp:0};
   }
-  this._unhSkillLevel[index].exp = Math.min(this._unhSkillLevel[index].exp, this.unhExpToLevel(index));
-  return this._unhSkillLevel[index].exp;
+  const currentLevel = this._unhSkillLevel[index];
+  return Math.min(currentLevel.exp, this.unhExpToLevel(index));
 };
 
 Game_BattlerBase.prototype.unhSetSkillExp = function(index, value) {
@@ -402,15 +404,17 @@ Game_BattlerBase.prototype.unhSetSkillExp = function(index, value) {
   if (this._unhSkillLevel[index] === undefined) {
     this._unhSkillLevel[index] = {level:0, exp:0};
   }
-  this._unhSkillLevel[index].exp = value;
+  const currentLevel = this._unhSkillLevel[index];
+  this._unhSkillLevel[index] = {level:Math.min(currentLevel.level, this.unhMaxSkillLevel()), exp:value};
   if (this.unhSkillLevel(index) >= this.unhMaxSkillLevel()) {
-    this._unhSkillLevel[index].exp = 0;
+    this._unhSkillLevel[index] = {level:this.unhMaxSkillLevel(), exp:0};
   }
   while(this._unhSkillLevel[index].exp > this.unhExpToLevel() && this.unhSkillLevel(index) < this.unhMaxSkillLevel()) {
-    this._unhSkillLevel[index].exp -= this.unhExpToLevel(index);
+    const tempLevel = this._unhSkillLevel[index];
+    this._unhSkillLevel[index] = {level:Math.min(tempLevel.level, this.unhMaxSkillLevel()), exp:tempLevel.exp-this.unhExpToLevel(index)};
     this.unhAddSkillLevel(index, 1);
     if (this.unhSkillLevel(index) >= this.unhMaxSkillLevel()) {
-      this._unhSkillLevel[index].exp = 0;
+      this._unhSkillLevel[index] = {level:this.unhMaxSkillLevel(), exp:0};
     }
   }
 };
@@ -419,17 +423,17 @@ Game_BattlerBase.prototype.unhAddSkillExp = function(index, value) {
   if (index === undefined) index = 0;
   index = index % $dataSkills.length;
   if (value === undefined) value = 0;
-  this.unhSetSkillExp(index, index + value);
+  this.unhSetSkillExp(index, this.unhSkillExp(index) + value);
 };
 
-UNH_SkillLevels.Action_apply = Game_Action.prototype.apply;
-Game_Action.prototype.apply = function(target) {
-  UNH_SkillLevels.Action_apply.call(this, target);
-  if (UNH_SkillLevels.PluginMode) {
+if (!!UNH_SkillLevels.PluginMode) {
+  UNH_SkillLevels.Action_apply = Game_Action.prototype.apply;
+  Game_Action.prototype.apply = function(target) {
+    UNH_SkillLevels.Action_apply.call(this, target);
     if (this.isSkill()) {
       const user = this.subject();
       const item = this.item();
       user.unhAddSkillExp(item.id, 1);
     }
-  }
-};
+  };
+}
