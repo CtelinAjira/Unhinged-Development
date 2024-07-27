@@ -319,11 +319,11 @@ Game_BattlerBase.prototype.unhMaxSkillLevel = function(index) {
 };
 
 Game_BattlerBase.prototype.unhExpToLevel = function(index, level) {
+  if (level === undefined) level = this.unhSkillLevel(index) + 1;
   if (index === undefined) index = 0;
   if (typeof index !== 'number') return eval(UNH_SkillLevels.ExpToLevel);
   index = index % $dataSkills.length;
   if (index === 0) return eval(UNH_SkillLevels.ExpToLevel);
-  if (level === undefined) level = this.unhSkillLevel(index) + 1;
   const expCap = $dataSkills[index].expCap;
   return eval(expCap);
 };
