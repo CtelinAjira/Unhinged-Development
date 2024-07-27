@@ -6,7 +6,7 @@
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [PhysicMagicDefense]
+ * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [MenuActorVariable]
  * @author Unhinged Developer
  *
  * @param VariableId
