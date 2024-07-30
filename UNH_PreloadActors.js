@@ -18,6 +18,14 @@
 const UNH_PreloadActors = {};
 UNH_PreloadActors.pluginName = 'UNH_PreloadActors';
 
+Game_Actors.prototype.data = function() {
+  let temp = null;
+  for (let i = 1; i < $dataActors.length; i++) {
+    temp = $gameActors.actor(i);
+  }
+  return this._data;
+};
+
 UNH_PreloadActors.Party_setupStartingMembers = Game_Party.prototype.setupStartingMembers;
 Game_Party.prototype.setupStartingMembers = function() {
   let temp = null;
