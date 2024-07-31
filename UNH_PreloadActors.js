@@ -6,7 +6,7 @@
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [PreloadActors]
+ * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [PreloadActors]
  * @author Unhinged Developer
  *
  * @help
@@ -18,19 +18,36 @@
 const UNH_PreloadActors = {};
 UNH_PreloadActors.pluginName = 'UNH_PreloadActors';
 
-Game_Actors.prototype.data = function() {
-  let temp = null;
-  for (let i = 1; i < $dataActors.length; i++) {
-    temp = $gameActors.actor(i);
+Game_Actors.prototype.initActors = function() {
+  if (this._data === undefined) {
+    this._data = [];
+  } else if (!Array.isArray(this._data)) {
+    this._data = [];
   }
+  if (this._data.length <= 0) {
+    for (let i = 0; i < $dataActors.length; i++) {
+      if ($dataActors[i]) {
+        if (!this._data[i]) {
+          this._data[i] = new Game_Actor(i);
+        }
+      }
+    }
+  }
+};
+
+UNH_PreloadActors.Actors_actor = Game_Actors.prototype.actor;
+Game_Actors.prototype.actor = function(actorId) {
+  this.initActors();
+  return UNH_PreloadActors.Actors_actor.call(this, actorId);
+};
+
+Game_Actors.prototype.data = function() {
+  this.initActors();
   return this._data;
 };
 
 UNH_PreloadActors.Party_setupStartingMembers = Game_Party.prototype.setupStartingMembers;
 Game_Party.prototype.setupStartingMembers = function() {
-  let temp = null;
-  for (let i = 1; i < $dataActors.length; i++) {
-    temp = $gameActors.actor(i);
-  }
+  $gameActors.initActors();
   UNH_PreloadActors.Party_setupStartingMembers.call(this);
 };
