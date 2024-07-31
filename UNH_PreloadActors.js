@@ -25,10 +25,11 @@ Game_Actors.prototype.initActors = function() {
     this._data = [];
   }
   if (this._data.length <= 0) {
-    for (let i = 0; i < $dataActors.length; i++) {
-      if ($dataActors[i]) {
-        if (!this._data[i]) {
-          this._data[i] = new Game_Actor(i);
+    for (const obj of $dataActors) {
+      if (obj) {
+        let id = obj.id;
+        if (!this._data[id]) {
+          this._data[id] = new Game_Actor(id);
         }
       }
     }
