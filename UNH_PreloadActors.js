@@ -10,7 +10,7 @@
  * @author Unhinged Developer
  *
  * @help
- * Loads all actors into the game as part of selecting 'New Game'
+ * Loads all actors into the game as part of initializing the starting party
  * It's plug-and-play!
  */
 //=============================================================================
