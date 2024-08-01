@@ -41,7 +41,7 @@ UNH_SummonLevels.pluginName = 'UNH_SummonLevels';
 UNH_SummonLevels.BattleManager_startAction = BattleManager.startAction;
 BattleManager.startAction = function() {
   const subject = this._subject;
-  const summonLevel = subject.unhSummonCalcLevel();
+  subject.unhSummonCalcLevel();
   UNH_SummonLevels.BattleManager_startAction.call(this);
 };
 
@@ -53,7 +53,6 @@ Game_BattlerBase.prototype.unhSummonCalcLevel = function() {
     if (!summon.actor().meta.unhSummon) continue;
     summon.changeExp(summon.expForLevel(level), false);
   }
-  return level;
 };
 
 Game_BattlerBase.prototype.unhLevel = function() {
