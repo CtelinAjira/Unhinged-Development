@@ -32,52 +32,41 @@ var Imported = Imported || {};
  * <unhSummonerLevel:X>
  * - Use for Enemies
  * - Gives enemies a level X (Number) for the purposes of summoning
- * 
- * ============================================================================
- * New Functions
- * ============================================================================
- *
- * battler.unhSummonLevel(X)
- * - sets all summons' levels to X (Number), then returns X
- * battler.unhSummonLevel(X, Y)
- * - sets level of actor Y (Number) to X (Number), then returns X
  */
 //=============================================================================
 
 const UNH_SummonLevels = {};
 UNH_SummonLevels.pluginName = 'UNH_SummonLevels';
 
-Game_BattlerBase.prototype.unhSummonCalcLevel = function(level, actorId) {
-  if (!level) level = 1;
-  if (!!actorId) {
-    const summon = $gameActors.actor(actorId);
-    if (summoner.level !== level) {
-      const meta = summon.actor().meta;
-      if (!!meta) {
-        const isSummon = meta.unhSummon;
-        if (!!isSummon) {
-          summon.changeExp(summon.expForLevel(level), false);
-        }
-      }
-    }
-  } else {
-    for (const summon of $gameActors.data()) {
-      if (summon.level !== level) continue;
-      if (!summon.actor().meta) continue;
-      if (!summon.actor().meta.unhSummon) continue;
-      summon.changeExp(summon.expForLevel(level), false);
-    }
+UNH_SummonLevels.BattleManager_startAction = BattleManager.startAction;
+BattleManager.startAction = function() {
+  const subject = this._subject;
+  const summonLevel = subject.unhSummonCalcLevel();
+  UNH_SummonLevels.BattleManager_startAction.call(this);
+};
+
+Game_BattlerBase.prototype.unhSummonCalcLevel = function() {
+  const level = this.unhLevel();
+  for (const summon of $gameActors.data()) {
+    if (summon.level === level) continue;
+    if (!summon.actor().meta) continue;
+    if (!summon.actor().meta.unhSummon) continue;
+    summon.changeExp(summon.expForLevel(level), false);
   }
   return level;
 };
 
-Game_Actor.prototype.unhSummonLevel = function(actorId) {
-  return this.unhSummonCalcLevel(this.level, actorId);
+Game_BattlerBase.prototype.unhLevel = function() {
+  return 1;
+};
+
+Game_Actor.prototype.unhLevel = function() {
+  return this._level;
 };
 
 Game_Enemy.prototype.unhLevel = function() {
   if (!!Imported.VisuMZ_3_EnemyLevels) {
-    return this.level;
+    return this.getLevel();
   } else if (!!this._level) {
     return this._level;
   }
@@ -97,8 +86,4 @@ Game_Enemy.prototype.unhLevel = function() {
     }
   }
   return 1;
-};
-
-Game_Enemy.prototype.unhSummonLevel = function(actorId) {
-  return this.unhSummonCalcLevel(this.unhLevel(), actorId);
 };
