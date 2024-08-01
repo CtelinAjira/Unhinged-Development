@@ -3,6 +3,8 @@
 // UNH_SummonLevels.js
 //=============================================================================
 
+var Imported = Imported || {};
+
 //=============================================================================
  /*:
  * @target MZ
@@ -35,29 +37,31 @@
  * New Functions
  * ============================================================================
  *
- * battler.unhSummonLevel()
- * - returns the highest aggro total for the chosen unit
+ * battler.unhSummonLevel(X)
+ * - sets all summons' levels to X (Number), then returns X
+ * battler.unhSummonLevel(X, Y)
+ * - sets level of actor Y (Number) to X (Number), then returns X
  */
 //=============================================================================
 
 const UNH_SummonLevels = {};
 UNH_SummonLevels.pluginName = 'UNH_SummonLevels';
 
-Game_BattlerBase.prototype.unhSummonCalcLevel = function(actorId, level) {
-  const actors = $gameActors.data();
+Game_BattlerBase.prototype.unhSummonCalcLevel = function(level, actorId) {
+  if (!level) level = 1;
   if (!!actorId) {
-    const actor = actors[actorId];
-    if (actor.level !== level) {
-      const meta = actor.actor().meta;
+    const summon = $gameActors.actor(actorId);
+    if (summoner.level !== level) {
+      const meta = summon.actor().meta;
       if (!!meta) {
         const isSummon = meta.unhSummon;
         if (!!isSummon) {
-          actor.changeExp(actor.expForLevel(level), false);
+          summon.changeExp(summon.expForLevel(level), false);
         }
       }
     }
   } else {
-    for (const summon of actors) {
+    for (const summon of $gameActors.data()) {
       if (summon.level !== level) continue;
       if (!summon.actor().meta) continue;
       if (!summon.actor().meta.unhSummon) continue;
@@ -68,17 +72,21 @@ Game_BattlerBase.prototype.unhSummonCalcLevel = function(actorId, level) {
 };
 
 Game_Actor.prototype.unhSummonLevel = function(actorId) {
-  return this.unhSummonCalcLevel(actorId, this.level);
+  return this.unhSummonCalcLevel(this.level, actorId);
 };
 
 Game_Enemy.prototype.unhLevel = function() {
-  if (!!this._level) return this._level;
+  if (!!Imported.VisuMZ_3_EnemyLevels) {
+    return this.level;
+  } else if (!!this._level) {
+    return this._level;
+  }
   const meta = this.enemy().meta;
   if (!!meta) {
     const smLv = meta.unhSummonerLevel
     if (!!smLv) {
       if (typeof smLv === 'number') {
-        return smLv;
+        return Math.max(smLv, 1);
       }
       try {
         let returnVal = eval(smLv);
@@ -92,5 +100,5 @@ Game_Enemy.prototype.unhLevel = function() {
 };
 
 Game_Enemy.prototype.unhSummonLevel = function(actorId) {
-  return this.unhSummonCalcLevel(actorId, this.unhLevel());
+  return this.unhSummonCalcLevel(this.unhLevel(), actorId);
 };
