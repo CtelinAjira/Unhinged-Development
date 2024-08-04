@@ -146,7 +146,7 @@ if (!!UNH_AggroLevels.isTaunt) {
     const action = subject.currentAction();
     const foes = action.opponentsUnit().aliveMembers();
     UNH_AggroLevels.BattlerManager_startAction_taunt.call(this);
-    if (action.isForOpponent() && !action.isForEveryone()) {
+    if (action.isForOpponent() && action.needsSelection()) {
       const tauntTargets = [];
       for (const member of foes) {
         const tauntStates = JsonEx.makeDeepCopy(member.states()).filter(function() {
@@ -167,6 +167,12 @@ if (!!UNH_AggroLevels.isTaunt) {
 
 if (!!UNH_AggroLevels.isVoke) {
   if (!Imported.VisuMZ_1_SkillsStatesCore) {
+    UNH_AggroLevels.Battler_onBattleEnd = Game_Battler.prototype.onBattleEnd;
+    Game_Battler.prototype.onBattleEnd = function () {
+      UNH_AggroLevels.Battler_onBattleEnd.call(this);
+      this.clearAllStateOrigins();
+    };
+
     UNH_AggroLevels.Action_itemEffectAddAttackState = Game_Action.prototype.itemEffectAddAttackState;
     Game_Action.prototype.itemEffectAddAttackState = function(target, effect) {
       for (const stateId of this.subject().attackStates()) {
@@ -208,7 +214,7 @@ if (!!UNH_AggroLevels.isVoke) {
     const action = subject.currentAction();
     const foes = action.opponentsUnit().aliveMembers();
     UNH_AggroLevels.BattlerManager_startAction_voke.call(this);
-    if (action.isForOpponent() && !action.isForEveryone()) {
+    if (action.isForOpponent() && action.needsSelection()) {
       const vokeOrigins = [];
       const vokeStates = JsonEx.makeDeepCopy(subject.states()).filter(function(state) {
         if (!state.meta) return false;
