@@ -28,7 +28,7 @@ var Imported = Imported || {};
  * "bleed stacks".  Each bleed stack negates one HP of healing, then goes away.  
  * Effectively it's Yanfly Heal Jammer.
  * 
- * Please don't tag a single state as both Overheal AND Bleed.
+ * Please don't tag a single state as two of these simultaneously.
  * 
  * ============================================================================
  * Compatability
