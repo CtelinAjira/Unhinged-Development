@@ -28,7 +28,7 @@ var Imported = Imported || {};
  * "bleed stacks".  Each bleed stack negates one HP of healing, then goes away.  
  * Effectively it's Yanfly Heal Jammer.
  * 
- * Please don't tag a single state as two of these simultaneously.
+ * Please don't tag a single state as both.
  * 
  * ============================================================================
  * Compatability
@@ -527,6 +527,58 @@ Game_Action.prototype.executeMpDamage = function(target, value) {
     for (var state of overflowStatesTemp) {
       if (target.unhOverflow(state.id) <= 0) {
         target.removeState(state.id);
+      }
+    }
+  }
+};
+
+UNH_BleedStacks.Action_gainDrainedHp = Game_Action.prototype.gainDrainedHp;
+Game_Action.prototype.gainDrainedHp = function(value) {
+  var oldValue = value;
+  var user = this.subject();
+  var item = this.item();
+  var bleedStates = user.bleedStates();
+  var overhealStates = user.overhealStates();
+  var bleedStatesTemp = JsonEx.makeDeepCopy(bleedStates);
+  var overhealStatesTemp = JsonEx.makeDeepCopy(overhealStates);
+  if (value > 0 && !this.unhIgnoreOverheal() && !user.unhIgnoreOverheal()) {
+    value = user.applyOverheal(value, overhealStatesTemp);
+  }
+  if (value < 0 && !this.unhIgnoreBleed() && !user.unhIgnoreBleed()) {
+    value = -user.applyBleed(-value, bleedStatesTemp);
+  }
+  UNH_BleedStacks.Action_gainDrainedHp.call(this, value);
+  if (bleedStatesTemp.length > 0) {
+    for (var state of bleedStatesTemp) {
+      if (user.unhBleed(state.id) <= 0) {
+        user.removeState(state.id);
+      }
+    }
+  }
+  if (overhealStatesTemp.length > 0) {
+    for (var state of overhealStatesTemp) {
+      if (user.unhOverheal(state.id) <= 0) {
+        user.removeState(state.id);
+      }
+    }
+  }
+};
+
+UNH_BleedStacks.Action_gainDrainedMp = Game_Action.prototype.gainDrainedMp;
+Game_Action.prototype.gainDrainedMp = function(value) {
+  var oldValue = value;
+  var user = this.subject();
+  var item = this.item();
+  var overflowStates = user.overflowStates();
+  var overflowStatesTemp = JsonEx.makeDeepCopy(overflowStates);
+  if (value > 0 && !this.unhIgnoreOverflow() && !user.unhIgnoreOverflow()) {
+    value = user.applyOverflow(value, overflowStatesTemp);
+  }
+  UNH_BleedStacks.Action_gainDrainedMp.call(this, value);
+  if (overflowStatesTemp.length > 0) {
+    for (var state of overflowStatesTemp) {
+      if (user.unhOverflow(state.id) <= 0) {
+        user.removeState(state.id);
       }
     }
   }
