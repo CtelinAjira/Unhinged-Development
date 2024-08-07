@@ -65,8 +65,10 @@ Game_Battler.prototype.onAtbInterrupt = function () {
       }
     }
   }
-  if (!target.isStateAffected(interStateId)) {
-    target.addState(interStateId);
+  if (interStateId > 0 && interStateId < $dataStates.length) {
+    if (!target.isStateAffected(interStateId)) {
+      target.addState(interStateId);
+    }
   }
 };
 
@@ -74,5 +76,7 @@ UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCast
 Game_Battler.prototype.startTpbCasting = function() {
   const interStateId = UNH_InterruptState.InterruptStateID;
   UNH_InterruptState.Battler_startTpbCasting.call(this);
-  target.revomeState(interStateId);
+  if (interStateId > 0 && interStateId < $dataStates.length) {
+    target.revomeState(interStateId);
+  }
 };
