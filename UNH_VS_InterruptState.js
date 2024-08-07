@@ -35,24 +35,25 @@
 const UNH_InterruptState = {};
 UNH_InterruptState.pluginName = 'UNH_InterruptState';
 
-UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
-Game_Battler.prototype.addState = function(stateId) {
-  const state = $dataStates[stateId];
-  const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
-  UNH_InterruptState.Battler_addState.call(this, stateId);
-  if (!!isInterrupt) {
-    const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
-    this.atbInterrupt();
-    this.clearActions();
-    this.clearTpbChargeTime();
-    this._tpbCastTime = 0;
-    if (!!isRestrict) this.onRestrict();
-  }
-};
-
-UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
-Game_Battler.prototype.startTpbCasting = function() {
-  const interStateId = UNH_InterruptState.InterruptStateID;
-  UNH_InterruptState.Battler_startTpbCasting.call(this);
-  target.removeState(interStateId);
-};
+if (BattleManager.isTpb()) {
+  UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
+  Game_Battler.prototype.addState = function(stateId) {
+    const state = $dataStates[stateId];
+    const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
+    UNH_InterruptState.Battler_addState.call(this, stateId);
+    if (!!isInterrupt) {
+      const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
+      this.atbInterrupt();
+      this.clearActions();
+      this.clearTpbChargeTime();
+      this._tpbCastTime = 0;
+      if (!!isRestrict) this.onRestrict();
+    }
+  };
+  UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
+  Game_Battler.prototype.startTpbCasting = function() {
+    const interStateId = UNH_InterruptState.InterruptStateID;
+    UNH_InterruptState.Battler_startTpbCasting.call(this);
+    target.removeState(interStateId);
+  };
+}
