@@ -49,3 +49,10 @@ Game_Battler.prototype.addState = function(stateId) {
     if (!!isRestrict) this.onRestrict();
   }
 };
+
+UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
+Game_Battler.prototype.startTpbCasting = function() {
+  const interStateId = UNH_InterruptState.InterruptStateID;
+  UNH_InterruptState.Battler_startTpbCasting.call(this);
+  target.removeState(interStateId);
+};
