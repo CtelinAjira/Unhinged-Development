@@ -35,12 +35,12 @@
 const UNH_InterruptState = {};
 UNH_InterruptState.pluginName = 'UNH_InterruptState';
 
-if (BattleManager.isTpb()) {
-  UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
-  Game_Battler.prototype.addState = function(stateId) {
+UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
+Game_Battler.prototype.addState = function(stateId) {
+  UNH_InterruptState.Battler_addState.call(this, stateId);
+  if (BattleManager.isAtb()) {
     const state = $dataStates[stateId];
     const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
-    UNH_InterruptState.Battler_addState.call(this, stateId);
     if (!!isInterrupt) {
       const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
       this.atbInterrupt();
@@ -49,11 +49,19 @@ if (BattleManager.isTpb()) {
       this._tpbCastTime = 0;
       if (!!isRestrict) this.onRestrict();
     }
-  };
-  UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
-  Game_Battler.prototype.startTpbCasting = function() {
-    const interStateId = UNH_InterruptState.InterruptStateID;
-    UNH_InterruptState.Battler_startTpbCasting.call(this);
-    target.removeState(interStateId);
-  };
-}
+  }
+};
+
+UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
+Game_Battler.prototype.startTpbCasting = function() {
+  UNH_InterruptState.Battler_startTpbCasting.call(this);
+  if (BattleManager.isAtb()) {
+    const interruptionStates = JsonEx.makeDeepCopy(this.states()).filter(function(state) {
+      if (!!state.meta) return false;
+      return !!state.meta.unhInterrupt;
+    });
+    for (const state of interruptionStates) {
+      target.removeState(state.id);
+    }
+  }
+};
