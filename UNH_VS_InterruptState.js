@@ -43,6 +43,9 @@ Game_Battler.prototype.addState = function(stateId) {
   if (!!isInterrupt) {
     const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
     this.atbInterrupt();
+    this.clearActions();
+    this.clearTpbChargeTime();
+    this._tpbCastTime = 0;
     if (!!isRestrict) this.onRestrict();
   }
 };
