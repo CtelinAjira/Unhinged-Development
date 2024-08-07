@@ -43,11 +43,13 @@ UNH_InterruptState.InterruptAsRestrict = !!UNH_InterruptState.parameters['Interr
 UNH_InterruptState.Battler_atbInterrupt = Game_Battler.prototype.atbInterrupt;
 Game_Battler.prototype.atbInterrupt = function () {
   const interStateId = UNH_InterruptState.InterruptStateID;
-  if (this.isStateResist(interStateId)) {
-    return;
-  }
-  if (Math.random() >= this.stateRate(interStateId)) {
-    return;
+  if (interStateId > 0 && interStateId < $dataStates.length) {
+    if (this.isStateResist(interStateId)) {
+      return;
+    }
+    if (Math.random() >= this.stateRate(interStateId)) {
+      return;
+    }
   }
   UNH_InterruptState.Battler_atbInterrupt.call(this);
 };
