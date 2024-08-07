@@ -310,6 +310,7 @@ Game_Battler.prototype.onBattleStart = function(advantageous) {
 };
 
 Game_BattlerBase.prototype.unhMaxSkillLevel = function(index) {
+  const user = this;
   if (index === undefined) index = 0;
   if (typeof index !== 'number') return eval(UNH_SkillLevels.MaxLevel);
   index = index % $dataSkills.length;
@@ -319,6 +320,7 @@ Game_BattlerBase.prototype.unhMaxSkillLevel = function(index) {
 };
 
 Game_BattlerBase.prototype.unhExpToLevel = function(index, level) {
+  const user = this;
   if (level === undefined) level = this.unhSkillLevel(index) + 1;
   if (index === undefined) index = 0;
   if (typeof index !== 'number') return eval(UNH_SkillLevels.ExpToLevel);
@@ -375,7 +377,7 @@ Game_BattlerBase.prototype.unhSetSkillLevel = function(index, value) {
     this._unhSkillLevel[index] = {level:0, exp:0};
   }
   const currentLevel = this._unhSkillLevel[index];
-  this._unhSkillLevel[index] = {level:Math.min(value, this.unhMaxSkillLevel()), exp:currentLevel.exp};
+  this._unhSkillLevel[index] = {level:Math.min(value, this.unhMaxSkillLevel(index)), exp:currentLevel.exp};
 };
 
 Game_BattlerBase.prototype.unhAddSkillLevel = function(index, value) {
@@ -405,16 +407,16 @@ Game_BattlerBase.prototype.unhSetSkillExp = function(index, value) {
     this._unhSkillLevel[index] = {level:0, exp:0};
   }
   const currentLevel = this._unhSkillLevel[index];
-  this._unhSkillLevel[index] = {level:Math.min(currentLevel.level, this.unhMaxSkillLevel()), exp:value};
-  if (this.unhSkillLevel(index) >= this.unhMaxSkillLevel()) {
-    this._unhSkillLevel[index] = {level:this.unhMaxSkillLevel(), exp:0};
+  this._unhSkillLevel[index] = {level:Math.min(currentLevel.level, this.unhMaxSkillLevel(index)), exp:value};
+  if (this.unhSkillLevel(index) >= this.unhMaxSkillLevel(index)) {
+    this._unhSkillLevel[index] = {level:this.unhMaxSkillLevel(index), exp:0};
   }
-  while(this._unhSkillLevel[index].exp > this.unhExpToLevel() && this.unhSkillLevel(index) < this.unhMaxSkillLevel()) {
+  while(this._unhSkillLevel[index].exp > this.unhExpToLevel(index) && this.unhSkillLevel(index) < this.unhMaxSkillLevel(index)) {
     const tempLevel = this._unhSkillLevel[index];
-    this._unhSkillLevel[index] = {level:Math.min(tempLevel.level, this.unhMaxSkillLevel()), exp:tempLevel.exp-this.unhExpToLevel(index)};
+    this._unhSkillLevel[index] = {level:Math.min(tempLevel.level, this.unhMaxSkillLevel(index)), exp:tempLevel.exp-this.unhExpToLevel(index)};
     this.unhAddSkillLevel(index, 1);
-    if (this.unhSkillLevel(index) >= this.unhMaxSkillLevel()) {
-      this._unhSkillLevel[index] = {level:this.unhMaxSkillLevel(), exp:0};
+    if (this.unhSkillLevel(index) >= this.unhMaxSkillLevel(index)) {
+      this._unhSkillLevel[index] = {level:this.unhMaxSkillLevel(index), exp:0};
     }
   }
 };
