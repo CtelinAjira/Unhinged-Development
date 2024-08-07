@@ -29,6 +29,15 @@
 const UNH_InterruptState = {};
 UNH_InterruptState.pluginName = 'UNH_InterruptState';
 
+UNH_InterruptState.atbInterrupt = Game_Battler.prototype.atbInterrupt;
+Game_Battler.prototype.atbInterrupt = function () {
+  UNH_InterruptState.atbInterrupt.call(this);
+  if (BattleManager.isAtb()) {
+    const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
+    if (!!isRestrict) this.onRestrict();
+  }
+};
+
 UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
 Game_Battler.prototype.addState = function(stateId) {
   UNH_InterruptState.Battler_addState.call(this, stateId);
