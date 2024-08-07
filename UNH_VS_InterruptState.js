@@ -40,43 +40,42 @@ UNH_InterruptState.parameters = PluginManager.parameters(UNH_InterruptState.plug
 UNH_InterruptState.InterruptStateID = Number(UNH_InterruptState.parameters['InterruptStateID'] || 0);
 UNH_InterruptState.InterruptAsRestrict = !!UNH_InterruptState.parameters['InterruptAsRestrict'];
 
-UNH_InterruptState.Battler_atbInterrupt = Game_Battler.prototype.atbInterrupt;
-Game_Battler.prototype.atbInterrupt = function () {
-  const interStateId = UNH_InterruptState.InterruptStateID;
-  if (interStateId > 0 && interStateId < $dataStates.length) {
+if (UNH_InterruptState.InterruptStateID > 0 && UNH_InterruptState.InterruptStateID < $dataStates.length) {
+  UNH_InterruptState.Battler_onAtbInterrupt_restrict = Game_Battler.prototype.onAtbInterrupt;
+  Game_Battler.prototype.onAtbInterrupt = function () {
+    UNH_InterruptState.Battler_onAtbInterrupt_restrict.call(this);
+    for (const state of this.states()) {
+      if (state.removeByRestriction) {
+        this.removeState(state.id);
+      }
+    }
+  };
+}
+
+if (UNH_InterruptState.InterruptStateID > 0 && UNH_InterruptState.InterruptStateID < $dataStates.length) {
+  UNH_InterruptState.Battler_atbInterrupt = Game_Battler.prototype.atbInterrupt;
+  Game_Battler.prototype.atbInterrupt = function () {
+    const interStateId = UNH_InterruptState.InterruptStateID;
     if (this.isStateResist(interStateId)) {
       return;
     }
     if (Math.random() >= this.stateRate(interStateId)) {
       return;
     }
-  }
-  UNH_InterruptState.Battler_atbInterrupt.call(this);
-};
-
-UNH_InterruptState.Battler_onAtbInterrupt = Game_Battler.prototype.onAtbInterrupt;
-Game_Battler.prototype.onAtbInterrupt = function () {
-  const interStateId = UNH_InterruptState.InterruptStateID;
-  UNH_InterruptState.Battler_onAtbInterrupt.call(this);
-  if (!!UNH_InterruptState.InterruptAsRestrict) {
-    for (const state of this.states()) {
-      if (state.removeByRestriction) {
-        this.removeState(state.id);
-      }
-    }
-  }
-  if (interStateId > 0 && interStateId < $dataStates.length) {
+    UNH_InterruptState.Battler_atbInterrupt.call(this);
+  };
+  UNH_InterruptState.Battler_onAtbInterrupt_state = Game_Battler.prototype.onAtbInterrupt;
+  Game_Battler.prototype.onAtbInterrupt = function () {
+    const interStateId = UNH_InterruptState.InterruptStateID;
+    UNH_InterruptState.Battler_onAtbInterrupt_state.call(this);
     if (!target.isStateAffected(interStateId)) {
       target.addState(interStateId);
     }
-  }
-};
-
-UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
-Game_Battler.prototype.startTpbCasting = function() {
-  const interStateId = UNH_InterruptState.InterruptStateID;
-  UNH_InterruptState.Battler_startTpbCasting.call(this);
-  if (interStateId > 0 && interStateId < $dataStates.length) {
-    target.revomeState(interStateId);
-  }
-};
+  };
+  UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
+  Game_Battler.prototype.startTpbCasting = function() {
+    const interStateId = UNH_InterruptState.InterruptStateID;
+    UNH_InterruptState.Battler_startTpbCasting.call(this);
+    target.removeState(interStateId);
+  };
+}
