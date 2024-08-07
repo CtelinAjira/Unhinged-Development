@@ -40,7 +40,7 @@ UNH_InterruptState.parameters = PluginManager.parameters(UNH_InterruptState.plug
 UNH_InterruptState.InterruptStateID = Number(UNH_InterruptState.parameters['InterruptStateID'] || 0);
 UNH_InterruptState.InterruptAsRestrict = !!UNH_InterruptState.parameters['InterruptAsRestrict'];
 
-if (UNH_InterruptState.InterruptStateID > 0 && UNH_InterruptState.InterruptStateID < $dataStates.length) {
+if (!!UNH_InterruptState.InterruptAsRestrict) {
   UNH_InterruptState.Battler_onAtbInterrupt_restrict = Game_Battler.prototype.onAtbInterrupt;
   Game_Battler.prototype.onAtbInterrupt = function () {
     UNH_InterruptState.Battler_onAtbInterrupt_restrict.call(this);
