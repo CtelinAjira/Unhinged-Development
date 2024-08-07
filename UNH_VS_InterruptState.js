@@ -39,9 +39,9 @@ UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
 Game_Battler.prototype.addState = function(stateId) {
   const state = $dataStates[stateId];
   const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
-  const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
   UNH_InterruptState.Battler_addState.call(this, stateId);
   if (!!isInterrupt) {
+    const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
     this.atbInterrupt();
     if (!!isRestrict) this.onRestrict();
   }
