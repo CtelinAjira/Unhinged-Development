@@ -36,6 +36,11 @@ Game_Actors.prototype.initActors = function() {
   }
 };
 
+Game_Actors.prototype.clearData = function() {
+  this._data = [];
+  this.initActors();
+};
+
 UNH_PreloadActors.Actors_actor = Game_Actors.prototype.actor;
 Game_Actors.prototype.actor = function(actorId) {
   this.initActors();
