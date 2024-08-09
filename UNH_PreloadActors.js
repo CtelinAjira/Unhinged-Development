@@ -36,7 +36,7 @@ Game_Actors.prototype.initActors = function() {
   }
 };
 
-Game_Actors.prototype.clearData = function() {
+Game_Actors.prototype.clear = function() {
   this._data = [];
   this.initActors();
 };
