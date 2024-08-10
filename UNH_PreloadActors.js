@@ -38,6 +38,10 @@ Game_Actors.prototype.initActors = function() {
 
 Game_Actors.prototype.clear = function() {
   this._data = [];
+};
+
+Game_Actors.prototype.resetData = function() {
+  this.clear();
   this.initActors();
 };
 
