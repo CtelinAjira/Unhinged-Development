@@ -248,11 +248,12 @@ Game_BattlerBase.prototype.unhDamageMult = function(value) {
 };
 
 Game_BattlerBase.prototype.unhInitAggro = function() {
-  this._unhAggroBase = this.unhDefaultAggro();
+  this._unhAggroBase = 0;
 };
 
 Game_BattlerBase.prototype.unhAggroBase = function() {
   if (this._unhAggroBase === undefined) this.unhInitAggro();
+  if (this._unhAggroBase < 0) this._unhAggroBase = 0;
   return this._unhAggroBase;
 };
 
@@ -453,7 +454,8 @@ Game_BattlerBase.prototype.unhMpMult = function() {
 };
 
 Game_BattlerBase.prototype.unhAggroMult = function() {
-  return this.unhAggroBase() / this.unhDefaultAggro();
+  if (this._unhAggroBase === undefined) this.unhInitAggro();
+  return ((this.unhDefaultAggro() + this.unhAggroBase()) / (this.unhDefaultAggro()));
 };
 
 UNH_AggroLevels.Battler_onBattleStart = Game_Battler.prototype.onBattleStart;
