@@ -169,7 +169,7 @@ Game_Battler.prototype.refresh = function() {
       var reraiseHeal = this.unhReraiseHealing(reraiseState);
       this.setHp(0);
       this.gainHp(reraiseHeal);
-      this.unhReraiseAni([this], state);
+      this.unhReraiseAni([this], reraiseState);
       this.removeState(reraiseState.id);
     }
   }
