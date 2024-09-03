@@ -29,16 +29,17 @@
 const UNH_InterruptState = {};
 UNH_InterruptState.pluginName = 'UNH_InterruptState';
 
-/*UNH_InterruptState.atbInterrupt = Game_Battler.prototype.atbInterrupt;
+UNH_InterruptState.atbInterrupt = Game_Battler.prototype.atbInterrupt;
 Game_Battler.prototype.atbInterrupt = function () {
   UNH_InterruptState.atbInterrupt.call(this);
-  if (BattleManager.isAtb()) {
-    for (const obj of this.traitObjects()) {
-      const isRestrict = (!!obj.meta) ? (!!obj.meta.unhRestrict) : false;
-      if (!!isRestrict) this.onRestrict();
+  if (!!arguments[0]) {
+    if (BattleManager.isAtb()) {
+      if (this._tpbCastTime === 0) {
+        this.onRestrict();
+      }
     }
   }
-};*/
+};
 
 UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
 Game_Battler.prototype.addState = function(stateId) {
@@ -48,11 +49,7 @@ Game_Battler.prototype.addState = function(stateId) {
     const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
     if (!!isInterrupt) {
       const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
-      this.atbInterrupt();
-      this.clearActions();
-      this.clearTpbChargeTime();
-      this._tpbCastTime = 0;
-      if (!!isRestrict) this.onRestrict();
+      this.atbInterrupt(isRestrict);
     }
   }
 };
