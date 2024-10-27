@@ -3,11 +3,12 @@
 // UNH_MiscFunc.js
 //=============================================================================
 
+var Imported = Imported || {};
+
 //=============================================================================
  /*:
  * @target MZ
- * @orderAfter VisuMZ_0_CoreEngine
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [UNH_MiscFunc]
+ * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [MiscFunc]
  * @author Unhinged Developer
  *
  * @param DamageFormula
@@ -17,6 +18,14 @@
  * @default "return (pow + atk - def);"
  *
  * @help
+ * ============================================================================
+ * New Properties
+ * ============================================================================
+ * 
+ * battler.unhERate
+ * - an array of all the element rates
+ *   - e.g. a.unhERate[4] is equivalent to a.elementRate(4)
+ *
  * ============================================================================
  * New Functions
  * ============================================================================
@@ -29,20 +38,18 @@
  *
  * $gameParty.highestStat(X);
  * $gameTroop.highestStat(X);
- * - Returns the highest value in param X (0-7) among the party
- *
- * $gameParty.lowestStat(X);
- * $gameTroop.lowestStat(X);
- * - Returns the lowest value in param X (0-7) among the party
- *
  * $gameParty.highest___();
  * $gameTroop.highest___();
  * - Returns the party's highest stat
+ *   - 0 ≤ X ≤ 7
  *   - replace ___ with Mhp/Mmp/Atk/Def/Mat/Mdf/Agi/Luk as applicable
  *
+ * $gameParty.lowestStat(X);
+ * $gameTroop.lowestStat(X);
  * $gameParty.lowest___();
  * $gameTroop.lowest___();
  * - Returns the party's lowest stat
+ *   - 0 ≤ X ≤ 7
  *   - replace ___ with Mhp/Mmp/Atk/Def/Mat/Mdf/Agi/Luk as applicable
  */
 //=============================================================================
@@ -50,7 +57,29 @@
 const UNH_MiscFunc = {};
 UNH_MiscFunc.pluginName = 'UNH_MiscFunc';
 UNH_MiscFunc.parameters = PluginManager.parameters(UNH_MiscFunc.pluginName);
-UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || "0");
+UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || "return 0");
+
+Object.defineProperty(Game_BattlerBase.prototype, "unhERate", {
+  get: function() {
+    return this.unhGetEleRates();
+  },
+  configurable: true
+});
+
+Game_BattlerBase.prototype.unhGetEleRates = function() {
+  const user = this;
+  return $gameSystem.elements.map(function(ele, index) {
+    return user.elementRate(index);
+  });
+};
+
+Game_Actor.prototype.object = function() {
+  return this.actor();
+};
+
+Game_Enemy.prototype.object = function() {
+  return this.enemy();
+};
 
 Game_BattlerBase.prototype.unhDmgFormula = function(target, pow, atk, def) {
   const user = this;
@@ -68,6 +97,12 @@ Game_BattlerBase.prototype.friendsUnitNotUser = function() {
 };
 
 Game_Unit.prototype.highestStat = function(paramId) {
+  if (typeof paramId === 'string') {
+    const statStr = ['mhp','mmp','atk','def','mat','mdf','agi','luk'];
+    paramId = statStr.indexOf(paramId.toLowerCase());
+  }
+  if (paramId < 0) return 0;
+  if (paramId > 7) return 0;
   return this.members().reduce(function(r, member) {
     return Math.max(r, member.param(paramId));
   }, this.paramMin());

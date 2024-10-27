@@ -7,7 +7,15 @@
  /*:
  * @target MZ
  * @orderAfter VisuMZ_0_CoreEngine
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [FleeSwitch]
+ * @orderAfter VisuMZ_1_BattleCore
+ * @orderAfter VisuMZ_1_MessageCore
+ * @orderAfter VisuMZ_2_AniMsgTextEffects
+ * @orderAfter VisuMZ_2_DragonbonesUnion
+ * @orderAfter VisuMZ_3_MessageKeywords
+ * @orderAfter VisuMZ_3_MsgLetterSounds
+ * @orderAfter VisuMZ_3_StateTooltips
+ * @orderAfter VisuMZ_3_VisualGoldDisplay
+ * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [FleeSwitch]
  * @author Unhinged Developer
  *
  * @param FleeSwitchID

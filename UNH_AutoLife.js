@@ -29,24 +29,6 @@ var Imported = Imported || {};
  * @type animation
  * @default 0
  *
- * @param MirrorAnim
- * @parent AutoLifeAni
- * @text Mirror Animation
- * @desc Mirror the effect animation?
- * @type boolean
- * @on Mirror
- * @off Normal
- * @default false
- *
- * @param EnemyFlip
- * @parent AutoLifeAni
- * @text Enemy Flip?
- * @desc Flip the animation for enemies?
- * @type boolean
- * @on Flip for Enemies
- * @off No Flip
- * @default false
- *
  * @help
  * ============================================================================
  * Notetags
@@ -70,14 +52,12 @@ var Imported = Imported || {};
  */
 //=============================================================================
 
-var UNH_AutoLife = {};
+const UNH_AutoLife = {};
 UNH_AutoLife.pluginName = 'UNH_AutoLife';
 UNH_AutoLife.parameters = PluginManager.parameters(UNH_AutoLife.pluginName);
 UNH_AutoLife.AutoLifeAmt = String(UNH_AutoLife.parameters['AutoLifeAmt'] || '0');
 UNH_AutoLife.AutoLifeVar = Number(UNH_AutoLife.parameters['AutoLifeVar'] || 0);
 UNH_AutoLife.AutoLifeAni = Number(UNH_AutoLife.parameters['AutoLifeAni'] || 0);
-UNH_AutoLife.MirrorAnim = !!UNH_AutoLife.parameters['MirrorAnim'];
-UNH_AutoLife.EnemyFlip = !!UNH_AutoLife.parameters['EnemyFlip'];
 
 UNH_AutoLife.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
@@ -91,24 +71,30 @@ DataManager.isDatabaseLoaded = function() {
 };
 
 DataManager.processUnhReraiseNotetags = function(group) {
-  for (var n = 1; n < group.length; n++) {
-    var obj = group[n];
-    var notedata = obj.note.split(/[\r\n]+/);
+  for (let n = 1; n < group.length; n++) {
+    const obj = group[n];
+    const notedata = obj.note.split(/[\r\n]+/);
     if (!!obj.meta) {
       if (!!obj.meta.UnhAutoLife) {
         obj.reviveAmt = UNH_AutoLife.AutoLifeAmt;
         obj.reviveVar = UNH_AutoLife.AutoLifeVar;
         obj.reviveAniId = UNH_AutoLife.AutoLifeAni;
-        for (var i = 0; i < notedata.length; i++) {
-          var line = notedata[i];
+        for (let i = 0; i < notedata.length; i++) {
+          const line = notedata[i];
           if (line.match(/<Unh Auto Life Heal:[ ](.*)>/i)) {
             obj.reviveAmt = String(RegExp.$1);
+          } else {
+            obj.reviveAmt = String(UNH_AutoLife.AutoLifeAmt);
           }
           if (line.match(/<Unh Auto Life Variance:[ ](\d+)>/i)) {
             obj.reviveVar = Number(RegExp.$1);
+          } else {
+            obj.reviveVar = Number(UNH_AutoLife.AutoLifeVar);
           }
           if (line.match(/<Unh Auto Life Animation:[ ](\d+)>/i)) {
             obj.reviveAniId = Number(RegExp.$1);
+          } else {
+            obj.reviveAniId = Number(UNH_AutoLife.AutoLifeAni);
           }
         }
       } else {
@@ -125,15 +111,13 @@ DataManager.processUnhReraiseNotetags = function(group) {
 };
 
 Game_Battler.prototype.unhReraiseAni = function(targets, state) {
-  if (aniId === undefined) aniId = UNH_AutoLife.AutoLifeAni;
-  var mirror = UNH_AutoLife.MirrorAnim;
-  if (UNH_AutoLife.EnemyFlip) mirror = !mirror;
-  $gameTemp.requestAnimation(targets, state.reviveAniId, mirror);
+  const aniId = (state.reviveAniId === 0) ? UNH_AutoLife.AutoLifeAni : state.reviveAniId;
+  $gameTemp.requestAnimation(targets, aniId);
 };
 
-Game_Battler.prototype.unhReraiseProcess = function() {
-  var states = [];
-  for (var state of this.states()) {
+Game_Battler.prototype.unhReraiseStates = function() {
+  const states = [];
+  for (const state of this.states()) {
     if (!!state.meta) {
       if (!!state.meta.UnhAutoLife) {
         states.push(state);
@@ -144,31 +128,34 @@ Game_Battler.prototype.unhReraiseProcess = function() {
 };
 
 Game_Battler.prototype.unhReraiseHealing = function(state) {
-  var value = state.reviveAmt;
-  var variance = state.reviveVar;
-  var target = this;
-  var max = this.mhp;
-  var origin;
+  if (typeof state === 'number') {
+    state = $dataStates[state];
+  }
+  const stateId = state.id;
+  const value = state.reviveAmt;
+  const variance = state.reviveVar;
+  const target = this;
+  const max = this.mhp;
+  let origin;
   if (Imported.VisuMZ_1_SkillsStatesCore) {
-    origin = this.getStateOrigin(state.id);
+    origin = this.getStateOrigin(stateId);
   } else {
     origin = this;
   }
-  var retVal = Math.round(eval(value));
-  var amp = Math.floor(Math.max((Math.abs(retVal) * variance) / 100, 0));
-  var v = Math.randomInt(amp + 1) + Math.randomInt(amp + 1) - amp;
+  const retVal = Math.round(eval(value));
+  const amp = Math.floor(Math.max((Math.abs(retVal) * eval(variance)) / 100, 0));
+  const v = Math.randomInt(amp + 1) + Math.randomInt(amp + 1) - amp;
   return retVal + v;
 };
 
 UNH_AutoLife.Battler_refresh = Game_Battler.prototype.refresh;
 Game_Battler.prototype.refresh = function() {
   if (this.hp <= 0 || this.isDeathStateAffected()) {
-    var states = this.unhReraiseProcess();
+    const states = this.unhReraiseStates();
     if (states.length > 0) {
-      var reraiseState = states[Math.randomInt(states.length)];
-      var reraiseHeal = this.unhReraiseHealing(reraiseState);
-      this.setHp(0);
-      this.gainHp(reraiseHeal);
+      const reraiseState = states[Math.randomInt(states.length)];
+      const reraiseHeal = this.unhReraiseHealing(reraiseState);
+      this._hp = reraiseHeal;
       this.unhReraiseAni([this], reraiseState);
       this.removeState(reraiseState.id);
     }

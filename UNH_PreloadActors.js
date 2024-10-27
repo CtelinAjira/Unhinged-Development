@@ -6,24 +6,14 @@
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [PreloadActors]
+ * @plugindesc [RPG Maker MZ] [Version 1.03] [Unhinged] [PreloadActors]
  * @author Unhinged Developer
  *
- * @param initOnBoot
- * @text Initialize On Boot
- * @desc Should all actors be instantiated when starting a new game?
- * @type boolean
- * @on Yes
- * @off No
- * @default false
- *
- * @param initOnActor
- * @text Initialize On Actor Call
- * @desc Should all actors be instantiated when calling $gameActors.actor()?
- * @type boolean
- * @on Yes
- * @off No
- * @default false
+ * @param PostInit
+ * @text Post-Initialization Code
+ * @desc JS Code to call after instantiating actors
+ * @type note
+ * @default "//variables:\n//actor - the current actor\n//actorId - the id of the current actor"
  *
  * @help
  * ============================================================================
@@ -37,7 +27,7 @@
  * If so, you may or may not have experienced the most subtle of lagspikes, 
  * because RPG Maker doesn't instantiate actors until their functions and 
  * parameters are required.  This plugin lets you bypass that lagspike by 
- * giving a little control over *when* actors are instantiated.
+ * instantiating them all on a new game.
  *
  * Additionally, I've included a few functions for control over the array 
  * containing those actor instances ($gameActors._data)
@@ -65,8 +55,24 @@
 const UNH_PreloadActors = {};
 UNH_PreloadActors.pluginName = 'UNH_PreloadActors';
 UNH_PreloadActors.parameters = PluginManager.parameters(UNH_PreloadActors.pluginName);
-UNH_PreloadActors.initOnBoot = !!UNH_PreloadActors.parameters['initOnBoot'];
-UNH_PreloadActors.initOnActor = !!UNH_PreloadActors.parameters['initOnActor'];
+UNH_PreloadActors.PostInit = String(UNH_PreloadActors.parameters['PostInit'] || "");
+UNH_PreloadActors.isParsing = true;
+
+UNH_PreloadActors.codeParse = function(code) {
+  if (typeof code !== 'string') return [];
+  return code.split('\n');
+};
+
+UNH_PreloadActors.runPostInit = function(actorId) {
+  if (typeof actorId !== 'number') return;
+  if (actorId === 0) return;
+  if (actorId > $dataActors.length) return;
+  if (!UNH_PreloadActors.PostInit) return;
+  if (UNH_PreloadActors.codeParse(UNH_PreloadActors.PostInit).length <= 0) return;
+  if (!$gameActors._data[actorId]) $gameActors._data[id] = new Game_Actor(id);
+  const actor = $gameActors._data[actorId];
+  eval(UNH_PreloadActors.PostInit);
+};
 
 Game_Actors.prototype.initActors = function(actorId) {
   if (typeof actorId !== 'number') actorId = 0;
@@ -78,6 +84,7 @@ Game_Actors.prototype.initActors = function(actorId) {
   if (!!$dataActors[actorId]) {
     if (!this._data[actorId]) {
       this._data[actorId] = new Game_Actor(actorId);
+      UNH_PreloadActors.runPostInit(actorId);
     }
   } else {
     for (const obj of $dataActors) {
@@ -86,6 +93,7 @@ Game_Actors.prototype.initActors = function(actorId) {
       let id = obj.id;
       if (!!this._data[id]) continue;
       this._data[id] = new Game_Actor(id);
+      UNH_PreloadActors.runPostInit(id);
     }
   }
 };
@@ -100,37 +108,12 @@ Game_Actors.prototype.resetData = function() {
 };
 
 Game_Actors.prototype.data = function() {
-  if (!!UNH_PreloadActors.initOnActor) {
-    this.initActors(0);
-    return this._data;
-  } else {
-    let tempData = [];
-    for (const obj of $dataActors) {
-      if (!obj) continue;
-      if (typeof obj !== 'object') continue;
-      let id = obj.id;
-      if (!!this._data[id]) {
-        tempData[id] = this._data[id];
-      } else {
-        tempData[id] = new Game_Actor(id);
-      }
-    }
-	return tempData;
-  }
+  this.initActors(0);
+  return this._data;
 };
 
-if (!!UNH_PreloadActors.initOnActor) {
-  UNH_PreloadActors.DataManager_createGameObjects = DataManager.createGameObjects;
-  DataManager.createGameObjects = function() {
-    UNH_PreloadActors.DataManager_createGameObjects.call(this);
-    $gameActors.initActors(0);
-  };
-}
-
-if (!!UNH_PreloadActors.initOnActor) {
-  UNH_PreloadActors.Actors_actor = Game_Actors.prototype.actor;
-  Game_Actors.prototype.actor = function(actorId) {
-    this.initActors(0);
-    return UNH_PreloadActors.Actors_actor.call(this, actorId);
-  };
-}
+UNH_PreloadActors.Actors_actor = Game_Actors.prototype.actor;
+Game_Actors.prototype.actor = function(actorId) {
+  this.initActors(0);
+  return UNH_PreloadActors.Actors_actor.call(this, actorId);
+};

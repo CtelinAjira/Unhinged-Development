@@ -125,6 +125,13 @@ var Imported = Imported || {};
  * battler.unhAddAggro(target, X, true)
  * - increases the target's Base Aggro by X (Number)
  *   - value is NOT modified by plus/rate/flat
+ * 
+ * ============================================================================
+ * Altered Functions
+ * ============================================================================
+ * 
+ * action.decideRandomTarget()
+ * - ignores party's TGR values for actual random-target skills
  */
 //=============================================================================
 
@@ -138,6 +145,40 @@ UNH_AggroLevels.HPMult = Number(UNH_AggroLevels.parameters['HPMult'] || 0);
 UNH_AggroLevels.MPMult = Number(UNH_AggroLevels.parameters['MPMult'] || 0);
 UNH_AggroLevels.isTaunt = !!UNH_AggroLevels.parameters['isTaunt'];
 UNH_AggroLevels.isVoke = !!UNH_AggroLevels.parameters['isVoke'];
+
+UNH_AggroLevels.Action_randomTargets = Game_Action.prototype.randomTargets;
+Game_Action.prototype.randomTargets = function(unit) {
+  if (this.isForRandom()) {
+    const targets = [];
+    for (let i = 0; i < this.numTargets(); i++) {
+      targets.push(unit.aliveMembers()[Math.randomInt(unit.aliveMembers().length)]);
+    }
+    return targets;
+  } else {
+    UNH_AggroLevels.Action_randomTargets.call(this, unit);
+  }
+};
+
+UNH_AggroLevels.Action_decideRandomTarget = Game_Action.prototype.decideRandomTarget;
+Game_Action.prototype.decideRandomTarget = function() {
+  if (this.isForRandom()) {
+    let target;
+    if (this.isForDeadFriend()) {
+      target = this.friendsUnit().deadMembers()[Math.randomInt(this.friendsUnit().deadMembers().length)];
+    } else if (this.isForFriend()) {
+      target = this.friendsUnit().aliveMembers()[Math.randomInt(this.friendsUnit().aliveMembers().length)];
+    } else {
+      target = this.opponentsUnit().aliveMembers()[Math.randomInt(this.opponentsUnit().aliveMembers().length)];
+    }
+    if (target) {
+      this._targetIndex = target.index();
+    } else {
+      this.clear();
+    }
+  } else {
+    UNH_AggroLevels.Action_decideRandomTarget.call(this);
+  }
+};
 
 if (!!UNH_AggroLevels.isTaunt) {
   UNH_AggroLevels.BattlerManager_startAction_taunt = BattleManager.startAction;

@@ -40,5 +40,5 @@ Game_Actor.prototype.expForLevel = function(level) {
   }
   const user = this;
   level = level - 1;
-  return eval(this.actor().meta.ExpToNext) * currentLevel;
+  return eval(this.actor().meta.ExpToNext) * (level + 1);
 };

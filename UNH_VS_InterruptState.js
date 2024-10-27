@@ -3,6 +3,8 @@
 // UNH_VS_InterruptState.js
 //=============================================================================
 
+var Imported = Imported || {};
+
 //=============================================================================
  /*:
  * @target MZ
@@ -30,10 +32,10 @@ const UNH_InterruptState = {};
 UNH_InterruptState.pluginName = 'UNH_InterruptState';
 
 UNH_InterruptState.atbInterrupt = Game_Battler.prototype.atbInterrupt;
-Game_Battler.prototype.atbInterrupt = function () {
+Game_Battler.prototype.atbInterrupt = function (interrupt) {
   UNH_InterruptState.atbInterrupt.call(this);
-  if (!!arguments[0]) {
-    if (BattleManager.isAtb()) {
+  if (!!interrupt) {
+    if (BattleManager.isATB()) {
       if (this._tpbCastTime === 0) {
         this.onRestrict();
       }
@@ -44,7 +46,7 @@ Game_Battler.prototype.atbInterrupt = function () {
 UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
 Game_Battler.prototype.addState = function(stateId) {
   UNH_InterruptState.Battler_addState.call(this, stateId);
-  if (BattleManager.isAtb()) {
+  if (BattleManager.isATB()) {
     const state = $dataStates[stateId];
     const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
     if (!!isInterrupt) {
@@ -57,7 +59,7 @@ Game_Battler.prototype.addState = function(stateId) {
 UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;
 Game_Battler.prototype.startTpbCasting = function() {
   UNH_InterruptState.Battler_startTpbCasting.call(this);
-  if (BattleManager.isAtb()) {
+  if (BattleManager.isATB()) {
     const interruptionStates = JsonEx.makeDeepCopy(this.states()).filter(function(state) {
       if (!!state.meta) return false;
       return !!state.meta.unhInterrupt;
