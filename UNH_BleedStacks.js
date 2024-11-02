@@ -444,18 +444,22 @@ Game_Battler.prototype.addState = function(stateId) {
   const user = this;
   UNH_BleedStacks.Battler_addState.call(this);
   const meta = $dataStates[stateId].meta;
+  let counter;
   if (!!meta) {
     if (!!meta.UnhOverheal) {
-      this.unhSetOverheal(stateId, eval(meta.UnhOverheal));
-      this.unhSetMaxOverheal(stateId, Math.max(eval(meta.UnhOverheal), this.unhOverheal()));
+      counter = eval(meta.UnhOverheal);
+      this.unhSetOverheal(stateId, counter);
+      this.unhSetMaxOverheal(stateId, Math.max(counter, this.unhOverheal()));
     }
     if (!!meta.UnhOverflow) {
-      this.unhSetOverflow(stateId, eval(meta.UnhOverflow));
-      this.unhSetMaxOverflow(stateId, Math.max(eval(meta.UnhOverflow), this.unhOverflow()));
+      counter = eval(meta.UnhOverflow);
+      this.unhSetOverflow(stateId, counter);
+      this.unhSetMaxOverflow(stateId, Math.max(counter, this.unhOverflow()));
     }
     if (!!meta.UnhBleed) {
-      this.unhSetBleed(stateId, eval(meta.UnhBleed));
-      this.unhSetMaxBleed(stateId, Math.max(eval(meta.UnhBleed), this.unhBleed()));
+      counter = eval(meta.UnhBleed);
+      this.unhSetBleed(stateId, counter);
+      this.unhSetMaxBleed(stateId, Math.max(counter, this.unhBleed()));
     }
   }
 };

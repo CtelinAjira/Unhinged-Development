@@ -17,30 +17,30 @@ var Imported = Imported || {};
  * @text Base Aggro
  * @desc The aggro value that corresponds to 100% TGR
  * @type string
- * @default 50 * user.mhp / currentClass.params[0][1]
+ * @default 50
  *
  * @param HurtingAggro
  * @text Hurting Aggro
  * @desc The amount of aggro each point of damage generates
- * @type number
+ * @type string
  * @default 1
  *
  * @param HealingAggro
  * @text Healing Aggro
  * @desc The amount of aggro each point of healing generates
- * @type number
+ * @type string
  * @default 2
  *
  * @param HPMult
  * @text HP Damage Multiplier
  * @desc The multiplier applied to aggro from HP damage
- * @type number
+ * @type string
  * @default 1
  *
  * @param MPMult
  * @text MP Damage Multiplier
  * @desc The multiplier applied to aggro from MP damage
- * @type number
+ * @type string
  * @default 1
  *
  * @param isTaunt
@@ -139,10 +139,10 @@ const UNH_AggroLevels = {};
 UNH_AggroLevels.pluginName = 'UNH_AggroLevels';
 UNH_AggroLevels.parameters = PluginManager.parameters(UNH_AggroLevels.pluginName);
 UNH_AggroLevels.BaseAggro = String(UNH_AggroLevels.parameters['BaseAggro'] || '0');
-UNH_AggroLevels.HurtingAggro = Number(UNH_AggroLevels.parameters['HurtingAggro'] || 0);
-UNH_AggroLevels.HealingAggro = Number(UNH_AggroLevels.parameters['HealingAggro'] || 0);
-UNH_AggroLevels.HPMult = Number(UNH_AggroLevels.parameters['HPMult'] || 0);
-UNH_AggroLevels.MPMult = Number(UNH_AggroLevels.parameters['MPMult'] || 0);
+UNH_AggroLevels.HurtingAggro = String(UNH_AggroLevels.parameters['HurtingAggro'] || '0');
+UNH_AggroLevels.HealingAggro = String(UNH_AggroLevels.parameters['HealingAggro'] || '0');
+UNH_AggroLevels.HPMult = String(UNH_AggroLevels.parameters['HPMult'] || '0');
+UNH_AggroLevels.MPMult = String(UNH_AggroLevels.parameters['MPMult'] || '0');
 UNH_AggroLevels.isTaunt = !!UNH_AggroLevels.parameters['isTaunt'];
 UNH_AggroLevels.isVoke = !!UNH_AggroLevels.parameters['isVoke'];
 
@@ -275,17 +275,13 @@ if (!!UNH_AggroLevels.isVoke) {
 }
 
 Game_BattlerBase.prototype.unhDefaultAggro = function() {
-  const user = this;
-  const currentClass = user.currentClass();
-  return eval(UNH_AggroLevels.BaseAggro);
+  const evalFunc = new Function('user', 'return ' + UNH_AggroLevels.BaseAggro);
+  return evalFunc(this);
 };
 
 Game_BattlerBase.prototype.unhDamageMult = function(value) {
-  if (value < 0) {
-    return UNH_AggroLevels.HealingAggro;
-  } else {
-    return UNH_AggroLevels.HealingAggro;
-  }
+  const evalFunc = new Function('value', 'return ((value < 0) ? (' + UNH_AggroLevels.HealingAggro + ') : (' + UNH_AggroLevels.HurtingAggro + '))')
+  return evalFunc(value);
 };
 
 Game_BattlerBase.prototype.unhInitAggro = function() {
@@ -299,11 +295,9 @@ Game_BattlerBase.prototype.unhAggroBase = function() {
 };
 
 Game_Unit.prototype.unhMaxAggro = function() {
-  let maxAggro = 0;
-  for (const member of this.aliveMembers()) {
-    maxAggro = Math.max(member.unhAggroBase(), maxAggro);
-  }
-  return maxAggro;
+  return this.aliveMembers().reduce(function(r, member) {
+    return Math.max(r, member.unhAggroBase());
+  }, 0);
 };
 
 Game_BattlerBase.prototype.unhAggroPlus = function(target) {
@@ -487,11 +481,13 @@ Game_Action.prototype.unhAddAggro = function(target, value, ignoreRates) {
 };
 
 Game_BattlerBase.prototype.unhHpMult = function() {
-  return UNH_AggroLevels.HPMult;
+  const evalFunc = new Function('user', 'return ' + UNH_AggroLevels.HPMult);
+  return evalFunc(this);
 };
 
 Game_BattlerBase.prototype.unhMpMult = function() {
-  return UNH_AggroLevels.MPMult;
+  const evalFunc = new Function('user', 'return ' + UNH_AggroLevels.MPMult);
+  return evalFunc(this);
 };
 
 Game_BattlerBase.prototype.unhAggroMult = function() {
@@ -505,7 +501,7 @@ Game_Battler.prototype.onBattleStart = function(advantageous) {
   this.unhInitAggro();
 };
 
-UNH_AggroLevels.Battler_onBattleEnd = Game_Battler.prototype.onBattleEnd;
+UNH_AggroLevels.Battler_onBattleEnd = Game_Battler.prototype.onBattleStart;
 Game_Battler.prototype.onBattleEnd = function() {
   UNH_AggroLevels.Battler_onBattleEnd.call(this);
   this.unhInitAggro();

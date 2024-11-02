@@ -79,11 +79,12 @@ UNH_SkillFunctionOverwrites.applyItemUserEffectOverload = String(UNH_SkillFuncti
 
 UNH_SkillFunctionOverwrites.Action_apply = Game_Action.prototype.apply;
 Game_Action.prototype.apply = function(target) {
-  if (UNH_SkillFunctionOverwrites.applyOverload.length <= 0) {
+  const codeString = UNH_SkillFunctionOverwrites.applyOverload;
+  if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_apply.call(this, target);
 	return;
   }
-  const override = new Function('target', UNH_SkillFunctionOverwrites.applyOverload);
+  const override = new Function('target', codeString);
   try {
     override.call(this, target);
   } catch (e) {
@@ -93,10 +94,11 @@ Game_Action.prototype.apply = function(target) {
 
 UNH_SkillFunctionOverwrites.Action_makeDamageValue = Game_Action.prototype.makeDamageValue;
 Game_Action.prototype.makeDamageValue = function(target, critical) {
-  if (UNH_SkillFunctionOverwrites.makeDamageValueOverload.length <= 0) {
+  const codeString = UNH_SkillFunctionOverwrites.makeDamageValueOverload;
+  if (codeString.length <= 0) {
     return UNH_SkillFunctionOverwrites.Action_makeDamageValue.call(this, target, critical);
   }
-  const override = new Function('target', 'critical', UNH_SkillFunctionOverwrites.makeDamageValueOverload);
+  const override = new Function('target', 'critical', codeString);
   let value = 0;
   try {
     value = override.call(this, target, critical);
@@ -108,11 +110,12 @@ Game_Action.prototype.makeDamageValue = function(target, critical) {
 
 UNH_SkillFunctionOverwrites.Action_executeDamage = Game_Action.prototype.executeDamage;
 Game_Action.prototype.executeDamage = function(target, value) {
-  if (UNH_SkillFunctionOverwrites.executeDamageOverload.length <= 0) {
+  const codeString = UNH_SkillFunctionOverwrites.executeDamageOverload;
+  if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_executeDamage.call(this);
 	return;
   }
-  const override = new Function('target', 'value', UNH_SkillFunctionOverwrites.executeDamageOverload);
+  const override = new Function('target', 'value', codeString);
   try {
     override.call(this, target, value);
   } catch (e) {
@@ -122,11 +125,12 @@ Game_Action.prototype.executeDamage = function(target, value) {
 
 UNH_SkillFunctionOverwrites.Action_executeHpDamage = Game_Action.prototype.executeHpDamage;
 Game_Action.prototype.executeHpDamage = function(target, value) {
-  if (UNH_SkillFunctionOverwrites.executeHpDamageOverload.length <= 0) {
+  const codeString = UNH_SkillFunctionOverwrites.executeHpDamageOverload;
+  if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_executeHpDamage.call(this);
 	return;
   }
-  const override = new Function('target', 'value', UNH_SkillFunctionOverwrites.executeHpDamageOverload);
+  const override = new Function('target', 'value', codeString);
   try {
     override.call(this, target, value);
   } catch (e) {
@@ -136,11 +140,12 @@ Game_Action.prototype.executeHpDamage = function(target, value) {
 
 UNH_SkillFunctionOverwrites.Action_executeMpDamage = Game_Action.prototype.executeMpDamage;
 Game_Action.prototype.executeMpDamage = function(target, value) {
-  if (UNH_SkillFunctionOverwrites.executeMpDamageOverload.length <= 0) {
+  const codeString = UNH_SkillFunctionOverwrites.executeMpDamageOverload;
+  if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_executeMpDamage.call(this);
 	return;
   }
-  const override = new Function('target', 'value', UNH_SkillFunctionOverwrites.executeMpDamageOverload);
+  const override = new Function('target', 'value', codeString);
   try {
     override.call(this, target, value);
   } catch (e) {
@@ -150,11 +155,12 @@ Game_Action.prototype.executeMpDamage = function(target, value) {
 
 UNH_SkillFunctionOverwrites.Action_applyItemEffect = Game_Action.prototype.applyItemEffect;
 Game_Action.prototype.applyItemEffect = function(target, effect) {
-  if (UNH_SkillFunctionOverwrites.applyItemEffectOverload.length <= 0) {
+  const codeString = UNH_SkillFunctionOverwrites.applyItemEffectOverload;
+  if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_applyItemEffect.call(this, target, effect);
 	return;
   }
-  const override = new Function('target', 'effect', UNH_SkillFunctionOverwrites.applyItemEffectOverload);
+  const override = new Function('target', 'effect', codeString);
   try {
     override.call(this, target, effect);
   } catch (e) {
@@ -164,11 +170,12 @@ Game_Action.prototype.applyItemEffect = function(target, effect) {
 
 UNH_SkillFunctionOverwrites.Action_applyItemUserEffect = Game_Action.prototype.applyItemUserEffect;
 Game_Action.prototype.applyItemUserEffect = function(target) {
-  if (UNH_SkillFunctionOverwrites.applyItemUserEffectOverload.length <= 0) {
+  const codeString = UNH_SkillFunctionOverwrites.applyItemUserEffectOverload;
+  if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_applyItemUserEffect.call(this, target);
 	return;
   }
-  const override = new Function('target', UNH_SkillFunctionOverwrites.applyItemUserEffectOverload);
+  const override = new Function('target', codeString);
   try {
     override.call(this, target);
   } catch (e) {

@@ -120,14 +120,14 @@ Game_Action.prototype.unhBreakCheck = function(target) {
     if (!meta) continue;
     const breakChance = this.isPhysical() ? String(meta.unhBreakChancePhys) : String(meta.unhBreakChanceMag);
     if (!breakChance) continue;
-    breakChecks *= 1 - eval(breakChance / 100);
+    breakChecks *= 1 - (eval(breakChance) / 100);
   }
   for (const obj of user.unhParryStateObjects()) {
     const meta = obj.meta;
     if (!meta) continue;
     const breakChance = this.isPhysical() ? String(meta.unhBreakChancePhys) : String(meta.unhBreakChanceMag);
     if (!breakChance) continue;
-    breakChecks += eval(breakChance / 100);
+    breakChecks += (eval(breakChance) / 100);
   }
   return breakChecks;
 };
@@ -140,7 +140,7 @@ Game_Action.prototype.unhParryPlus = function(target) {
     if (!meta) continue;
     const parryChance = this.isPhysical() ? String(meta.unhParryChancePhys) : String(meta.unhParryChanceMag);
     if (!parryChance) continue;
-    parryChecks += eval(parryChance / 100);
+    parryChecks += (eval(parryChance) / 100);
   }
   return parryChecks;
 };
@@ -166,12 +166,30 @@ Game_Action.prototype.unhIsParry = function(array) {
 };
 
 if (!!UNH_ParryBreak.DodgeOrMit) {
-  UNH_ParryBreak.Action_itemEva = Game_Action.prototype.itemEva;
-  Game_Action.prototype.itemEva = function(target) {
-    if (this.isCertainHit()) return 0;
-    if (this.unhIsParry(this.unhParryChecks(target))) return 1;
-    return UNH_ParryBreak.Action_itemEva.call(this, target);
-  };
+  if (!!Imported.VisuMZ_0_CoreEngine) {
+    UNH_ParryBreak.Action_itemHit = Game_Action.prototype.itemHit;
+    Game_Action.prototype.itemHit = function(target) {
+      if (!VisuMZ.CoreEngine.Settings.QoL.ImprovedAccuracySystem) return UNH_ParryBreak.Action_itemHit.call(this, target);
+      if (this.isCertainHit()) return 1;
+      if (this.unhIsParry(this.unhParryChecks(target))) return 0;
+      return UNH_ParryBreak.Action_itemHit.call(this, target);
+    };
+
+    UNH_ParryBreak.Action_itemEva = Game_Action.prototype.itemEva;
+    Game_Action.prototype.itemEva = function(target) {
+      if (!!VisuMZ.CoreEngine.Settings.QoL.ImprovedAccuracySystem) return UNH_ParryBreak.Action_itemEva.call(this, target);
+      if (this.isCertainHit()) return 0;
+      if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+      return UNH_ParryBreak.Action_itemEva.call(this, target);
+    };
+  } else {
+    UNH_ParryBreak.Action_itemEva = Game_Action.prototype.itemEva;
+    Game_Action.prototype.itemEva = function(target) {
+      if (this.isCertainHit()) return 0;
+      if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+      return UNH_ParryBreak.Action_itemEva.call(this, target);
+    };
+  }
 } else {
   Game_Action.prototype.unhParryBaseDamageMult = function(target) {
     const user = this.subject();
@@ -192,7 +210,7 @@ if (!!UNH_ParryBreak.DodgeOrMit) {
         const magDrString = (!!meta.unhParryMagDR) ? String(meta.unhParryMagDR) : "100";
         const damageMult = this.isPhysical() ? physDrString : magDrString;
         if (!damageMult) continue;
-        mult *= eval(damageMult / 100);
+        mult *= (eval(damageMult) / 100);
       }
     }
     return mult;

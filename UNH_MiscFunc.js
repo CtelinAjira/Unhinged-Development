@@ -13,9 +13,9 @@ var Imported = Imported || {};
  *
  * @param DamageFormula
  * @text Damage Formula
- * @desc The default code for user.unhDmgFormula(target, pow, atk, def)
+ * @desc The default code for action.unhDmgFormula(target, pow, atk, def)
  * @type note
- * @default "return (pow + atk - def);"
+ * @default "//action - the action in question\n//item - the database object of the action\n//user - the user of the action\n//target - the current target of the action\n\nreturn (pow + atk - def);"
  *
  * @help
  * ============================================================================
@@ -23,14 +23,21 @@ var Imported = Imported || {};
  * ============================================================================
  * 
  * battler.unhERate
- * - an array of all the element rates
+ * - an array of all the battler's element rates
  *   - e.g. a.unhERate[4] is equivalent to a.elementRate(4)
  *
  * ============================================================================
  * New Functions
  * ============================================================================
  *
- * battler.unhDmgFormula(target, pow, atk, def);
+ * battler.unhGetEleRates();
+ * - Returns an arrary of the battler's element rates
+ *   - This is what defines battler.unhERate above
+ *
+ * battler.object();
+ * - Returns the battler's database object, whether Actor or Enemy
+ *
+ * action.unhDmgFormula(target, pow, atk, def);
  * - Returns a damage formula defined within the plugin parameters
  *
  * battler.friendsUnitNotUser();
@@ -81,13 +88,13 @@ Game_Enemy.prototype.object = function() {
   return this.enemy();
 };
 
-Game_BattlerBase.prototype.unhDmgFormula = function(target, pow, atk, def) {
-  const user = this;
-  const a = this;
-  const b = target;
-  const attacker = this;
-  const defender = target;
-  return eval(UNH_MiscFunc.DamageFormula);
+Game_Action.prototype.unhDmgFormula = function(target, pow, atk, def) {
+  const evalFunc = ('action', 'item', 'user', 'target', 'pow', 'atk', 'def', 'return ' + UNH_MiscFunc.DamageFormula);
+  try {
+    return evalFunc(this, this.item(), this.subject(), target, pow, atk, def);
+  } catch (e) {
+    return 0;
+  };
 };
 
 Game_BattlerBase.prototype.friendsUnitNotUser = function() {
@@ -109,6 +116,12 @@ Game_Unit.prototype.highestStat = function(paramId) {
 };
 
 Game_Unit.prototype.lowestStat = function(paramId) {
+  if (typeof paramId === 'string') {
+    const statStr = ['mhp','mmp','atk','def','mat','mdf','agi','luk'];
+    paramId = statStr.indexOf(paramId.toLowerCase());
+  }
+  if (paramId < 0) return 0;
+  if (paramId > 7) return 0;
   return this.members().reduce(function(r, member) {
     return Math.min(r, member.param(paramId));
   }, this.paramMax());

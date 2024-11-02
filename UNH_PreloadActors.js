@@ -56,7 +56,6 @@ const UNH_PreloadActors = {};
 UNH_PreloadActors.pluginName = 'UNH_PreloadActors';
 UNH_PreloadActors.parameters = PluginManager.parameters(UNH_PreloadActors.pluginName);
 UNH_PreloadActors.PostInit = String(UNH_PreloadActors.parameters['PostInit'] || "");
-UNH_PreloadActors.isParsing = true;
 
 UNH_PreloadActors.codeParse = function(code) {
   if (typeof code !== 'string') return [];
@@ -66,12 +65,17 @@ UNH_PreloadActors.codeParse = function(code) {
 UNH_PreloadActors.runPostInit = function(actorId) {
   if (typeof actorId !== 'number') return;
   if (actorId === 0) return;
-  if (actorId > $dataActors.length) return;
+  if (actorId >= $dataActors.length) return;
   if (!UNH_PreloadActors.PostInit) return;
   if (UNH_PreloadActors.codeParse(UNH_PreloadActors.PostInit).length <= 0) return;
   if (!$gameActors._data[actorId]) $gameActors._data[id] = new Game_Actor(id);
   const actor = $gameActors._data[actorId];
-  eval(UNH_PreloadActors.PostInit);
+  const postInit = new Function('actor', 'actorId', UNH_PreloadActors.PostInit);
+  try {
+    postInit(actor, actorId);
+  } catch (e) {
+    return;
+  }
 };
 
 Game_Actors.prototype.initActors = function(actorId) {
@@ -104,16 +108,16 @@ Game_Actors.prototype.clear = function() {
 
 Game_Actors.prototype.resetData = function() {
   this.clear();
-  this.initActors(0);
+  this.initActors();
 };
 
 Game_Actors.prototype.data = function() {
-  this.initActors(0);
+  this.initActors();
   return this._data;
 };
 
 UNH_PreloadActors.Actors_actor = Game_Actors.prototype.actor;
 Game_Actors.prototype.actor = function(actorId) {
-  this.initActors(0);
+  this.initActors();
   return UNH_PreloadActors.Actors_actor.call(this, actorId);
 };

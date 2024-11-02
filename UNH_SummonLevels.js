@@ -64,6 +64,7 @@ Game_Actor.prototype.summons = function() {
     if (!actor.actor()) continue;
     if (!actor.actor().meta) continue;
     if (isNaN(actor.actor().meta.unhActorSummon)) continue;
+    if (actor.actor().meta.unhActorSummon === true) summons.push(actor);
     if (this.actorId() === Number(actor.actor().meta.unhActorSummon)) summons.push(actor);
   }
   return summons;
@@ -76,6 +77,7 @@ Game_Enemy.prototype.summons = function() {
     if (!actor.actor()) continue;
     if (!actor.actor().meta) continue;
     if (isNaN(actor.actor().meta.unhEnemySummon)) continue;
+    if (actor.actor().meta.unhEnemySummon === true) summons.push(actor);
     if (this.enemyId() === Number(actor.actor().meta.unhEnemySummon)) summons.push(actor);
   }
   return summons;
@@ -115,25 +117,14 @@ Game_Enemy.prototype.unhLevel = function() {
   if (!meta) return 1;
   const level = meta.unhSummonerLevel;
   if (!level) return 1;
-  if (isNaN(level)) {
-    try {
-      const dummy = eval(level);
-      if (typeof dummy === 'number') {
-        return Math.min(Math.max(dummy, 1), 99);
-      } else if (typeof dummy === 'object') {
-        try {
-          if (dummy.isActor()) return dummy.level;
-          return 1;
-        } catch (e) {
-          return 1;
-        }
-      } else {
-        return 1;
-      }
-    } catch (e) {
-      return 1;
-    }
-  } else {
-    return Math.min(Math.max(Number(level), 1), 99);
+  if (typeof level === 'number') return ((isNaN(level)) ? (1) : (Math.min(Math.max(Number(level), 1), 99)));
+  try {
+    const evalFunc = new Function('user', 'meta', 'return ' + level);
+    const dummy = evalFunc(user, meta);
+    if (typeof dummy === 'object') return ((dummy.isActor()) ? (dummy.level) : (1));
+    if (isNaN(dummy)) return 1;
+    return Math.min(Math.max(Number(dummy), 1), 99);
+  } catch (e) {
+    return 1;
   }
 };
