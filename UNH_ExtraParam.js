@@ -44,7 +44,7 @@ UNH_ExtraParam.pluginName = 'UNH_ExtraParam';
 UNH_ExtraParam.parameters = PluginManager.parameters(UNH_ExtraParam.pluginName);
 
 UNH_ExtraParam.checkParams = function() {
-  if (!!UNH_ExtraParam.parameters['CustParam']) return false;
+  if (!UNH_ExtraParam.parameters['CustParam']) return false;
   if (!Array.isArray(UNH_ExtraParam.parameters['CustParam'])) return false;
   if (UNH_ExtraParam.parameters['CustParam'].length <= 0) return false;
   return true;
