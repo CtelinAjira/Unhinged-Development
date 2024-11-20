@@ -34,8 +34,10 @@
  * will need to tag them with <X:Y>, where X is the name of the equipment slot 
  * within the database, and Y is the weapon or armor ID within the database.
  *
- * Giving the Dual Wield trait to a tagged enemy will change the shield tag to 
- * another weapon.
+ * Giving the Dual Wield trait to a tagged enemy will change how the tag for 
+ * Equip Type 2 behaves.
+ * - Dual Wield On: gives a second weapon
+ * - Dual Wield Off: gives a shield
  */
 //=============================================================================
 

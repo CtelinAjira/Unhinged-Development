@@ -11,13 +11,44 @@ var Imported = Imported || {};
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [MiscFunc]
  * @author Unhinged Developer
  *
+ * @param CustParam
+ * @text Custom Parameters
+ * @desc The list of custom parameters
+ * @type struct<ParamObj>[]
+ * @default []
+ *
  * @param DamageFormula
  * @text Damage Formula
  * @desc The default code for action.unhDmgFormula(target, pow, atk, def)
+ * Variables: action, user, item, target, pow, atk, def
+ * @type string
+ * @default (pow + atk - def)
+ *
+ *~struct~ParamObj:
+ * @param name
+ * @text Parameter Name
+ * @desc The name of this parameter
+ * @type string
+ *
+ * @param code
+ * @text Parameter Code
+ * @desc The code for this parameter
+ * The variable 'note' will reference the Parameter Notetag
  * @type note
- * @default "//action - the action in question\n//item - the database object of the action\n//user - the user of the action\n//target - the current target of the action\n\nreturn (pow + atk - def);"
+ * @default "return 0;" 
+ *
+ * @param note
+ * @text Parameter Notetag
+ * @desc The notetag for this parameter
+ * @type string
  *
  * @help
+ * ============================================================================
+ * New Parameters
+ * ============================================================================
+ *
+ * You may now assign custom parameters.  These should ideally be calculated 
+ * via a notetag.
  *
  * ============================================================================
  * New Functions
@@ -56,7 +87,32 @@ var Imported = Imported || {};
 const UNH_MiscFunc = {};
 UNH_MiscFunc.pluginName = 'UNH_MiscFunc';
 UNH_MiscFunc.parameters = PluginManager.parameters(UNH_MiscFunc.pluginName);
-UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || "return 0");
+UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || "0");
+
+UNH_MiscFunc.checkParams = function() {
+  if (!this.parameters['CustParam']) return false;
+  if (!Array.isArray(this.parameters['CustParam'])) return false;
+  if (this.parameters['CustParam'].length <= 0) return false;
+  return true;
+};
+
+UNH_MiscFunc.defineParams = function() {
+  if (!this.checkParams()) return {};
+  const retParams = {};
+  let paramEval;
+  for (const param of this.parameters['CustParam']) {
+    paramEval = Function('note', param.code);
+    retParams[param.name] = {
+      get: paramEval(param.note),
+      configurable: true
+    }
+  }
+  return retParams;
+};
+
+if (UNH_MiscFunc.checkParams()) {
+  Object.defineProperties(Game_BattlerBase.prototype, UNH_MiscFunc.defineParams());
+}
 
 Game_BattlerBase.prototype.unhGetEleRates = function() {
   const user = this;
@@ -74,9 +130,11 @@ Game_Enemy.prototype.object = function() {
 };
 
 Game_Action.prototype.unhDmgFormula = function(target, pow, atk, def) {
-  const evalFunc = ('action', 'item', 'user', 'target', 'pow', 'atk', 'def', 'return ' + UNH_MiscFunc.DamageFormula);
   try {
-    return evalFunc(this, this.item(), this.subject(), target, pow, atk, def);
+    const action = this;
+    const item = this.item();
+    const user = this.subject();
+    return eval(UNH_MiscFunc.DamageFormula);
   } catch (e) {
     return 0;
   };
