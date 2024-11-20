@@ -52,10 +52,9 @@ UNH_ExtraParam.checkParams = function() {
 
 UNH_ExtraParam.defineParams = function() {
   if (!this.checkParams()) return {};
-  const params = this.parameters['CustParam'];
   const retParams = {};
   let paramEval;
-  for (const param of params) {
+  for (const param of this.parameters['CustParam']) {
     paramEval = Function(note, param.code);
     retParams[param.name] = {
       get: paramEval(param.note),
