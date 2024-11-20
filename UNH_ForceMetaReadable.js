@@ -18,91 +18,83 @@ UNH_ForceMetaReadable.pluginName = 'UNH_ForceMetaReadable';
 
 Object.defineProperty(Game_Actor.prototype, 'meta', {
     get: function() {
-        return this.getMeta();
+        return this.battlerMeta();
     },
     configurable: true
 });
 
 Object.defineProperty(Game_Enemy.prototype, 'meta', {
     get: function() {
-        return this.getMeta();
+        return this.battlerMeta();
     },
     configurable: true
 });
 
 Object.defineProperty(Game_Item.prototype, 'meta', {
     get: function() {
-        return this.getMeta();
+        return this.itemMeta();
     },
     configurable: true
 });
 
 Object.defineProperty(Game_Action.prototype, 'meta', {
     get: function() {
-        return this.getMeta();
+        return this.actionMeta();
     },
     configurable: true
 });
 
-UNH_ForceMetaReadable.concatMetadata = function(obj, meta) {
-  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+UNH_ForceMetaReadable.concatMetadata = function(obj) {
+  const meta = {};
   if (obj !== undefined) {
     if (obj !== null) {
       DataManager.extractMetadata(obj);
       for (const [key, value] of Object.entries(obj.meta)) {
-        if (meta[key] !== undefined) {
-          if (typeof meta[key] === 'number') {
-            meta[key] += value;
-          } else {
-            meta[key] = value;
-          }
-        } else {
-          meta[key] = value;
-        }
+        meta[key] = value;
       }
     }
   }
   return meta;
 };
 
-Game_BattlerBase.prototype.getMeta = function(meta) {
-  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+Game_BattlerBase.prototype.statesMeta = function() {
+  const meta = Array($dataStates.length);
   for (const state of this.states()) {
-    meta = UNH_ForceMetaReadable.concatMetadata(state, meta);
+    meta[state.id] = UNH_ForceMetaReadable.concatMetadata(state);
   }
   return meta;
 };
 
-Game_Enemy.prototype.getMeta = function(meta) {
-  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
-  meta = UNH_ForceMetaReadable.concatMetadata(this.enemy(), meta);
-  return Game_BattlerBase.prototype.getMeta.call(this, meta);
+Game_Enemy.prototype.battlerMeta = function() {
+  const meta = {};
+  meta['battler'] = UNH_ForceMetaReadable.concatMetadata(this.enemy());
+  meta['class'] = {};
+  meta['equips'] = {};
+  meta['states'] = this.statesMeta();
+  return meta;
 };
 
-Game_Actor.prototype.getMeta = function(meta) {
-  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
-  meta = UNH_ForceMetaReadable.concatMetadata(this.actor(), meta);
-  meta = UNH_ForceMetaReadable.concatMetadata(this.currentClass(), meta);
+Game_Actor.prototype.battlerMeta = function() {
+  const meta = {};
+  meta['battler'] = UNH_ForceMetaReadable.concatMetadata(this.actor());
+  meta['class'] = UNH_ForceMetaReadable.concatMetadata(this.currentClass());
+  equips = {};
   for (const equip of this.equips()) {
-    meta = UNH_ForceMetaReadable.concatMetadata(equip, meta);
+    equips[this.equips().indexOf(equip)] = equip.itemMeta();
   }
-  return Game_BattlerBase.prototype.getMeta.call(this, meta);
-};
-
-Game_Item.prototype.getMeta = function(meta) {
-  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
-  const item = this.object();
-  if (item !== null) {
-    meta = UNH_ForceMetaReadable.concatMetadata(item, meta);
-  }
+  meta['equips'] = equips;
+  meta['states'] = this.statesMeta();
   return meta;
 };
 
-Game_Action.prototype.getMeta = function(meta) {
-  if (meta === undefined || meta === null || typeof meta !== 'object') meta = {};
+Game_Item.prototype.itemMeta = function() {
+  return UNH_ForceMetaReadable.concatMetadata(this.object());
+};
+
+Game_Action.prototype.actionMeta = function() {
   const item = this.item();
-  if (item !== null) {
-    meta = UNH_ForceMetaReadable.concatMetadata(item, meta);
-  }
+  const user = this.subject();
+  const meta = user.battlerMeta();
+  meta['action'] = UNH_ForceMetaReadable.concatMetadata(item);
   return meta;
 };
