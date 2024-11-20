@@ -76,9 +76,9 @@ Game_Enemy.prototype.battlerMeta = function() {
   meta['class'] = {};
   const equipObj = {};
   let equip;
+  let eqpEval;
   for (let i = 1; i <= 7; i++) {
     slotName = $gameSystem.equipTypes[i];
-    let eqpEval;
     if (!this.enemy().meta) {
       equipObj[slotName] = {};
     } else if (!this.enemy().meta[slotName]) {
