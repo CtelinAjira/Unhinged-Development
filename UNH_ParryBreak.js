@@ -4,11 +4,15 @@
 //=============================================================================
 
 var Imported = Imported || {};
+var Ramza = Ramza || {};
 
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.01] [Unhinged] [ParryBreak]
+ * @orderAfter VisuMZ_0_CoreEngine
+ * @orderAfter VisuMZ_1_BattleCore
+ * @orderAfter UNH_Ramza_ExtWeapons
+ * @plugindesc [RPG Maker MZ] [Version 1.02] [Unhinged] [ParryBreak]
  * @author Unhinged Developer
  *
  * @param DodgeOrMit
@@ -36,19 +40,32 @@ var Imported = Imported || {};
  *   - Weapons each roll their parry check individually against each attack
  *   - States not marked as equipment surrogates add their parry chance to each 
  *     parry check
+ * <unhParryBreakSkip>
+ * - Use for Skill/Items
+ * - Marks a skill or item to bypass the parry system
  * <unhParryChancePhys:X>
- * - Use for Weapons (Actors)/States (Enemies)
+ * - Use for Weapons/States
  * - Adds an X% chance (X is a JS Eval) to reduce or negate physical damage
  *   - user - the user
  *   - target - the target
+ * <unhParryUnarmedPhys:X>
+ * - Use for Actors/Enemies/States
+ * - Adds an X% chance (X is a JS Eval) to parry physical while unarmed
+ *   - user - the user
+ *   - target - the target
  * <unhParryChanceMag:X>
- * - Use for Weapons (Actors)/States (Enemies)
+ * - Use for Weapons/States
  * - Adds an X% chance (JS Eval) to reduce or negate magical damage
  *   - user - the user
  *   - target - the target
  * <unhBreakChancePhys:X>
  * - Use for Weapons/Skills/States
  * - Applies an X% reduction (JS Eval) to the target's Physical Parry chance
+ *   - user - the user
+ *   - target - the target
+ * <unhBreakUnarmedPhys:X>
+ * - Use for Actors/Enemies/States
+ * - Adds an X% chance (X is a JS Eval) to break physical while unarmed
  *   - user - the user
  *   - target - the target
  * <unhBreakChanceMag:X>
@@ -78,22 +95,29 @@ UNH_ParryBreak.DodgeOrMit = !!UNH_ParryBreak.parameters['DodgeOrMit'];
 UNH_ParryBreak.BaseDamageMult = String(UNH_ParryBreak.parameters['BaseDamageMult'] || "0");
 
 Game_Battler.prototype.unhParryRelevantObjects = function() {
-  return this.unhParryStateObjects().concat(this.unhParryableObjects());
+  const objects = [];
+  for (const state of this.states()) {
+    if (!state.meta) continue;
+    if (!!state.meta.unhParryBreakEquip) objects.push(state);
+  }
+  if (this.isActor()) {
+    for (const weapon of this.weapons()) {
+      objects.push(weapon);
+    }
+  }
+  return objects;
 };
 
-Game_Battler.prototype.unhParryStateObjects = function() {
-  return this.states().filter(function(state) {
-    if (!state.meta) return true;
-    return !state.meta.unhParryBreakEquip;
-  });
-};
-
-Game_Battler.prototype.unhParryableObjects = function() {
-  if (this.isActor()) this.weapons();
-  return this.states().filter(function(state) {
-    if (!state.meta) return false;
-    return !!state.meta.unhParryBreakEquip;
-  });
+Game_Battler.prototype.unhParryBoostingObjects = function() {
+  const objects = [];
+  for (const state of this.states()) {
+    if (!state.meta) continue;
+    if (!state.meta.unhParryChancePhys) continue;
+    if (!state.meta.unhParryChanceMag) continue;
+    if (!state.meta.unhParryUnarmedPhys) continue;
+    if (!state.meta.unhParryBreakEquip) objects.push(state);
+  }
+  return objects;
 };
 
 Game_Action.prototype.unhCanParry = function(target) {
@@ -115,19 +139,32 @@ Game_Action.prototype.unhCanParry = function(target) {
 Game_Action.prototype.unhBreakCheck = function(target) {
   const user = this.subject();
   let breakChecks = 1;
-  for (const obj of user.unhParryableObjects()) {
+  for (const obj of user.unhParryRelevantObjects()) {
     const meta = obj.meta;
     if (!meta) continue;
     const breakChance = this.isPhysical() ? String(meta.unhBreakChancePhys) : String(meta.unhBreakChanceMag);
     if (!breakChance) continue;
     breakChecks *= 1 - (eval(breakChance) / 100);
   }
-  for (const obj of user.unhParryStateObjects()) {
+  for (const obj of user.unhParryBoostingObjects()) {
     const meta = obj.meta;
     if (!meta) continue;
-    const breakChance = this.isPhysical() ? String(meta.unhBreakChancePhys) : String(meta.unhBreakChanceMag);
+    const breakPlus = this.isPhysical() ? String(meta.unhBreakChancePhys) : String(meta.unhBreakChanceMag);
+    if (!breakPlus) continue;
+    breakChecks += (eval(breakPlus) / 100);
+  }
+  return breakChecks;
+};
+
+Game_Action.prototype.unhBreakUnarmedCheck = function(target) {
+  const user = this.subject();
+  let breakChecks = 1;
+  for (const obj of user.traitObjects()) {
+    const meta = obj.meta;
+    if (!meta) continue;
+    const breakChance = this.isPhysical() ? String(meta.unhBreakUnarmedPhys) : '0';
     if (!breakChance) continue;
-    breakChecks += (eval(breakChance) / 100);
+    breakChecks *= 1 - (eval(breakChance) / 100);
   }
   return breakChecks;
 };
@@ -135,12 +172,12 @@ Game_Action.prototype.unhBreakCheck = function(target) {
 Game_Action.prototype.unhParryPlus = function(target) {
   const user = this.subject();
   let parryChecks = 0;
-  for (const obj of user.unhParryStateObjects()) {
+  for (const obj of user.unhParryBoostingObjects()) {
     const meta = obj.meta;
     if (!meta) continue;
-    const parryChance = this.isPhysical() ? String(meta.unhParryChancePhys) : String(meta.unhParryChanceMag);
-    if (!parryChance) continue;
-    parryChecks += (eval(parryChance) / 100);
+    const parryPlus = this.isPhysical() ? String(meta.unhParryChancePhys) : String(meta.unhParryChanceMag);
+    if (!parryPlus) continue;
+    parryChecks += (eval(parryPlus) / 100);
   }
   return parryChecks;
 };
@@ -148,12 +185,25 @@ Game_Action.prototype.unhParryPlus = function(target) {
 Game_Action.prototype.unhParryChecks = function(target) {
   const user = this.subject();
   const parryChecks = [];
-  for (const obj of target.unhParryableObjects()) {
+  for (const obj of target.unhParryRelevantObjects()) {
     const meta = obj.meta;
     if (!meta) continue;
     const parryChance = this.isPhysical() ? String(meta.unhBreakChancePhys).trim() : String(meta.unhBreakChanceMag).trim();
     if (!parryChance) continue;
     parryChecks.push(((eval(parryChance) / 100) + user.unhParryPlus(target)) * (1 - this.unhBreakCheck(target)));
+  }
+  return parryChecks;
+};
+
+Game_Action.prototype.unhUnarmedParryChecks = function(target) {
+  const user = this.subject();
+  const parryChecks = [];
+  for (const obj of user.traitObjects()) {
+    const meta = obj.meta;
+    if (!meta) continue;
+    const parryChance = this.isPhysical() ? String(meta.unhBreakUnarmedPhys).trim() : '0';
+    if (!parryChance) continue;
+    parryChecks.push((eval(parryChance) / 100) * (1 - this.unhBreakUnarmedCheck(target)));
   }
   return parryChecks;
 };
@@ -171,7 +221,18 @@ if (!!UNH_ParryBreak.DodgeOrMit) {
     Game_Action.prototype.itemHit = function(target) {
       if (!VisuMZ.CoreEngine.Settings.QoL.ImprovedAccuracySystem) return UNH_ParryBreak.Action_itemHit.call(this, target);
       if (this.isCertainHit()) return 1;
-      if (this.unhIsParry(this.unhParryChecks(target))) return 0;
+      if (!!this.item().meta) {
+        if (!!this.item().meta.unhParryBreakSkip) return UNH_ParryBreak.Action_itemHit.call(this, target);
+      }
+      if (!!Ramza._loaded_WAF_Ext) {
+        if (this.subject().isDisarmed()) {
+          if (this.unhIsParry(this.unhUnarmedParryChecks(target))) return 0;
+        } else {
+          if (this.unhIsParry(this.unhParryChecks(target))) return 0;
+        }
+      } else {
+        if (this.unhIsParry(this.unhParryChecks(target))) return 0;
+      }
       return UNH_ParryBreak.Action_itemHit.call(this, target);
     };
 
@@ -179,14 +240,36 @@ if (!!UNH_ParryBreak.DodgeOrMit) {
     Game_Action.prototype.itemEva = function(target) {
       if (!!VisuMZ.CoreEngine.Settings.QoL.ImprovedAccuracySystem) return UNH_ParryBreak.Action_itemEva.call(this, target);
       if (this.isCertainHit()) return 0;
-      if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+      if (!!this.item().meta) {
+        if (!!this.item().meta.unhParryBreakSkip) return UNH_ParryBreak.Action_itemEva.call(this, target);
+      }
+      if (!!Ramza._loaded_WAF_Ext) {
+        if (this.subject().isDisarmed()) {
+          if (this.unhIsParry(this.unhUnarmedParryChecks(target))) return 1;
+        } else {
+          if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+        }
+      } else {
+        if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+      }
       return UNH_ParryBreak.Action_itemEva.call(this, target);
     };
   } else {
     UNH_ParryBreak.Action_itemEva = Game_Action.prototype.itemEva;
     Game_Action.prototype.itemEva = function(target) {
       if (this.isCertainHit()) return 0;
-      if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+      if (!!this.item().meta) {
+        if (!!this.item().meta.unhParryBreakSkip) return UNH_ParryBreak.Action_itemEva.call(this, target);
+      }
+      if (!!Ramza._loaded_WAF_Ext) {
+        if (this.subject().isDisarmed()) {
+          if (this.unhIsParry(this.unhUnarmedParryChecks(target))) return 1;
+        } else {
+          if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+        }
+      } else {
+        if (this.unhIsParry(this.unhParryChecks(target))) return 1;
+      }
       return UNH_ParryBreak.Action_itemEva.call(this, target);
     };
   }
@@ -218,14 +301,24 @@ if (!!UNH_ParryBreak.DodgeOrMit) {
 
   Game_Action.prototype.parryDamageMult = function(target) {
     if (this.isCertainHit()) return 1;
-    const user = this.subject();
-    if (!!this.unhIsParry(this.unhParryChecks(target))) return this.unhParryDR(target);
+    if (!!Ramza._loaded_WAF_Ext) {
+      if (this.subject().isDisarmed()) {
+        if (this.unhIsParry(this.unhUnarmedParryChecks(target))) return this.unhParryDR(target);
+      } else {
+        if (this.unhIsParry(this.unhParryChecks(target))) return this.unhParryDR(target);
+      }
+    } else {
+      if (this.unhIsParry(this.unhParryChecks(target))) return this.unhParryDR(target);
+    }
     return 1;
   };
 
   UNH_ParryBreak.Action_evalDamageFormula = Game_Action.prototype.evalDamageFormula;
   Game_Action.prototype.evalDamageFormula = function(target) {
     let value = UNH_ParryBreak.Action_evalDamageFormula.call(this, target);
+    if (!!this.item().meta) {
+      if (!!this.item().meta.unhParryBreakSkip) return value;
+    }
     const mult = this.parryDamageMult(target);
     return value * mult;
   };

@@ -91,22 +91,24 @@ BattleManager.startAction = function() {
 };
 
 Game_BattlerBase.prototype.unhSummonCalcLevel = function() {
-  const level = this.unhLevel();
+  const maxLevel = this.isActor() ? this.maxLevel() : ((!!Imported.VisuMZ_3_EnemyLevels) ? this.maxLevel() : 99);
+  const level = this.unhLevel(maxLevel);
   for (const summon of this.summons()) {
     if (summon.level === level) continue;
     summon.changeExp(summon.expForLevel(level), false);
   }
 };
 
-Game_BattlerBase.prototype.unhLevel = function() {
+Game_BattlerBase.prototype.unhLevel = function(max) {
   return 1;
 };
 
-Game_Actor.prototype.unhLevel = function() {
-  return this._level;
+Game_Actor.prototype.unhLevel = function(max) {
+  return Math.min(Math.max(Number(this._level), 1), max);
 };
 
-Game_Enemy.prototype.unhLevel = function() {
+Game_Enemy.prototype.unhLevel = function(max) {
+  if (typeof max !== 'number') max = 99;
   if (!!Imported.VisuMZ_3_EnemyLevels) {
     return this.getLevel();
   } else if (!!this._level) {
@@ -117,13 +119,16 @@ Game_Enemy.prototype.unhLevel = function() {
   if (!meta) return 1;
   const level = meta.unhSummonerLevel;
   if (!level) return 1;
-  if (typeof level === 'number') return ((isNaN(level)) ? (1) : (Math.min(Math.max(Number(level), 1), 99)));
+  if (typeof level === 'number') {
+    if (isNaN(level)) return 1;
+	return Math.min(Math.max(Number(level), 1), max);
+  }
   try {
     const evalFunc = new Function('user', 'meta', 'return ' + level);
     const dummy = evalFunc(user, meta);
     if (typeof dummy === 'object') return ((dummy.isActor()) ? (dummy.level) : (1));
     if (isNaN(dummy)) return 1;
-    return Math.min(Math.max(Number(dummy), 1), 99);
+    return Math.min(Math.max(Number(dummy), 1), max);
   } catch (e) {
     return 1;
   }

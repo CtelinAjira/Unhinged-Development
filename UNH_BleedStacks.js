@@ -8,8 +8,17 @@ var Imported = Imported || {};
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [BleedStacks]
+ * @plugindesc [RPG Maker MZ] [Version 1.02] [Unhinged] [BleedStacks]
  * @author Unhinged Developer
+ *
+ * @param LetVSCook
+ * @text Offload to VisuStella
+ * @desc If VisuStella Skills & States Core is installed, 
+ * do you want to let it handle skill costs?
+ * @type boolean
+ * @on Yes
+ * @off No
+ * @default true
  *
  * @help
  * ============================================================================
@@ -53,7 +62,7 @@ var Imported = Imported || {};
  * - Use for Skills/States
  * - Sets the tagged state to lose X overheal stacks per turn (JavaScript)
  * <UnhIgnoreOverheal>
- * - Use for Skills/States
+ * - Use for Actors/Enemies/Skills/Weapons/Armors/States
  * - Use this to give ways to bypass Overheal
  * <UnhOverflow:X>
  * - Use for States
@@ -66,7 +75,7 @@ var Imported = Imported || {};
  * - Use for Skills/States
  * - Sets the tagged state to lose X overflow stacks per turn (JavaScript)
  * <UnhIgnoreOverflow>
- * - Use for Skills/States
+ * - Use for Actors/Enemies/Skills/Weapons/Armors/States
  * - Use this to give ways to bypass Overflow
  * <UnhBleed:X>
  * - Use for States
@@ -79,7 +88,7 @@ var Imported = Imported || {};
  * - Use for Skills/States
  * - Sets the tagged state to lose X bleed stacks per turn (JavaScript)
  * <UnhIgnoreBleed>
- * - Use for Skills/States
+ * - Use for Actors/Enemies/Skills/Weapons/Armors/States
  * - Use this to give ways to ignore Bleed
  * 
  * ============================================================================
@@ -133,6 +142,8 @@ var Imported = Imported || {};
 
 const UNH_BleedStacks = {};
 UNH_BleedStacks.pluginName = 'UNH_BleedStacks';
+UNH_BleedStacks.parameters = PluginManager.parameters(UNH_BleedStacks.pluginName);
+UNH_BleedStacks.LetVSCook = !!UNH_BleedStacks.parameters['LetVSCook'];
 
 Game_Battler.prototype.initBleed = function() {
   this._unhBleed = [];
@@ -168,24 +179,24 @@ Game_Battler.prototype.initOverflow = function() {
 };
 
 Game_Battler.prototype.unhIgnoreBleed = function() {
-  return this.states().some(function(r, state) {
-    const meta = state.meta;
+  return this.traitObjects().some(function(r, obj) {
+    const meta = obj.meta;
     if (!meta) return false;
     return !!meta.UnhIgnoreBleed;
   }, false);
 };
 
 Game_Battler.prototype.unhIgnoreOverheal = function() {
-  return this.states().some(function(r, state) {
-    const meta = state.meta;
+  return this.traitObjects().some(function(r, obj) {
+    const meta = obj.meta;
     if (!meta) return false;
     return !!meta.UnhIgnoreOverheal;
   }, false);
 };
 
 Game_Battler.prototype.unhIgnoreOverflow = function() {
-  return this.states().some(function(r, state) {
-    const meta = state.meta;
+  return this.traitObjects().some(function(r, obj) {
+    const meta = obj.meta;
     if (!meta) return false;
     return !!meta.UnhIgnoreOverflow;
   }, false);
@@ -193,26 +204,29 @@ Game_Battler.prototype.unhIgnoreOverflow = function() {
 
 Game_Action.prototype.unhIgnoreBleed = function() {
   const item = this.item();
+  const user = this.subject();
   if (!item) return false;
   const meta = item.meta;
   if (!meta) return false;
-  return !!meta.UnhIgnoreBleed;
+  return user.unhIgnoreBleed() && !!meta.UnhIgnoreBleed;
 };
 
 Game_Action.prototype.unhIgnoreOverheal = function() {
   const item = this.item();
+  const user = this.subject();
   if (!item) return false;
   const meta = item.meta;
   if (!meta) return false;
-  return !!meta.UnhIgnoreOverheal;
+  return user.unhIgnoreOverheal() && !!meta.UnhIgnoreOverheal;
 };
 
 Game_Action.prototype.unhIgnoreOverflow = function() {
   const item = this.item();
+  const user = this.subject();
   if (!item) return false;
   const meta = item.meta;
   if (!meta) return false;
-  return !!meta.UnhIgnoreOverflow;
+  return user.unhIgnoreOverflow() && !!meta.UnhIgnoreOverflow;
 };
 
 Game_Battler.prototype.unhBleed = function(stateId) {
@@ -654,3 +668,28 @@ Game_Battler.prototype.regenerateAll = function() {
     }
   }
 };
+
+if (!!Imported.VisuMZ_1_SkillsStatesCore) {
+  if (!UNH_BleedStacks.LetVSCook) {
+    UNH_BleedStacks.BattlerBase_skillMpCost = Game_BattlerBase.prototype.skillMpCost;
+    Game_BattlerBase.prototype.skillMpCost = function(skill) {
+      if (!!skill.display) {
+        return UNH_BleedStacks.BattlerBase_skillMpCost.call(this, skill)
+      } else {
+        return this.applyOverflow(UNH_BleedStacks.BattlerBase_skillMpCost.call(this, skill));
+      }
+    };
+
+    UNH_BleedStacks.BattlerBase_paySkillCost = Game_BattlerBase.prototype.paySkillCost;
+    Game_BattlerBase.prototype.paySkillCost = function(skill) {
+      skill.display = false;
+      UNH_BleedStacks.BattlerBase_paySkillCost.call(this, skill);
+    };
+
+    UNH_BleedStacks.skillList_drawSkillCost = Window_SkillList.prototype.drawSkillCost;
+    Window_SkillList.prototype.drawSkillCost = function(skill, x, y, width) {
+      skill.display = true;
+      UNH_BleedStacks.skillList_drawSkillCost.call(this, skill, x, y, width);
+    };
+  }
+}

@@ -48,10 +48,12 @@ Game_Battler.prototype.addState = function(stateId) {
   UNH_InterruptState.Battler_addState.call(this, stateId);
   if (BattleManager.isATB()) {
     const state = $dataStates[stateId];
-    const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
-    if (!!isInterrupt) {
-      const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
-      this.atbInterrupt(isRestrict);
+    if (!!state) {
+      const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
+      if (!!isInterrupt) {
+        const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
+        this.atbInterrupt(isRestrict);
+      }
     }
   }
 };
@@ -61,7 +63,8 @@ Game_Battler.prototype.startTpbCasting = function() {
   UNH_InterruptState.Battler_startTpbCasting.call(this);
   if (BattleManager.isATB()) {
     const interruptionStates = JsonEx.makeDeepCopy(this.states()).filter(function(state) {
-      if (!!state.meta) return false;
+      if (!state) return false;
+      if (!state.meta) return false;
       return !!state.meta.unhInterrupt;
     });
     for (const state of interruptionStates) {

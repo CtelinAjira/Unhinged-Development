@@ -141,6 +141,7 @@ Game_BattlerBase.prototype.advCount = function(target) {
 };*/
 
 Game_BattlerBase.prototype.advCount = function(target) {
+  const user = this;
   let advCount = 0;
   const userAdvStates = this.states().filter(function(state) {
     if (!state.meta) return false;
