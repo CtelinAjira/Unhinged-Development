@@ -78,7 +78,7 @@ Game_Actor.prototype.battlerMeta = function() {
   const meta = {};
   meta['battler'] = UNH_ForceMetaReadable.concatMetadata(this.actor());
   meta['class'] = UNH_ForceMetaReadable.concatMetadata(this.currentClass());
-  equips = {};
+  equips = [];
   for (const equip of this.equips()) {
     equips[this.equips().indexOf(equip)] = equip.itemMeta();
   }
