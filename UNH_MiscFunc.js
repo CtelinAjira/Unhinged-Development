@@ -18,21 +18,13 @@ var Imported = Imported || {};
  * @default "//action - the action in question\n//item - the database object of the action\n//user - the user of the action\n//target - the current target of the action\n\nreturn (pow + atk - def);"
  *
  * @help
- * ============================================================================
- * New Properties
- * ============================================================================
- * 
- * battler.unhERate
- * - an array of all the battler's element rates
- *   - e.g. a.unhERate[4] is equivalent to a.elementRate(4)
  *
  * ============================================================================
  * New Functions
  * ============================================================================
  *
  * battler.unhGetEleRates();
- * - Returns an arrary of the battler's element rates
- *   - This is what defines battler.unhERate above
+ * - Returns an array of the battler's element rates
  *
  * battler.object();
  * - Returns the battler's database object, whether Actor or Enemy
@@ -65,13 +57,6 @@ const UNH_MiscFunc = {};
 UNH_MiscFunc.pluginName = 'UNH_MiscFunc';
 UNH_MiscFunc.parameters = PluginManager.parameters(UNH_MiscFunc.pluginName);
 UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || "return 0");
-
-Object.defineProperty(Game_BattlerBase.prototype, "unhERate", {
-  get: function() {
-    return this.unhGetEleRates();
-  },
-  configurable: true
-});
 
 Game_BattlerBase.prototype.unhGetEleRates = function() {
   const user = this;
