@@ -58,7 +58,7 @@ UNH_ExtraParam.defineParams = function() {
     paramEval = Function(note, param.code);
     retParams[param.name] = {
       get: paramEval(param.note),
-      configurable: true;
+      configurable: true
     }
   }
   return retParams;
