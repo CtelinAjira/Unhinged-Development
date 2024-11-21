@@ -11,39 +11,17 @@ var Imported = Imported || {};
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [MiscFunc]
  * @author Unhinged Developer
  *
- * @param CustParam
- * @text Custom Parameters
- * @desc The list of custom parameters
- * @type struct<ParamObj>[]
- * @default []
- *
  * @param DamageFormula
  * @text Damage Formula
- * @desc The default code for action.unhDmgFormula(target, pow, atk, def)
+ * @desc The default custom damage formula
  * Variables: action, user, item, target, pow, atk, def
  * @type string
  * @default (pow + atk - def)
  *
- *~struct~ParamObj:
- * @param name
- * @text Parameter Name
- * @desc The name of this parameter
- * @type string
- *
- * @param code
- * @text Parameter Code
- * @desc The code for this parameter
- * The variable 'note' will reference the Parameter Notetag
- * @type note
- * @default "return 0;" 
- *
- * @param isInt
- * @text Parameter Data Type
- * @desc The data type for this parameter
- * @type boolean
- * @on Integer
- * @off Floating Point
- * @default false
+ * @param CustParam
+ * @text Custom Parameters
+ * @desc The list of custom parameters
+ * @type struct<ParamObj>[]
  *
  * @help
  * ============================================================================
@@ -85,6 +63,32 @@ var Imported = Imported || {};
  *   - 0 ≤ X ≤ 7
  *   - replace ___ with Mhp/Mmp/Atk/Def/Mat/Mdf/Agi/Luk as applicable
  */
+ /*~struct~ParamObj:
+ * @param key
+ * @text Parameter Key
+ * @desc The name of this parameter within the code
+ * @type string
+ *
+ * @param name
+ * @text Parameter Name
+ * @desc The name of this parameter for readability
+ * @type string
+ *
+ * @param code
+ * @text Parameter Code
+ * @desc The code for this parameter
+ * The variable 'note' references Parameter Name
+ * @type note
+ * @default "return 0;" 
+ *
+ * @param isInt
+ * @text Parameter Data Type
+ * @desc The data type for this parameter
+ * @type boolean
+ * @on Integer
+ * @off Floating Point
+ * @default false
+ */
 //=============================================================================
 
 const UNH_MiscFunc = {};
@@ -99,26 +103,20 @@ UNH_MiscFunc.checkParams = function() {
   return true;
 };
 
-UNH_MiscFunc.defineParams = function() {
-  if (!this.checkParams()) return {};
-  const retParams = {};
-  for (const param of this.parameters['CustParam']) {
-    retParams[param.name] = {
+if (UNH_MiscFunc.checkParams()) {
+  const unhParams = this.parameters['CustParam'];
+  for (const param of unhParams) {
+    Object.defineProperty(Game_BattlerBase.prototype, param.key, {
       get: function() {
-        const paramEval = Function(param.code);
+        const paramEval = Function('user', 'note', param.code);
         if (param.isInt) {
-          return Math.round(paramEval());
+          return Math.round(paramEval(this, param.name));
         }
-        return paramEval();
+        return paramEval(this);
       };
       configurable: true
-    }
+    });
   }
-  return retParams;
-};
-
-if (UNH_MiscFunc.checkParams()) {
-  Object.defineProperties(Game_BattlerBase.prototype, UNH_MiscFunc.defineParams());
 }
 
 Game_BattlerBase.prototype.unhGetEleRates = function() {
