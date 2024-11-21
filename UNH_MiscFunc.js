@@ -37,18 +37,21 @@ var Imported = Imported || {};
  * @type note
  * @default "return 0;" 
  *
- * @param note
- * @text Parameter Notetag
- * @desc The notetag for this parameter
- * @type string
+ * @param isInt
+ * @text Parameter Data Type
+ * @desc The data type for this parameter
+ * @type boolean
+ * @on Integer
+ * @off Floating Point
+ * @default false
  *
  * @help
  * ============================================================================
  * New Parameters
  * ============================================================================
  *
- * You may now assign custom parameters.  These should ideally be calculated 
- * via a notetag.
+ * You may now assign custom parameters.  These can be calculated via notetags 
+ * if desired.
  *
  * ============================================================================
  * New Functions
@@ -99,11 +102,15 @@ UNH_MiscFunc.checkParams = function() {
 UNH_MiscFunc.defineParams = function() {
   if (!this.checkParams()) return {};
   const retParams = {};
-  let paramEval;
   for (const param of this.parameters['CustParam']) {
-    paramEval = Function('note', param.code);
     retParams[param.name] = {
-      get: paramEval(param.note),
+      get: function() {
+        const paramEval = Function(param.code);
+        if (param.isInt) {
+          return Math.round(paramEval());
+        }
+        return paramEval();
+      };
       configurable: true
     }
   }
