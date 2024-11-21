@@ -151,6 +151,81 @@ Game_BattlerBase.prototype.friendsUnitNotUser = function() {
   });
 };
 
+Game_Enemy.prototype.equips = function() {
+  const equips = [];
+  let eqpEval;
+  let slotName;
+  for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
+    slotName = $gameSystem.equipTypes[i];
+    if (!this.enemy().meta) continue;
+    if (!this.enemy().meta[slotName]) continue;
+    try {
+      eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
+      const eqpId = eqpEval();
+      if (i === 1) {
+        equips.push($dataWeapons[eqpId]);
+      } else if (i === 2 && this.isDualWield()) {
+        equips.push($dataWeapons[eqpId]);
+      } else {
+        equips.push($dataArmors[eqpId]);
+      }
+      return equips;
+    } catch (e) {
+      continue;
+    }
+  }
+};
+
+Game_Enemy.prototype.weapons = function() {
+  const equips = [];
+  let eqpEval;
+  let slotName;
+  for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
+    slotName = $gameSystem.equipTypes[i];
+    if (!this.enemy().meta) continue;
+    if (!this.enemy().meta[slotName]) continue;
+    try {
+      eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
+      const eqpId = eqpEval();
+      if (i === 1) {
+        equips.push($dataWeapons[eqpId]);
+      } else if (i === 2 && this.isDualWield()) {
+        equips.push($dataWeapons[eqpId]);
+      } else {
+        continue;
+      }
+      return equips;
+    } catch (e) {
+      continue;
+    }
+  }
+};
+
+Game_Enemy.prototype.armors = function() {
+  const equips = [];
+  let eqpEval;
+  let slotName;
+  for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
+    slotName = $gameSystem.equipTypes[i];
+    if (!this.enemy().meta) continue;
+    if (!this.enemy().meta[slotName]) continue;
+    try {
+      eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
+      const eqpId = eqpEval();
+      if (i === 1) {
+        continue;
+      } else if (i === 2 && this.isDualWield()) {
+        continue;
+      } else {
+        equips.push($dataArmors[eqpId]);
+      }
+      return equips;
+    } catch (e) {
+      continue;
+    }
+  }
+};
+
 Game_Unit.prototype.highestStat = function(paramId) {
   if (typeof paramId === 'string') {
     const statStr = ['mhp','mmp','atk','def','mat','mdf','agi','luk'];
