@@ -9,6 +9,13 @@
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [CoverConditions]
  * @author Unhinged Developer
  *
+ * @param CheckSub
+ * @text BattleManager.checkSubstitute(target)
+ * @desc Variables: action, user, target
+ * Return Type: Boolean
+ * @type note
+ * @default "return target.isDying() && !action.isCertainHit();"
+ *
  * @help
  * ============================================================================
  * Notetags
@@ -48,6 +55,8 @@
 
 const UNH_CoverConditions = {};
 UNH_CoverConditions.pluginName = 'UNH_CoverConditions';
+UNH_CoverConditions.parameters = PluginManager.parameters(UNH_CoverConditions.pluginName);
+UNH_CoverConditions.CheckSub = String(UNH_CoverConditions.parameters['CheckSub'] || '');
 
 UNH_CoverConditions.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
@@ -67,7 +76,7 @@ DataManager.processUnhCoverNotetags = function(group) {
 
     obj.coverState = 0;
     obj.coverTarget = undefined;
-    obj.coverChance = 0;
+    obj.coverChance = -1;
     obj.coverPhys = undefined;
     obj.coverMag = undefined;
     obj.coverCert = undefined;
@@ -108,153 +117,134 @@ DataManager.processUnhCoverNotetags = function(group) {
   }
 };
 
-Game_Battler.prototype.coverTarget = function() {
-  const states = this.states();
-  let coverTarget = false;
-  for (let i = 0; i < states.length; i++) {
-    const state = states[i];
-    if (state.coverTarget !== undefined) {
-      coverTarget = state.coverTarget;
-	  break;
-    }
-  }
-  return coverTarget;
+Game_Battler.prototype.coverSingleOnly = function(stateId) {
+  if (!stateId) return false;
+  if (isNaN(stateId)) return false;
+  if (stateId <= 0 || stateId > $dataStates.length) return false;
+  const state = $dataStates[stateId];
+  return !!state.coverTarget;
 };
 
-Game_Battler.prototype.coverAttack = function() {
-  const states = this.states();
+Game_Battler.prototype.coverSkillType = function(stateId) {
+  if (!stateId) return false;
+  if (isNaN(stateId)) return false;
+  if (stateId <= 0 || stateId > $dataStates.length) return false;
+  const state = $dataStates[stateId];
   let coverAttack = [];
-  for (let i = 0; i < states.length; i++) {
-    const state = states[i];
-    if (!!state.coverCert) {
-      if (!coverAttack.includes(0)) {
-        coverAttack.push(0);
-      }
-    }
-    if (!!state.coverPhys) {
-      if (!coverAttack.includes(1)) {
-        coverAttack.push(1);
-      }
-    }
-    if (!!state.coverMag) {
-      if (!coverAttack.includes(2)) {
-        coverAttack.push(2);
-      }
-    }
-    if (coverAttack.includes(0) && coverAttack.includes(1) && coverAttack.includes(2)) {
-      break;
-    }
-  }
+  if (!!state.coverCert) coverAttack.push(0);
+  if (!!state.coverPhys) coverAttack.push(1);
+  if (!!state.coverMag) coverAttack.push(2);
   return coverAttack.sort(function(a, b) {
     return a - b;
   });
 };
 
-Game_Battler.prototype.coverChance = function() {
-  const states = this.states();
-  let coverChance = -1;
-  for (let i = 0; i < states.length; i++) {
-    const state = states[i];
-    coverChance = Math.max(state.coverChance, coverChance);
-    if (state.coverChance >= 100) {
-      coverChance = coverChance;
-	  break;
-    }
-  }
-  if (coverChance <= 0) return true;
-  return Math.randomInt(10000) <= Math.round(coverChance * 100);
+Game_Battler.prototype.coverChance = function(stateId) {
+  if (!stateId) return false;
+  if (isNaN(stateId)) return false;
+  if (stateId <= 0 || stateId > $dataStates.length) return false;
+  const state = $dataStates[stateId];
+  const state = states[i];
+  if (state.coverChance < 0) return true;
+  const coverChance = Math.max(Math.min(state.coverChance, 100), 0);
+  if (coverChance === 100) return true;
+  if (coverChance === 0) return false;
+  return Math.randomInt(10000) < Math.round(coverChance * 100);
 };
 
-Game_Battler.prototype.coverRandom = function() {
-  const states = this.states();
-  let coverRandom = -1;
-  for (let i = 0; i < states.length; i++) {
-    const state = states[i];
-    if (state.coverRandom >= 0) {
-      coverRandom = state.coverRandom;
-	  break;
-    }
-  }
-  return coverRandom;
+Game_Battler.prototype.coverRandomTarget = function(stateId) {
+  if (!stateId) return false;
+  if (isNaN(stateId)) return false;
+  if (stateId <= 0 || stateId > $dataStates.length) return false;
+  const state = $dataStates[stateId];
+  return !!state.coverRandom;
 };
 
-Game_Battler.prototype.coverState = function() {
-  const states = this.states();
-  let coverState = 0;
-  for (let i = 0; i < states.length; i++) {
-    const state = states[i];
-    if (state.coverState !== 0) {
-      coverState = state.coverState;
-	  break;
-    }
-  }
-  return Math.max(Math.min(coverState, $dataStates.length), 0);
+Game_Battler.prototype.coverTargetWithState = function(stateId) {
+  if (!stateId) return false;
+  if (isNaN(stateId)) return false;
+  if (stateId <= 0 || stateId > $dataStates.length) return false;
+  const state = $dataStates[stateId];
+  return Math.max(Math.min(state.coverState, $dataStates.length), 0);
 };
 
-Game_Battler.prototype.coverDying = function(target) {
-  const states = this.states();
-  let coverDying = 0;
-  for (let i = 0; i < states.length; i++) {
-    const state = states[i];
-    if (state.coverDying !== undefined && state.coverDying > coverDying) {
-      coverDying = state.coverDying;
-      if (coverDying >= 100) {
-        coverDying = 100;
-        break;
+Game_Battler.prototype.coverAtHpPercent = function(stateId, target) {
+  if (!stateId) return false;
+  if (isNaN(stateId)) return false;
+  if (stateId <= 0 || stateId > $dataStates.length) return false;
+  const state = $dataStates[stateId];
+  const coverDying = Math.max(Math.min(state.coverDying, 100), 0);
+  if (coverDying === 0) return false;
+  return target.hp <= (target.mhp * coverDying / 100);
+};
+
+UNH_CoverConditions.runChecks = function(action, target) {
+  const party = target.friendsUnit().members();
+  for (const member of party) {
+    const coverChecks = [];
+    let isCover;
+    let stateId;
+    for (const state of member.states()) {
+      stateId = state.id;
+      isCover = member.coverChance(stateId);
+      if (!isCover) {
+        coverChecks.push(isCover);
+        continue;
       }
+      isCover = member.coverAtHpPercent(stateId, target);
+      if (!isCover) {
+        coverChecks.push(isCover);
+        continue;
+      }
+      const hitTypes = member.coverSkillType(stateId);
+      if (hitTypes.length > 0) isCover = hitTypes.includes(action.item().hitType);
+      if (!isCover) {
+        coverChecks.push(isCover);
+        continue;
+      }
+      if (action.isForRandom()) {
+        isCover = member.coverRandomTarget(stateId);
+      }
+      if (!isCover) {
+        coverChecks.push(isCover);
+        continue;
+      }
+      if (user.coverSingleOnly(stateId)) {
+        isCover = action.isForOne();
+      }
+      coverChecks.push(isCover);
+    }
+    member._unhCheckSub = coverChecks.some(function(ele) {
+      return !!ele;
+    });
+    if (!!member._unhCheckSub) {
+      return true;
     }
   }
-  if (coverDying === 0) {
-    return target.isDying();
-  }
-  return target.hp <= (target.mhp * Math.round(coverDying * 100) / 10000);
+  return false;
 };
 
 UNH_CoverConditions.checkSubstitute = BattleManager.checkSubstitute;
 BattleManager.checkSubstitute = function(target) {
   const action = this._action;
   const user = action.subject();
-  if (user.isActor() === target.isActor()) {
-    return false;
+  if (user.isActor() === target.isActor()) return false;
+  if (UNH_CoverConditions.runChecks(target)) return true;
+  try {
+    const origFunc = new Function('action', 'user', 'target', (!!UNH_CoverConditions.CheckSub) ? UNH_CoverConditions.CheckSub : 'return target.isDying() && !action.isCertainHit();')
+    return origFunc(action, user, target);
+  } catch (e) {
+    return UNH_CoverConditions.checkSubstitute.call(this, target);
   }
-  const coverDying = user.coverDying(target);
-  const coverRandom = user.coverRandom();
-  const coverState = user.coverState();
-  const coverSingle = user.coverTarget();
-  const coverHitTypes = user.coverAttack();
-  const coverChance = user.coverChance();
-  let isCover = coverDying;
-  if (isCover) {
-    if (!coverRandom) {
-      isCover = !action.isForRandom();
+};
+
+UNH_CoverConditions.Unit_substituteBattler = Game_Unit.prototype.substituteBattler;
+Game_Unit.prototype.substituteBattler = function(target) {
+  for (const member of this.members()) {
+    if ((!!member._unhCheckSub) && (member !== target)) {
+      member._unhCheckSub = undefined;
+      return member;
     }
   }
-  if (isCover) {
-    if (coverSingle) {
-      isCover = (action.makeTargets().length === 1);
-    }
-  }
-  if (isCover) {
-    if (coverState >= 1) {
-      isCover = target.isStateAffected(coverState);
-    }
-  }
-  if (isCover && coverHitTypes.length > 0) {
-    let isHitTypeValid = false;
-    for (const hitType of coverHitTypes) {
-      if (hitType === 0) {
-        isHitTypeValid = action.isCertainHit();
-      } else if (hitType === 1) {
-        isHitTypeValid = action.isPhysical();
-      } else if (hitType === 2) {
-        isHitTypeValid = action.isMagical();
-      }
-      if (!!isHitTypeValid) break;
-    }
-    isCover = isHitTypeValid;
-  }
-  if (isCover) {
-    isCover = coverChance;
-  }
-  return isCover;
+  return UNH_CoverConditions.Unit_substituteBattler.call(this, target);
 };
