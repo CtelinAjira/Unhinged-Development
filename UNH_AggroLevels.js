@@ -313,7 +313,7 @@ Game_BattlerBase.prototype.unhAggroPlus = function(target) {
 
 Game_Enemy.prototype.unhAggroPlus = function(target) {
   const user = this;
-  let aggroPlus = Game_BattlerBase.prototype.unhAggroPlus.call(this);
+  let aggroPlus = Game_BattlerBase.prototype.unhAggroPlus.call(this, target);
   if (!!this.enemy().meta) {
     if (!!this.enemy().meta.unhAggroPlus) {
       aggroPlus += eval(this.enemy().meta.unhAggroPlus);
@@ -324,7 +324,7 @@ Game_Enemy.prototype.unhAggroPlus = function(target) {
 
 Game_Actor.prototype.unhAggroPlus = function(target) {
   const user = this;
-  let aggroPlus = Game_BattlerBase.prototype.unhAggroPlus.call(this);
+  let aggroPlus = Game_BattlerBase.prototype.unhAggroPlus.call(this, target);
   if (!!this.actor().meta) {
     if (!!this.actor().meta.unhAggroPlus) {
       aggroPlus += eval(this.actor().meta.unhAggroPlus);
@@ -340,7 +340,7 @@ Game_Actor.prototype.unhAggroPlus = function(target) {
 
 Game_Action.prototype.unhAggroPlus = function(target) {
   const user = this.subject();
-  let aggroPlus = user.unhAggroPlus();
+  let aggroPlus = user.unhAggroPlus(target);
   const item = this.item();
   if (!!item.meta) {
     if (!!item.meta.unhAggroPlus) {
@@ -363,7 +363,7 @@ Game_BattlerBase.prototype.unhAggroRate = function(target) {
 
 Game_Enemy.prototype.unhAggroRate = function(target) {
   const user = this;
-  let aggroRate = Game_BattlerBase.prototype.unhAggroRate.call(this);
+  let aggroRate = Game_BattlerBase.prototype.unhAggroRate.call(this, target);
   if (!!this.enemy().meta) {
     if (!!this.enemy().meta.unhAggroRate) {
       aggroRate *= eval(this.enemy().meta.unhAggroRate);
@@ -374,7 +374,7 @@ Game_Enemy.prototype.unhAggroRate = function(target) {
 
 Game_Actor.prototype.unhAggroRate = function(target) {
   const user = this;
-  let aggroRate = Game_BattlerBase.prototype.unhAggroRate.call(this);
+  let aggroRate = Game_BattlerBase.prototype.unhAggroRate.call(this, target);
   if (!!this.actor().meta) {
     if (!!this.actor().meta.unhAggroRate) {
       aggroRate *= eval(this.actor().meta.unhAggroRate);
@@ -390,7 +390,7 @@ Game_Actor.prototype.unhAggroRate = function(target) {
 
 Game_Action.prototype.unhAggroRate = function(target) {
   const user = this.subject();
-  let aggroRate = user.unhAggroRate();
+  let aggroRate = user.unhAggroRate(target);
   const item = this.item();
   if (!!item.meta) {
     if (!!item.meta.unhAggroRate) {
@@ -413,7 +413,7 @@ Game_BattlerBase.prototype.unhAggroFlat = function(target) {
 
 Game_Enemy.prototype.unhAggroFlat = function(target) {
   const user = this;
-  let aggroFlat = Game_BattlerBase.prototype.unhAggroFlat.call(this);
+  let aggroFlat = Game_BattlerBase.prototype.unhAggroFlat.call(this, target);
   if (!!this.enemy().meta) {
     if (!!this.enemy().meta.unhAggroFlat) {
       aggroFlat += eval(this.enemy().meta.unhAggroFlat);
@@ -424,7 +424,7 @@ Game_Enemy.prototype.unhAggroFlat = function(target) {
 
 Game_Actor.prototype.unhAggroFlat = function(target) {
   const user = this;
-  let aggroFlat = Game_BattlerBase.prototype.unhAggroFlat.call(this);
+  let aggroFlat = Game_BattlerBase.prototype.unhAggroFlat.call(this, target);
   if (!!this.actor().meta) {
     if (!!this.actor().meta.unhAggroFlat) {
       aggroFlat += eval(this.actor().meta.unhAggroFlat);
@@ -440,7 +440,7 @@ Game_Actor.prototype.unhAggroFlat = function(target) {
 
 Game_Action.prototype.unhAggroFlat = function(target) {
   const user = this.subject();
-  let aggroFlat = user.unhAggroFlat();
+  let aggroFlat = user.unhAggroFlat(target);
   const item = this.item();
   if (!!item.meta) {
     if (!!item.meta.unhAggroFlat) {
