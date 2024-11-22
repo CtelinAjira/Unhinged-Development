@@ -23,6 +23,12 @@ var Imported = Imported || {};
  * @desc The list of custom parameters
  * @type struct<ParamObj>[]
  *
+ * @param CustFunc
+ * @text Custom Functions
+ * @desc The list of custom functions
+ * These are tied to Game_Action.prototype
+ * @type struct<ParamFunc>[]
+ *
  * @help
  * ============================================================================
  * New Parameters
@@ -79,7 +85,7 @@ var Imported = Imported || {};
  * @desc The code for this parameter
  * The variable 'note' references Parameter Name
  * @type note
- * @default "return 0;" 
+ * @default "return 0;"
  *
  * @param isInt
  * @text Parameter Data Type
@@ -88,6 +94,24 @@ var Imported = Imported || {};
  * @on Integer
  * @off Floating Point
  * @default false
+ */
+ /*~struct~ParamFunc:
+ * @param key
+ * @text Function Name
+ * @desc The name of this function (no spaces plz)
+ * @type string
+ *
+ * @param note
+ * @text Function Notetag
+ * @desc The notetag passed to this function
+ * @type string
+ *
+ * @param code
+ * @text Parameter Code
+ * @desc The code for this parameter
+ * Variables: action, user, target, note
+ * @type note
+ * @default "return 0;"
  */
 //=============================================================================
 
@@ -103,6 +127,13 @@ UNH_MiscFunc.checkParams = function() {
   return true;
 };
 
+UNH_MiscFunc.checkFuncs = function() {
+  if (!this.parameters['CustFunc']) return false;
+  if (!Array.isArray(this.parameters['CustFunc'])) return false;
+  if (this.parameters['CustFunc'].length <= 0) return false;
+  return true;
+};
+
 if (UNH_MiscFunc.checkParams()) {
   const unhParams = this.parameters['CustParam'];
   for (const param of unhParams) {
@@ -112,10 +143,20 @@ if (UNH_MiscFunc.checkParams()) {
         if (param.isInt) {
           return Math.round(paramEval(this, param.name));
         }
-        return paramEval(this);
+        return paramEval(this, param.name);
       };
       configurable: true
     });
+  }
+}
+
+if (UNH_MiscFunc.checkFuncs()) {
+  const unhParams = this.parameters['CustFunc'];
+  for (const param of unhParams) {
+    Game_Action.prototype[param.key] = function(target) {
+      const paramEval = Function('action', 'user', 'target', 'note', param.code);
+      return paramEval(this, this.subject(), target, param.note);
+    };
   }
 }
 
@@ -151,6 +192,15 @@ Game_BattlerBase.prototype.friendsUnitNotUser = function() {
   });
 };
 
+Game_Enemy.prototype.currentClass = function() {
+  const enemy = this.enemy();
+  if (!enemy) return null;
+  if (!enemy.meta) return null;
+  if (!this.enemy().meta['Unh Enemy Class']) return null;
+  if (isNaN(this.enemy().meta['Unh Enemy Class'])) return null;
+  return $dataClasses[Number(this.enemy().meta['Unh Enemy Class'])];
+};
+
 Game_Enemy.prototype.equips = function() {
   const equips = [];
   let eqpEval;
@@ -169,11 +219,11 @@ Game_Enemy.prototype.equips = function() {
       } else {
         equips.push($dataArmors[eqpId]);
       }
-      return equips;
     } catch (e) {
       continue;
     }
   }
+  return equips;
 };
 
 Game_Enemy.prototype.weapons = function() {
@@ -194,11 +244,11 @@ Game_Enemy.prototype.weapons = function() {
       } else {
         continue;
       }
-      return equips;
     } catch (e) {
       continue;
     }
   }
+  return equips;
 };
 
 Game_Enemy.prototype.armors = function() {
@@ -219,11 +269,15 @@ Game_Enemy.prototype.armors = function() {
       } else {
         equips.push($dataArmors[eqpId]);
       }
-      return equips;
     } catch (e) {
       continue;
     }
   }
+  return equips;
+};
+
+Game_Enemy.prototype.hasNoWeapons = function() {
+    return this.weapons().length === 0;
 };
 
 Game_Unit.prototype.highestStat = function(paramId) {

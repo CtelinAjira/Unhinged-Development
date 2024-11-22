@@ -13,6 +13,14 @@ var Imported = Imported || {};
  * @plugindesc [RPG Maker MZ] [Version 1.02] [Unhinged] [SummonLevels]
  * @author Unhinged Developer
  *
+ * @param DefaultLevel
+ * @text Default Enemy Level
+ * @desc The default level for enemies
+ * @type number
+ * @default 1
+ * @min 1
+ * @max 99
+ *
  * @help
  * ============================================================================
  * Plugin Description
@@ -47,6 +55,8 @@ var Imported = Imported || {};
 
 const UNH_SummonLevels = {};
 UNH_SummonLevels.pluginName = 'UNH_SummonLevels';
+UNH_SummonLevels.parameters = PluginManager.parameters(UNH_SummonLevels.pluginName);
+UNH_SummonLevels.DefaultLevel = Number(UNH_SummonLevels.parameters['DefaultLevel'] || 0);
 
 Game_BattlerBase.prototype.summons = function() {
   return $gameActors.data().filter(function(actor) {
@@ -99,37 +109,50 @@ Game_BattlerBase.prototype.unhSummonCalcLevel = function() {
   }
 };
 
+if (!Imported.VisuMZ_3_EnemyLevels) {
+  Object.defineProperty(Game_Enemy.prototype, "level", {
+    get: function () {
+      return this.getLevel();
+    },
+    onfigurable: true
+  });
+
+  Game_Enemy.prototype.getLevel = function() {
+    if (this._level === undefined) this._level = this.createLevel(99);
+  };
+
+  Game_Enemy.prototype.createLevel = function(max) {
+    const user = this.enemy();
+    const defaultLevel = UNH_SummonLevels.DefaultLevel;
+    if (!user) return defaultLevel;
+    const meta = user.meta;
+    if (!meta) return defaultLevel;
+    const level = meta.unhSummonerLevel;
+    if (!level) return defaultLevel;
+    if (typeof level === 'number') {
+      if (isNaN(level)) return UNH_SummonLevels.DefaultLevel;
+	  return Math.min(Math.max(Number(level), 1), max);
+    }
+    try {
+      const evalFunc = new Function('user', 'meta', 'return ' + level);
+      const dummy = evalFunc(user, meta);
+      if (typeof dummy === 'object') return ((dummy.isActor()) ? (dummy.level) : (UNH_SummonLevels.DefaultLevel));
+      if (isNaN(dummy)) return UNH_SummonLevels.DefaultLevel;
+      return Math.min(Math.max(Number(dummy), 1), max);
+    } catch (e) {
+      return UNH_SummonLevels.DefaultLevel;
+    }
+  };
+};
+
 Game_BattlerBase.prototype.unhLevel = function(max) {
   return 1;
 };
 
 Game_Actor.prototype.unhLevel = function(max) {
-  return Math.min(Math.max(Number(this._level), 1), max);
+  return Math.min(Math.max(Number(this.level), 1), max);
 };
 
 Game_Enemy.prototype.unhLevel = function(max) {
-  if (typeof max !== 'number') max = 99;
-  if (!!Imported.VisuMZ_3_EnemyLevels) {
-    return this.getLevel();
-  } else if (!!this._level) {
-    return this._level;
-  }
-  const user = this.enemy();
-  const meta = user.meta;
-  if (!meta) return 1;
-  const level = meta.unhSummonerLevel;
-  if (!level) return 1;
-  if (typeof level === 'number') {
-    if (isNaN(level)) return 1;
-	return Math.min(Math.max(Number(level), 1), max);
-  }
-  try {
-    const evalFunc = new Function('user', 'meta', 'return ' + level);
-    const dummy = evalFunc(user, meta);
-    if (typeof dummy === 'object') return ((dummy.isActor()) ? (dummy.level) : (1));
-    if (isNaN(dummy)) return 1;
-    return Math.min(Math.max(Number(dummy), 1), max);
-  } catch (e) {
-    return 1;
-  }
+  return Math.min(Math.max(Number(this.level), 1), max);
 };
