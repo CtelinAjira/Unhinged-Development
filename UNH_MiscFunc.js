@@ -23,11 +23,17 @@ var Imported = Imported || {};
  * @desc The list of custom parameters
  * @type struct<ParamObj>[]
  *
- * @param CustFunc
- * @text Custom Functions
+ * @param ActionFunc
+ * @text Custom Functions (Game_Action)
  * @desc The list of custom functions
  * These are tied to Game_Action.prototype
- * @type struct<ParamFunc>[]
+ * @type struct<ActionFuncStr>[]
+ *
+ * @param BattlerFunc
+ * @text Custom Functions (Game_BattlerBase)
+ * @desc The list of custom functions
+ * These are tied to Game_BattlerBase.prototype
+ * @type struct<BattlerFuncStr>[]
  *
  * @help
  * ============================================================================
@@ -95,7 +101,25 @@ var Imported = Imported || {};
  * @off Floating Point
  * @default false
  */
- /*~struct~ParamFunc:
+ /*~struct~ActionFuncStr:
+ * @param key
+ * @text Function Name
+ * @desc The name of this function (no spaces plz)
+ * @type string
+ *
+ * @param note
+ * @text Function Notetag
+ * @desc The notetag passed to this function
+ * @type string
+ *
+ * @param code
+ * @text Parameter Code
+ * @desc The code for this parameter
+ * Variables: action, user, target, note
+ * @type note
+ * @default "return 0;"
+ */
+ /*~struct~BattlerFuncStr:
  * @param key
  * @text Function Name
  * @desc The name of this function (no spaces plz)
@@ -127,10 +151,17 @@ UNH_MiscFunc.checkParams = function() {
   return true;
 };
 
-UNH_MiscFunc.checkFuncs = function() {
-  if (!this.parameters['CustFunc']) return false;
-  if (!Array.isArray(this.parameters['CustFunc'])) return false;
-  if (this.parameters['CustFunc'].length <= 0) return false;
+UNH_MiscFunc.checkActFuncs = function() {
+  if (!this.parameters['ActionFunc']) return false;
+  if (!Array.isArray(this.parameters['ActionFunc'])) return false;
+  if (this.parameters['ActionFunc'].length <= 0) return false;
+  return true;
+};
+
+UNH_MiscFunc.checkBatFuncs = function() {
+  if (!this.parameters['BattlerFunc']) return false;
+  if (!Array.isArray(this.parameters['BattlerFunc'])) return false;
+  if (this.parameters['BattlerFunc'].length <= 0) return false;
   return true;
 };
 
@@ -150,12 +181,22 @@ if (UNH_MiscFunc.checkParams()) {
   }
 }
 
-if (UNH_MiscFunc.checkFuncs()) {
-  const unhParams = this.parameters['CustFunc'];
+if (UNH_MiscFunc.checkActFuncs()) {
+  const unhParams = this.parameters['ActionFunc'];
   for (const param of unhParams) {
     Game_Action.prototype[param.key] = function(target) {
       const paramEval = Function('action', 'user', 'target', 'note', param.code);
       return paramEval(this, this.subject(), target, param.note);
+    };
+  }
+}
+
+if (UNH_MiscFunc.checkBatFuncs()) {
+  const unhParams = this.parameters['BattlerFunc'];
+  for (const param of unhParams) {
+    Game_BattlerBase.prototype[param.key] = function() {
+      const paramEval = Function('user', 'note', param.code);
+      return paramEval(this, target, param.note);
     };
   }
 }
