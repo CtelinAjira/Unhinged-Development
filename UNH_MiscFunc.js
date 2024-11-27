@@ -48,6 +48,14 @@ var Imported = Imported || {};
  * ============================================================================
  *
  * <Disarm State>
+ * - Marks this state to act as a disarming check.
+ *   - Being disarmed means your weapons are treated as null.
+ *
+ * <X:Y>
+ * - Marks this enemy as equipped with this item.
+ *   - X is the database name for that equipment slot.
+ *     - If enemy is dual-wielding, X is named as if they weren't.
+ *   - Y is the database ID for the armor/weapon being "given".
  *
  * ============================================================================
  * Adapted Functions
@@ -149,7 +157,7 @@ var Imported = Imported || {};
  * @param code
  * @text Parameter Code
  * @desc The code for this parameter
- * Variables: action, user, target, note
+ * Variables: user, note
  * @type note
  * @default "return 0;"
  */
@@ -229,19 +237,23 @@ Game_BattlerBase.prototype.unhGetEleRates = function() {
 };
 
 Game_Actor.prototype.object = function() {
+  //return $dataActors[this._actorId];
   return this.actor();
 };
 
 Game_Enemy.prototype.object = function() {
+  //return $dataEnemies[this._enemyId];
   return this.enemy();
 };
 
 Game_Action.prototype.unhDmgFormula = function(target, pow, atk, def) {
   try {
-    const action = this;
+    const evalFunc = new Function('action', 'item', 'user', 'target', 'pow', 'atk', 'def', UNH_MiscFunc.DamageFormula);
+    return evalFunc(this, this.item(), this.subject(), target, pow, atk, def);
+    /*const action = this;
     const item = this.item();
     const user = this.subject();
-    return eval(UNH_MiscFunc.DamageFormula);
+    return eval(UNH_MiscFunc.DamageFormula);*/
   } catch (e) {
     return 0;
   };
@@ -260,6 +272,12 @@ Game_Enemy.prototype.currentClass = function() {
   if (!this.enemy().meta['Unh Enemy Class']) return null;
   if (isNaN(this.enemy().meta['Unh Enemy Class'])) return null;
   return $dataClasses[Number(this.enemy().meta['Unh Enemy Class'])];
+};
+
+UNH_MiscFunc.Enemy_setup = Game_Enemy.prototype.setup;
+Game_Enemy.prototype.setup = function(enemyId, x, y) {
+  UNH_MiscFunc.Enemy_setup.call(this,enemyId, x, y);
+  this.initEquips();
 };
 
 UNH_MiscFunc.Actor_equips = Game_Actor.prototype.equips;
@@ -285,12 +303,12 @@ Game_Actor.prototype.equips = function() {
   return UNH_MiscFunc.Actor_equips.call(this);
 };
 
-Game_Enemy.prototype.equips = function() {
-  const equips = [];
+Game_Enemy.prototype.initEquips = function() {
+  this._equips = [];
   let eqpEval;
   let slotName;
   for (let h = 0; h < $gameSystem.equipTypes.length; h++) {
-    equips[i] = null;
+    this._equips.push(null);
   }
   for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
     slotName = $gameSystem.equipTypes[i];
@@ -300,99 +318,47 @@ Game_Enemy.prototype.equips = function() {
       eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
       const eqpId = eqpEval();
       if (i === 1) {
-        for (const state of this.states()) {
-          if (!state) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta['Disarm State']) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          }
-        }
+        this._equips[i - 1] = $dataWeapons[eqpId];
       } else if (i === 2 && this.isDualWield()) {
-        for (const state of this.states()) {
-          if (!state) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta['Disarm State']) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          }
-        }
+        this._equips[i - 1] = $dataWeapons[eqpId];
       } else {
-        equips[i - 1] = $dataArmors[eqpId];
+        this._equips[i - 1] = $dataArmors[eqpId];
       }
     } catch (e) {
       continue;
     }
+  }
+};
+
+Game_Enemy.prototype.equips = function() {
+  if (!this._equips) this.initEquips();
+  if (!Array.isArray(this._equips)) this.initEquips();
+  if (this._equips.length <= 0) this.initEquips();
+  const equips = this._equips;
+  for (const state of this.states()) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta['Disarm State']) continue;
+	for (let i = 0; i < equips.length; i++) {
+      if (DataManager.isWeapon(equips[i])) equips[i] = null;
+    } 
+    break;
   }
   return equips;
 };
 
 Game_Enemy.prototype.weapons = function() {
-  const equips = [];
-  let eqpEval;
-  let slotName;
-  for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
-    slotName = $gameSystem.equipTypes[i];
-    if (!this.enemy().meta) continue;
-    if (!this.enemy().meta[slotName]) continue;
-    try {
-      eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
-      const eqpId = eqpEval();
-      if (i === 1) {
-        for (const state of this.states()) {
-          if (!state) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta['Disarm State']) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          }
-        }
-      } else if (i === 2 && this.isDualWield()) {
-        for (const state of this.states()) {
-          if (!state) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          } else if (!state.meta['Disarm State']) {
-            equips[i - 1] = $dataWeapons[eqpId];
-          }
-        }
-      } else {
-        continue;
-      }
-    } catch (e) {
-      continue;
-    }
-  }
-  return equips;
+  return this.equips().filter(function() {
+    if (!item) return false;
+    return DataManager.isWeapon(item);
+  });
 };
 
 Game_Enemy.prototype.armors = function() {
-  const equips = [];
-  let eqpEval;
-  let slotName;
-  for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
-    slotName = $gameSystem.equipTypes[i];
-    if (!this.enemy().meta) continue;
-    if (!this.enemy().meta[slotName]) continue;
-    try {
-      eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
-      const eqpId = eqpEval();
-      if (i === 1) {
-        continue;
-      } else if (i === 2 && this.isDualWield()) {
-        continue;
-      } else {
-        equips.push($dataArmors[eqpId]);
-      }
-    } catch (e) {
-      continue;
-    }
-  }
-  return equips;
+  return this.equips().filter(function() {
+    if (!item) return false;
+    return DataManager.isArmor(item);
+  });
 };
 
 Game_Enemy.prototype.hasNoWeapons = function() {

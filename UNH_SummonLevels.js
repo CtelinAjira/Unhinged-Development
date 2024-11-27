@@ -86,8 +86,11 @@ Game_Enemy.prototype.summons = function() {
     if (!actor) continue;
     if (!actor.actor()) continue;
     if (!actor.actor().meta) continue;
-    if (isNaN(actor.actor().meta.unhEnemySummon)) continue;
-    if (actor.actor().meta.unhEnemySummon === true) summons.push(actor);
+    if (actor.actor().meta.unhEnemySummon === true) {
+      summons.push(actor);
+    } else if (isNaN(actor.actor().meta.unhEnemySummon)) {
+      continue;
+    }
     if (this.enemyId() === Number(actor.actor().meta.unhEnemySummon)) summons.push(actor);
   }
   return summons;
@@ -114,7 +117,7 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
     get: function () {
       return this.getLevel();
     },
-    onfigurable: true
+    configurable: true
   });
 
   Game_Enemy.prototype.getLevel = function() {

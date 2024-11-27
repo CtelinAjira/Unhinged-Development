@@ -144,7 +144,6 @@ Game_Battler.prototype.coverChance = function(stateId) {
   if (isNaN(stateId)) return false;
   if (stateId <= 0 || stateId > $dataStates.length) return false;
   const state = $dataStates[stateId];
-  const state = states[i];
   if (state.coverChance < 0) return true;
   const coverChance = Math.max(Math.min(state.coverChance, 100), 0);
   if (coverChance === 100) return true;
