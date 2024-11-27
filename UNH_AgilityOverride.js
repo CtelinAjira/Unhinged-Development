@@ -8,9 +8,9 @@ var Imported = Imported || {};
 //=============================================================================
  /*:
  * @target MZ
- * @orderAfter VisuMZ_1_BattleCore
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [AgilityOverride]
  * @author Unhinged Developer
+ * @orderBefore VisuMZ_0_CoreEngine
  *
  * @param ActorAgilityFormula
  * @text $gameParty.agility() Formula
@@ -43,15 +43,16 @@ var Imported = Imported || {};
  * @param MoraleBase
  * @text Default Morale
  * @desc default value for battler.unhMorale()
- * Must be a number (0 means do not use)
+ * Must be a number (-1 means do not use)
  * @type number
- * @default 100
+ * @default -1
  *
  * @param MoraleEffect
  * @text Morale Effect
  * @desc extra code for BattleManager.makeEscapeRatio()
+ * Variables: escapeRatio
  * @type note
- * @default "let avgMorale = $gameTroop.aliveMembers().reduce(function(r, member) {\n  return r + member.unhMorale();\n}, 0);\navgMorale /= $gameTroop.members().length;\nif ((Math.random() * 100) >= (200 - avgMorale)) {\n this._escapeRatio = 0;\n} else if ((Math.random() * 100) >= (avgMorale)) {\n this._escapeRatio = 1;\n}"
+ * @default "let avgMorale = $gameTroop.aliveMembers().reduce(function(r, member) {\n  return r + member.unhMorale();\n}, 0);\navgMorale /= $gameTroop.members().length;\nif ((Math.random() * 100) >= (200 - avgMorale)) {\n return = 0;\n} else if ((Math.random() * 100) >= (avgMorale)) {\n return = 1;\n}\nreturn escapeRatio;"
  *
  * @param PreemptiveRate
  * @text ratePreemptive() Formula
@@ -162,8 +163,8 @@ Game_Troop.prototype.agility = function(original = false) {
 Game_Party.prototype.ratePreemptive = function(troopAgi) {
   const agility = this.agility(true);
   if (!!UNH_AgilityOverride.PreemptiveRate) {
-    const newFunc = Function('troopAgi', 'try {\n' + UNH_AgilityOverride.PreemptiveRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
-    return newFunc(troopAgi);
+    const newFunc = Function('agility', 'troopAgi', 'try {\n' + UNH_AgilityOverride.PreemptiveRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
+    return newFunc(agility, troopAgi);
   } else {
     let rate = agility >= troopAgi ? 0.05 : 0.03;
     if (this.hasRaisePreemptive()) {
@@ -176,8 +177,8 @@ Game_Party.prototype.ratePreemptive = function(troopAgi) {
 Game_Party.prototype.rateSurprise = function(troopAgi) {
   const agility = this.agility(true);
   if (!!UNH_AgilityOverride.SurpriseRate) {
-    const newFunc = Function('troopAgi', 'try {\n' + UNH_AgilityOverride.SurpriseRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
-    return newFunc(troopAgi);
+    const newFunc = Function('agility', 'troopAgi', 'try {\n' + UNH_AgilityOverride.SurpriseRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
+    return newFunc(agility, troopAgi);
   } else {
     let rate = agility >= troopAgi ? 0.03 : 0.05;
     if (this.hasCancelSurprise()) {
@@ -216,7 +217,7 @@ Game_Action.prototype.apply = function(target) {
   const item = this.item();
   const user = this.subject();
   UNH_AgilityOverride.Action_apply.call(this, target);
-  if (!!UNH_AgilityOverride.MoraleBase) {
+  if (UNH_AgilityOverride.MoraleBase !== -1) {
     if (target.isEnemy()) {
       if (!!item.meta) {
         if (!!item.meta.unhMoralePlus) {
@@ -230,15 +231,33 @@ Game_Action.prototype.apply = function(target) {
   }
 };
 
-UNH_AgilityOverride.BattleManager_makeEscapeRatio = BattleManager.makeEscapeRatio;
-BattleManager.makeEscapeRatio = function() {
-  UNH_AgilityOverride.BattleManager_makeEscapeRatio.call(this);
-  if (!!UNH_AgilityOverride.MoraleBase && !!UNH_AgilityOverride.MoraleEffect) {
+BattleManager.unhEscapeRatio = function() {
+  const escapeRatio = this._escapeRatio || 0;
+  if ((UNH_AgilityOverride.MoraleBase !== -1) && !!UNH_AgilityOverride.MoraleEffect) {
     try {
-      eval(UNH_AgilityOverride.MoraleEffect);
+      const evalFunc = new Function('escapeRatio', UNH_AgilityOverride.MoraleEffect);
+      return evalFunc(escapeRatio);
 	} catch (e) {
-      console.log(e);
+      return escapeRatio;
 	};
+  }
+  return escapeRatio;
+};
+
+UNH_AgilityOverride.BattleManager_processEscape = BattleManager.processEscape;
+BattleManager.processEscape = function() {
+  try {
+    $gameParty.performEscape();
+    SoundManager.playEscape();
+    const success = this._preemptive || Math.random() < BattleManager.unhEscapeRatio();
+    if (success) {
+      this.onEscapeSuccess();
+    } else {
+      this.onEscapeFailure();
+    }
+    return success;
+  } catch (e) {
+    return UNH_AgilityOverride.BattleManager_processEscape.call(this);
   }
 };
 

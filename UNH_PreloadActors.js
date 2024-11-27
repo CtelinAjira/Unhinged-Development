@@ -12,8 +12,9 @@
  * @param PostInit
  * @text Post-Initialization Code
  * @desc JS Code to call after instantiating actors
+ * Variables: actor, actorId
  * @type note
- * @default "//variables:\n//actor - the current actor\n//actorId - the id of the current actor"
+ * @default ""
  *
  * @help
  * ============================================================================

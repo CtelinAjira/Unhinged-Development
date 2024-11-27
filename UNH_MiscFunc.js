@@ -44,6 +44,22 @@ var Imported = Imported || {};
  * if desired.
  *
  * ============================================================================
+ * Notetags
+ * ============================================================================
+ *
+ * <Disarm State>
+ *
+ * ============================================================================
+ * Adapted Functions
+ * ============================================================================
+ *
+ * enemy.currentClass();
+ * enemy.equips();
+ * enemy.armors();
+ * enemy.weapons();
+ * enemy.hasNoWeapons();
+ *
+ * ============================================================================
  * New Functions
  * ============================================================================
  *
@@ -186,7 +202,9 @@ if (UNH_MiscFunc.checkActFuncs()) {
   for (const param of unhParams) {
     Game_Action.prototype[param.key] = function(target) {
       const paramEval = Function('action', 'user', 'target', 'note', param.code);
-      return paramEval(this, this.subject(), target, param.note);
+      const paramArgs = arguments;
+      paramArgs.unshift(this, this.subject(), target, param.note);
+      return paramEval.apply(this, paramArgs);
     };
   }
 }
@@ -196,7 +214,9 @@ if (UNH_MiscFunc.checkBatFuncs()) {
   for (const param of unhParams) {
     Game_BattlerBase.prototype[param.key] = function() {
       const paramEval = Function('user', 'note', param.code);
-      return paramEval(this, target, param.note);
+      const paramArgs = arguments;
+      paramArgs.unshift(this, param.note);
+      return paramEval.apply(this, paramArgs);
     };
   }
 }
@@ -242,10 +262,36 @@ Game_Enemy.prototype.currentClass = function() {
   return $dataClasses[Number(this.enemy().meta['Unh Enemy Class'])];
 };
 
+UNH_MiscFunc.Actor_equips = Game_Actor.prototype.equips;
+Game_Actor.prototype.equips = function() {
+  const isDisarmed = this.states().some(function(state) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    return !!state.meta['Disarm State'];
+  });
+  let object;
+  if (isDisarmed) {
+    return this._equips.map(function(item) {
+      if (!item) {
+        return null;
+      }
+      object = item.object();
+      if (isDisarmed && DataManager.isWeapon(object)) {
+        return null;
+      }
+      return object;
+    });
+  }
+  return UNH_MiscFunc.Actor_equips.call(this);
+};
+
 Game_Enemy.prototype.equips = function() {
   const equips = [];
   let eqpEval;
   let slotName;
+  for (let h = 0; h < $gameSystem.equipTypes.length; h++) {
+    equips[i] = null;
+  }
   for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
     slotName = $gameSystem.equipTypes[i];
     if (!this.enemy().meta) continue;
@@ -254,11 +300,27 @@ Game_Enemy.prototype.equips = function() {
       eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
       const eqpId = eqpEval();
       if (i === 1) {
-        equips.push($dataWeapons[eqpId]);
+        for (const state of this.states()) {
+          if (!state) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta['Disarm State']) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          }
+        }
       } else if (i === 2 && this.isDualWield()) {
-        equips.push($dataWeapons[eqpId]);
+        for (const state of this.states()) {
+          if (!state) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta['Disarm State']) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          }
+        }
       } else {
-        equips.push($dataArmors[eqpId]);
+        equips[i - 1] = $dataArmors[eqpId];
       }
     } catch (e) {
       continue;
@@ -279,9 +341,25 @@ Game_Enemy.prototype.weapons = function() {
       eqpEval = Function('return ' + String(this.enemy().meta[slotName]));
       const eqpId = eqpEval();
       if (i === 1) {
-        equips.push($dataWeapons[eqpId]);
+        for (const state of this.states()) {
+          if (!state) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta['Disarm State']) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          }
+        }
       } else if (i === 2 && this.isDualWield()) {
-        equips.push($dataWeapons[eqpId]);
+        for (const state of this.states()) {
+          if (!state) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          } else if (!state.meta['Disarm State']) {
+            equips[i - 1] = $dataWeapons[eqpId];
+          }
+        }
       } else {
         continue;
       }

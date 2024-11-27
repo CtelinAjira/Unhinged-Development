@@ -8,6 +8,8 @@
  * @target MZ
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [CustomResource]
  * @author Unhinged Developer
+ * @base UNH_MiscFunc
+ * @orderAfter UNH_MiscFunc
  *
  * @param CustGauge
  * @text Custom Resources
