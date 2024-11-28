@@ -199,7 +199,7 @@ if (UNH_MiscFunc.checkParams()) {
           return Math.round(paramEval(this, param.name));
         }
         return paramEval(this, param.name);
-      };
+      },
       configurable: true
     });
   }
@@ -283,8 +283,8 @@ Game_Enemy.prototype.setup = function(enemyId, x, y) {
 UNH_MiscFunc.Actor_equips = Game_Actor.prototype.equips;
 Game_Actor.prototype.equips = function() {
   const isDisarmed = this.states().some(function(state) {
-    if (!state) continue;
-    if (!state.meta) continue;
+    if (!state) return false;
+    if (!state.meta) return false;
     return !!state.meta['Disarm State'];
   });
   let object;
@@ -325,7 +325,7 @@ Game_Enemy.prototype.initEquips = function() {
         this._equips[i - 1] = $dataArmors[eqpId];
       }
     } catch (e) {
-      continue;
+      this._equips[i - 1] = null;
     }
   }
 };
