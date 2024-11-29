@@ -107,7 +107,7 @@ Game_BattlerBase.prototype.param = function(paramId) {
   const paramArray = this.paramHiveMembers(paramId).map(function(member) {
     return UNH_HiveEffect.BattlerBase_param.call(member, paramId);
   });
-  return Math.max(paramArray);
+  return Math.max(...paramArray);
 };
 
 UNH_HiveEffect.BattlerBase_xparam = Game_BattlerBase.prototype.xparam;
@@ -115,7 +115,7 @@ Game_BattlerBase.prototype.xparam = function(xparamId) {
   const xparamArray = this.xparamHiveMembers(xparamId).map(function(member) {
     return UNH_HiveEffect.BattlerBase_xparam.call(member, xparamId);
   });
-  return Math.max(xparamArray);
+  return Math.max(...xparamArray);
 };
 
 UNH_HiveEffect.BattlerBase_sparam = Game_BattlerBase.prototype.sparam;
@@ -123,5 +123,5 @@ Game_BattlerBase.prototype.sparam = function(sparamId) {
   const sparamArray = this.sparamHiveMembers(sparamId).map(function(member) {
     return UNH_HiveEffect.BattlerBase_sparam.call(member, sparamId);
   });
-  return Math.max(sparamArray);
+  return Math.max(...sparamArray);
 };
