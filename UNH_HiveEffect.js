@@ -102,26 +102,26 @@ Game_BattlerBase.prototype.sparamHiveMembers = function(sparamId) {
   });
 };
 
-UNH_ParamSwap.BattlerBase_param = Game_BattlerBase.prototype.param;
+UNH_HiveEffect.BattlerBase_param = Game_BattlerBase.prototype.param;
 Game_BattlerBase.prototype.param = function(paramId) {
   const paramArray = this.paramHiveMembers(paramId).map(function(member) {
-    return UNH_ParamSwap.BattlerBase_param.call(member, paramId);
+    return UNH_HiveEffect.BattlerBase_param.call(member, paramId);
   });
   return Math.max(paramArray);
 };
 
-UNH_ParamSwap.BattlerBase_xparam = Game_BattlerBase.prototype.xparam;
+UNH_HiveEffect.BattlerBase_xparam = Game_BattlerBase.prototype.xparam;
 Game_BattlerBase.prototype.xparam = function(xparamId) {
   const xparamArray = this.xparamHiveMembers(xparamId).map(function(member) {
-    return UNH_ParamSwap.BattlerBase_xparam.call(member, xparamId);
+    return UNH_HiveEffect.BattlerBase_xparam.call(member, xparamId);
   });
   return Math.max(xparamArray);
 };
 
-UNH_ParamSwap.BattlerBase_sparam = Game_BattlerBase.prototype.sparam;
+UNH_HiveEffect.BattlerBase_sparam = Game_BattlerBase.prototype.sparam;
 Game_BattlerBase.prototype.sparam = function(sparamId) {
   const sparamArray = this.sparamHiveMembers(sparamId).map(function(member) {
-    return UNH_ParamSwap.BattlerBase_sparam.call(member, sparamId);
+    return UNH_HiveEffect.BattlerBase_sparam.call(member, sparamId);
   });
   return Math.max(sparamArray);
 };
