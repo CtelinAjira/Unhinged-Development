@@ -9,6 +9,12 @@
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [LevelCurves]
  * @author Unhinged Developer
  *
+ * @param DefaultExpToNext
+ * @text Default Exp To Next Level
+ * @desc Variables: user, actor, curLv, tgLv
+ * Leave blank to use corescript calculations
+ * @type string
+ *
  * @help
  * ============================================================================
  * Notetags
@@ -18,18 +24,22 @@
  * - Use for Actors
  * - Actor takes X experience to level up (JavaScript)
  *   - user - the actor in question
- *   - level - the next level
+ *   - actor - the actor's database object
+ *   - curLv - your current level
+ *   - tgLv - your next level
  * - CASE SENSITIVE
  *
  * Example: 
  *          <ExpToNext:100>
- *          <ExpToNext:(10 + (10 * level))>
- *          <ExpToNext:(10 * Math.pow(2, level / 4))>
+ *          <ExpToNext:(10 + (10 * curLv))>
+ *          <ExpToNext:(10 * Math.pow(2, curLv / 4))>
  */
 //=============================================================================
 
 const UNH_LevelCurves = {};
 UNH_LevelCurves.pluginName = 'UNH_LevelCurves';
+UNH_LevelCurves.parameters = PluginManager.parameters(UNH_LevelCurves.pluginName);
+UNH_LevelCurves.DefaultExpToNext = String(UNH_LevelCurves.parameters['DefaultExpToNext'] || '');
 
 UNH_LevelCurves.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
@@ -46,10 +56,10 @@ DataManager.processUnhExpNotetags = function(group) {
   for (let n = 1; n < group.length; n++) {
     const obj = group[n];
     const notedata = obj.note.split(/[\r\n]+/);
-    obj.unhLevelCurve = '';
+    obj.unhLevelCurve = UNH_LevelCurves.DefaultExpToNext;
     for (let i = 0; i < notedata.length; i++) {
       const line = notedata[i];
-      if (line.match(/<Unh Exp To Next:[ ](.*)>/i)) {
+      if (line.match(/<ExpToNext:(.*)>/i)) {
         obj.unhLevelCurve = String(RegExp.$1);
       }
     }
@@ -63,11 +73,10 @@ Game_Actor.prototype.expForLevel = function(level) {
   if (actor.unhLevelCurve === '') {
     return UNH_LevelCurves.Actor_expForLevel.call(this, level);
   }
-  let expString = String(actor.meta.ExpToNext) + ' * (level + 1)';
+  let expString = String(actor.meta.ExpToNext) + ' * (tgLv)';
   try {
-    const tempLevel = level - 1;
-    const evalFunc = new Function('user', 'actor', 'level', 'return ' + expString);
-    return evalFunc(user, actor, tempLevel);
+    const evalFunc = new Function('user', 'actor', 'curLv', 'tgLv', 'return Math.round(Number(' + expString + '));');
+    return evalFunc(user, actor, level - 1, level);
   } catch (e) {
     return UNH_LevelCurves.Actor_expForLevel.call(this, level);
   }
