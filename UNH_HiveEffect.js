@@ -55,11 +55,25 @@ Game_BattlerBase.prototype.paramHiveMembers = function(paramId) {
     paramId = ['mhp','mmp','atk','def','mat','mdf','agi','luk'].indexOf(paramId);
   }
   if (typeof paramId !== 'number') return [this];
-  if (paramId === -1) return [this];
-  return this.friendsUnit().members().filter(function(member) {
-    if (member.isDead()) return false;
+  if (paramId <= 1) return [this];
+  for (const obj of this.traitObjects()) {
+    if (!obj) return [this];
+    if (!obj.meta) return [this];
+    if (!obj.meta.HivemindParam) return [this];
+    if (obj.meta.HivemindParam !== paramId) return [this];
+  }
+  const isHive = this.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (!obj.meta.HivemindParam) return false;
+    return (obj.meta.HivemindParam !== paramId);
+  });
+  if (!isHive) return [this];
+  return this.friendsUnit().aliveMembers().filter(function(member) {
     for (const obj of member.traitObjects()) {
-      if (!obj.meta) continue;
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta.HivemindParam) return false;
       if (obj.meta.HivemindParam === paramId) return true;
 	}
     return false;
@@ -74,11 +88,20 @@ Game_BattlerBase.prototype.xparamHiveMembers = function(xparamId) {
   }
   if (typeof xparamId !== 'number') return [this];
   if (xparamId === -1) return [this];
+  const isHive = this.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (!obj.meta.HivemindXParam) return false;
+    return (obj.meta.HivemindXParam !== xparamId);
+  });
+  if (!isHive) return [this];
   return this.friendsUnit().members().filter(function(member) {
     if (member.isDead()) return false;
     for (const obj of member.traitObjects()) {
-      if (!obj.meta) continue;
-      if (obj.meta.HivemindXParam === paramId) return true;
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta.HivemindXParam) return false;
+      if (obj.meta.HivemindXParam === xparamId) return true;
 	}
     return false;
   });
@@ -92,11 +115,20 @@ Game_BattlerBase.prototype.sparamHiveMembers = function(sparamId) {
   }
   if (typeof sparamId !== 'number') return [this];
   if (sparamId === -1) return [this];
+  const isHive = this.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (!obj.meta.HivemindSParam) return false;
+    return (obj.meta.HivemindSParam !== xparamId);
+  });
+  if (!isHive) return [this];
   return this.friendsUnit().members().filter(function(member) {
     if (member.isDead()) return false;
     for (const obj of member.traitObjects()) {
-      if (!obj.meta) continue;
-      if (obj.meta.HivemindSParam === paramId) return true;
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta.HivemindSParam) return false;
+      if (obj.meta.HivemindSParam === sparamId) return true;
 	}
     return false;
   });
@@ -104,24 +136,32 @@ Game_BattlerBase.prototype.sparamHiveMembers = function(sparamId) {
 
 UNH_HiveEffect.BattlerBase_param = Game_BattlerBase.prototype.param;
 Game_BattlerBase.prototype.param = function(paramId) {
-  const paramArray = this.paramHiveMembers(paramId).map(function(member) {
-    return UNH_HiveEffect.BattlerBase_param.call(member, paramId);
-  });
-  return Math.max(...paramArray);
+  const defVal = UNH_HiveEffect.BattlerBase_param.call(this, paramId);
+  if ([0,1].includes(paramId)) return defVal;
+  const members = this.paramHiveMembers(paramId);
+  if (members.length <= 1) return defVal;
+  return members.reduce(function(r, member) {
+    return Math.max(r, UNH_HiveEffect.BattlerBase_param.call(member, paramId));
+  }, defVal);
 };
 
 UNH_HiveEffect.BattlerBase_xparam = Game_BattlerBase.prototype.xparam;
 Game_BattlerBase.prototype.xparam = function(xparamId) {
-  const xparamArray = this.xparamHiveMembers(xparamId).map(function(member) {
-    return UNH_HiveEffect.BattlerBase_xparam.call(member, xparamId);
-  });
-  return Math.max(...xparamArray);
+  const defVal = UNH_HiveEffect.BattlerBase_xparam.call(this, xparamId);
+  const members = this.xparamHiveMembers(xparamId);
+  if (members.length <= 1) return defVal;
+  return members.reduce(function(r, member) {
+    return Math.max(r, UNH_HiveEffect.BattlerBase_xparam.call(member, xparamId));
+  }, defVal);
 };
 
 UNH_HiveEffect.BattlerBase_sparam = Game_BattlerBase.prototype.sparam;
 Game_BattlerBase.prototype.sparam = function(sparamId) {
-  const sparamArray = this.sparamHiveMembers(sparamId).map(function(member) {
-    return UNH_HiveEffect.BattlerBase_sparam.call(member, sparamId);
-  });
-  return Math.max(...sparamArray);
+  const defVal = UNH_HiveEffect.BattlerBase_sparam.call(this, sparamId);
+  if (sparamId === 0) return defVal;
+  const members = this.sparamHiveMembers(sparamId);
+  if (members.length <= 1) return defVal;
+  return members.reduce(function(r, member) {
+    return Math.max(r, UNH_HiveEffect.BattlerBase_sparam.call(member, sparamId));
+  }, defVal);
 };

@@ -20,9 +20,6 @@ Imported.UNH_PlaneshardResources = true;
 
 const UNH_PlaneshardResources = {};
 UNH_PlaneshardResources.pluginName = 'UNH_PlaneshardResources';
-const hasSkillLevels = $plugins.some(function (entry) {
-  return ((!!entry.status) && (entry.name = 'UNH_SkillLevels'));
-});
 
 Object.defineProperties(Game_BattlerBase.prototype, {
   fp: {
@@ -100,7 +97,7 @@ Game_BattlerBase.prototype.maxFp = function() {
       if (!!state.meta[prop]) return 0;
     }
     const stat = user.paramBase(4);
-    if (!hasSkillLevels) return stat * 2;
+    if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 7;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
@@ -136,7 +133,7 @@ Game_BattlerBase.prototype.maxEp = function() {
       if (!!state.meta[prop]) return 0;
     }
     const stat = user.paramBase(5);
-    if (!hasSkillLevels) return stat * 2;
+    if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 8;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
@@ -172,7 +169,7 @@ Game_BattlerBase.prototype.maxPp = function() {
       if (!!state.meta[prop]) return 0;
     }
     const stat = user.paramBase(7);
-    if (!hasSkillLevels) return stat * 2;
+    if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 9;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
@@ -208,7 +205,7 @@ Game_BattlerBase.prototype.maxQp = function() {
       if (!!state.meta[prop]) return 0;
     }
     const stat = user.paramBase(6);
-    if (!hasSkillLevels) return stat * 2;
+    if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 10;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
@@ -220,23 +217,35 @@ Game_BattlerBase.prototype.maxQp = function() {
 };
 
 Game_BattlerBase.prototype.getFp = function() {
-  this._fp = this._fp || this.maxFp();
-  return this._fp;
+  const max = this.maxFp();
+  this._fp = this._fp || max;
+  if (this._fp < 0) this._fp = 0;
+  if (this._fp > max) this._fp = max;
+  return Math.min(this._fp, max);
 };
 
 Game_BattlerBase.prototype.getEp = function() {
-  this._ep = this._ep || this.maxEp();
-  return this._ep;
+  const max = this.maxEp();
+  this._ep = this._ep || max;
+  if (this._ep < 0) this._ep = 0;
+  if (this._ep > max) this._ep = max;
+  return Math.min(this._ep, max);
 };
 
 Game_BattlerBase.prototype.getPp = function() {
-  this._pp = this._pp || this.maxPp();
-  return this._pp;
+  const max = this.maxPp();
+  this._pp = this._pp || max;
+  if (this._pp < 0) this._pp = 0;
+  if (this._pp > max) this._pp = max;
+  return Math.min(this._pp, max);
 };
 
 Game_BattlerBase.prototype.getQp = function() {
-  this._qp = this._qp || this.maxQp();
-  return this._qp;
+  const max = this.maxQp();
+  this._qp = this._qp || max;
+  if (this._qp < 0) this._qp = 0;
+  if (this._qp > max) this._qp = max;
+  return Math.min(this._qp, max);
 };
 
 Game_BattlerBase.prototype.setFp = function(value) {
@@ -277,15 +286,6 @@ Game_BattlerBase.prototype.gainPp = function(value) {
 Game_BattlerBase.prototype.gainQp = function(value) {
   let resource = this.getQp();
   this.setQp(resource + value);
-};
-
-UNH_PlaneshardResources.BattlerBase_refresh = Game_BattlerBase.prototype.refresh;
-Game_BattlerBase.prototype.refresh = function() {
-  UNH_PlaneshardResources.BattlerBase_refresh.call(this);
-  this._fp = Math.min(Math.max(this._fp, 0, this.maxFp()));
-  this._ep = Math.min(Math.max(this._ep, 0, this.maxEp()));
-  this._pp = Math.min(Math.max(this._pp, 0, this.maxPp()));
-  this._qp = Math.min(Math.max(this._qp, 0, this.maxQp()));
 };
 
 UNH_PlaneshardResources.BattlerBase_recoverAll = Game_BattlerBase.prototype.recoverAll;

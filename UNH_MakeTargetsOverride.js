@@ -42,10 +42,16 @@ UNH_MakeTargetsOverride.MakeTargetsCode = String(UNH_MakeTargetsOverride.paramet
 UNH_MakeTargetsOverride.Action_makeTargets = Game_Action.prototype.makeTargets;
 Game_Action.prototype.makeTargets = function(original = false) {
   const targets = UNH_MakeTargetsOverride.Action_makeTargets.call(this);
+  const action = this;
+  const item = this.item();
+  const user = this.subject();
   if (!original) {
     if (!!UNH_MakeTargetsOverride.MakeTargetsCode) {
-      const newCode = new Function('action', 'item', 'user', 'targets', 'try {\n' + UNH_MakeTargetsOverride.MakeTargetsCode + '\n}catch (e) {\nconsole.log(\'Error found in new code for action.makeTargets()\nExtra code silenced for the sake of runtime\');\n}');
-      newCode(this, this.item(), this.subject(), targets);
+      try {
+        eval(UNH_MakeTargetsOverride.MakeTargetsCode)
+      } catch (e) {
+        console.log('Error found in new code for action.makeTargets()\nExtra code silenced for the sake of runtime');
+      }
     }
   }
   return targets;

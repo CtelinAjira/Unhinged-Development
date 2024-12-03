@@ -82,13 +82,12 @@ Game_Action.prototype.apply = function(target) {
   const codeString = UNH_SkillFunctionOverwrites.applyOverload;
   if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_apply.call(this, target);
-	return;
-  }
-  const override = new Function('target', codeString);
-  try {
-    override.call(this, target);
-  } catch (e) {
-    UNH_SkillFunctionOverwrites.Action_apply.call(this, target);
+  } else {
+    try {
+      eval(codeString);
+    } catch (e) {
+      UNH_SkillFunctionOverwrites.Action_apply.call(this, target);
+    }
   }
 };
 
@@ -97,29 +96,26 @@ Game_Action.prototype.makeDamageValue = function(target, critical) {
   const codeString = UNH_SkillFunctionOverwrites.makeDamageValueOverload;
   if (codeString.length <= 0) {
     return UNH_SkillFunctionOverwrites.Action_makeDamageValue.call(this, target, critical);
+  } else {
+    try {
+      return eval(codeString);
+    } catch (e) {
+      return UNH_SkillFunctionOverwrites.Action_makeDamageValue.call(this, target, critical);
+    }
   }
-  const override = new Function('target', 'critical', codeString);
-  let value = 0;
-  try {
-    value = override.call(this, target, critical);
-  } catch (e) {
-    return UNH_SkillFunctionOverwrites.Action_makeDamageValue.call(this, target, critical);
-  }
-  return value;
 };
 
 UNH_SkillFunctionOverwrites.Action_executeDamage = Game_Action.prototype.executeDamage;
 Game_Action.prototype.executeDamage = function(target, value) {
   const codeString = UNH_SkillFunctionOverwrites.executeDamageOverload;
   if (codeString.length <= 0) {
-    UNH_SkillFunctionOverwrites.Action_executeDamage.call(this);
-	return;
-  }
-  const override = new Function('target', 'value', codeString);
-  try {
-    override.call(this, target, value);
-  } catch (e) {
     UNH_SkillFunctionOverwrites.Action_executeDamage.call(this, target, value);
+  } else {
+    try {
+      eval(codeString);
+    } catch (e) {
+      UNH_SkillFunctionOverwrites.Action_executeDamage.call(this, target, value);
+    }
   }
 };
 
@@ -127,14 +123,13 @@ UNH_SkillFunctionOverwrites.Action_executeHpDamage = Game_Action.prototype.execu
 Game_Action.prototype.executeHpDamage = function(target, value) {
   const codeString = UNH_SkillFunctionOverwrites.executeHpDamageOverload;
   if (codeString.length <= 0) {
-    UNH_SkillFunctionOverwrites.Action_executeHpDamage.call(this);
-	return;
-  }
-  const override = new Function('target', 'value', codeString);
-  try {
-    override.call(this, target, value);
-  } catch (e) {
-    UNH_SkillFunctionOverwrites.Action_executeHpDamage.call(this);
+    UNH_SkillFunctionOverwrites.Action_executeHpDamage.call(this, target, value);
+  } else {
+    try {
+      eval(codeString);
+    } catch (e) {
+      UNH_SkillFunctionOverwrites.Action_executeHpDamage.call(this, target, value);
+    }
   }
 };
 
@@ -142,14 +137,13 @@ UNH_SkillFunctionOverwrites.Action_executeMpDamage = Game_Action.prototype.execu
 Game_Action.prototype.executeMpDamage = function(target, value) {
   const codeString = UNH_SkillFunctionOverwrites.executeMpDamageOverload;
   if (codeString.length <= 0) {
-    UNH_SkillFunctionOverwrites.Action_executeMpDamage.call(this);
-	return;
-  }
-  const override = new Function('target', 'value', codeString);
-  try {
-    override.call(this, target, value);
-  } catch (e) {
-    UNH_SkillFunctionOverwrites.Action_executeMpDamage.call(this);
+    UNH_SkillFunctionOverwrites.Action_executeMpDamage.call(this, target, value);
+  } else {
+    try {
+      eval(codeString);
+    } catch (e) {
+      UNH_SkillFunctionOverwrites.Action_executeMpDamage.call(this, target, value);
+    }
   }
 };
 
@@ -158,13 +152,12 @@ Game_Action.prototype.applyItemEffect = function(target, effect) {
   const codeString = UNH_SkillFunctionOverwrites.applyItemEffectOverload;
   if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_applyItemEffect.call(this, target, effect);
-	return;
-  }
-  const override = new Function('target', 'effect', codeString);
-  try {
-    override.call(this, target, effect);
-  } catch (e) {
-    UNH_SkillFunctionOverwrites.Action_applyItemEffect.call(this, target, effect);
+  } else {
+    try {
+      eval(codeString);
+    } catch (e) {
+      UNH_SkillFunctionOverwrites.Action_applyItemEffect.call(this, target, effect);
+    }
   }
 };
 
@@ -173,12 +166,11 @@ Game_Action.prototype.applyItemUserEffect = function(target) {
   const codeString = UNH_SkillFunctionOverwrites.applyItemUserEffectOverload;
   if (codeString.length <= 0) {
     UNH_SkillFunctionOverwrites.Action_applyItemUserEffect.call(this, target);
-	return;
-  }
-  const override = new Function('target', codeString);
-  try {
-    override.call(this, target);
-  } catch (e) {
-    UNH_SkillFunctionOverwrites.Action_applyItemUserEffect.call(this, target);
+  } else {
+    try {
+      eval(codeString);
+    } catch (e) {
+      UNH_SkillFunctionOverwrites.Action_applyItemUserEffect.call(this, target);
+    }
   }
 };

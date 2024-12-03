@@ -21,6 +21,34 @@ Imported.UNH_PlaneshardFunctions = true;
 const UNH_PlaneshardFunctions = {};
 UNH_PlaneshardFunctions.pluginName = 'UNH_PlaneshardFunctions';
 
+Object.defineProperties(Game_BattlerBase.prototype, {
+  tempHp: {
+    get: function() {
+      return this.tempHp();
+	}, configurable: true
+  }, tempMp: {
+    get: function() {
+      return this.tempMp();
+	}, configurable: true
+  }, tempFp: {
+    get: function() {
+      return this.tempFp();
+	}, configurable: true
+  }, tempEp: {
+    get: function() {
+      return this.tempEp();
+	}, configurable: true
+  }, tempPp: {
+    get: function() {
+      return this.tempPp();
+	}, configurable: true
+  }, tempQp: {
+    get: function() {
+      return this.tempQp();
+	}, configurable: true
+  }
+});
+
 Game_BattlerBase.prototype.tempStates = function(note) {
   if (!Imported.UNH_PlaneshardResources) return [];
   if (!Imported.VisuMZ_1_SkillsStatesCore) return [];
@@ -28,6 +56,16 @@ Game_BattlerBase.prototype.tempStates = function(note) {
     if (!state) return false;
     if (!state.meta) return false;
     return !!state.meta[note];
+  });
+};
+
+Game_BattlerBase.prototype.tempHpStates = function() {
+  if (!Imported.VisuMZ_3_AntiDmgBarriers) return [];
+  return this.getAntiDamageBarrierStates().filter(function(state) {
+    const match = state.note.match(VisuMZ.AntiDmgBarriers.RegExp.AbsorbBarrier)
+    if (!match) return false;
+    if (match.length <= 0) return false;
+    return true;
   });
 };
 
@@ -52,14 +90,18 @@ Game_BattlerBase.prototype.tempQpStates = function() {
 };
 
 Game_BattlerBase.prototype.getTemp = function(states) {
-  if (states === undefined) states = this.states();
-  if (!Array.isArray(states)) states = this.states();
+  if (!states) return 0;
+  if (!Array.isArray(states)) return 0;
   if (states.length <= 0) return 0;
   return states.reduce(function(r, state) {
     if (!state) return r;
     if (isNaN(this.getStateDisplay(state.id))) return r;
     return r + Number(this.getStateDisplay(state.id));
   });
+};
+
+Game_BattlerBase.prototype.tempHp = function() {
+  return this.getTemp(this.tempHpStates());
 };
 
 Game_BattlerBase.prototype.tempMp = function() {
@@ -83,8 +125,12 @@ Game_BattlerBase.prototype.tempQp = function() {
 };
 
 Game_BattlerBase.prototype.applyTemp = function(value, array) {
-  if (array === undefined) array = this.states();
-  if (!Array.isArray(array)) array = this.states();
+  if (!value) return 0;
+  if (typeof value !== 'number') return 0;
+  if (isNaN(value)) return 0;
+  if (!array) return value;
+  if (!Array.isArray(array)) return value;
+  if (array.length <= 0) return value;
   const states = JsonEx.makeDeepCopy(array);
   if (states.length <= 0) return value;
   let stateDisp;

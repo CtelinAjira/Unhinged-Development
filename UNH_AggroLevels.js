@@ -55,6 +55,12 @@ var Imported = Imported || {};
  * @type boolean
  * @default false
  *
+ * @param autoCalc
+ * @text Automatic Calculation
+ * @desc Should this plugin automatically change TGR?
+ * @type boolean
+ * @default true
+ *
  * @help
  * ============================================================================
  * Plugin Description
@@ -145,6 +151,7 @@ UNH_AggroLevels.HPMult = String(UNH_AggroLevels.parameters['HPMult'] || '0');
 UNH_AggroLevels.MPMult = String(UNH_AggroLevels.parameters['MPMult'] || '0');
 UNH_AggroLevels.isTaunt = !!UNH_AggroLevels.parameters['isTaunt'];
 UNH_AggroLevels.isVoke = !!UNH_AggroLevels.parameters['isVoke'];
+UNH_AggroLevels.autoCalc = !!UNH_AggroLevels.parameters['autoCalc'];
 
 UNH_AggroLevels.Action_randomTargets = Game_Action.prototype.randomTargets;
 Game_Action.prototype.randomTargets = function(unit) {
@@ -275,13 +282,30 @@ if (!!UNH_AggroLevels.isVoke) {
 }
 
 Game_BattlerBase.prototype.unhDefaultAggro = function() {
-  const evalFunc = new Function('user', 'return ' + UNH_AggroLevels.BaseAggro);
-  return evalFunc(this);
+  const user = this;
+  //try {
+    return eval(UNH_AggroLevels.BaseAggro);
+  //} catch(e) {
+  //  return 100;
+  //}
 };
 
 Game_BattlerBase.prototype.unhDamageMult = function(value) {
-  const evalFunc = new Function('value', 'return ((value < 0) ? (' + UNH_AggroLevels.HealingAggro + ') : (' + UNH_AggroLevels.HurtingAggro + '))')
-  return evalFunc(value);
+  if (value < 0) {
+    //try {
+      return eval(UNH_AggroLevels.HealingAggro);
+    //} catch(e) {
+    //  return 100;
+    //}
+  }
+  if (value > 0) {
+    //try {
+      return eval(UNH_AggroLevels.HurtingAggro);
+    //} catch(e) {
+    //  return 100;
+    //}
+  }
+  return 1;
 };
 
 Game_BattlerBase.prototype.unhInitAggro = function() {
@@ -451,8 +475,8 @@ Game_Action.prototype.unhAggroFlat = function(target) {
 };
 
 Game_BattlerBase.prototype.unhSetAggro = function(value) {
-  if (value === undefined) value = UNH_AggroLevels.BaseAggro;
-  if (typeof value !== 'number') value = UNH_AggroLevels.BaseAggro;
+  if (value === undefined) value = 0;
+  if (typeof value !== 'number') value = 0;
   this._unhAggroBase = Math.max(Math.round(value), 0);
 };
 
@@ -481,13 +505,20 @@ Game_Action.prototype.unhAddAggro = function(target, value, ignoreRates) {
 };
 
 Game_BattlerBase.prototype.unhHpMult = function() {
-  const evalFunc = new Function('user', 'return ' + UNH_AggroLevels.HPMult);
-  return evalFunc(this);
+  const user = this;
+  //try {
+    return eval(UNH_AggroLevels.HPMult);
+  //} catch(e) {
+  //  return 100;
+  //}
 };
 
 Game_BattlerBase.prototype.unhMpMult = function() {
-  const evalFunc = new Function('user', 'return ' + UNH_AggroLevels.MPMult);
-  return evalFunc(this);
+  //try {
+    return eval(UNH_AggroLevels.MPMult);
+  //} catch(e) {
+  //  return 100;
+  //}
 };
 
 Game_BattlerBase.prototype.unhAggroMult = function() {
@@ -589,11 +620,13 @@ Game_Action.prototype.itemEffectRecoverMp = function(target, effect) {
   UNH_AggroLevels.Action_itemEffectRecoverMp.call(this, target, effect);
 };
 
+if (!!UNH_AggroLevels.autoCalc) {
 UNH_AggroLevels.BattlerBase_sparam = Game_BattlerBase.prototype.sparam;
-Game_BattlerBase.prototype.sparam = function(sparamId) {
-  let baseVal = UNH_AggroLevels.BattlerBase_sparam.call(this, sparamId);
-  if (sparamId === 0) {
-    baseVal *= this.unhAggroMult();
-  }
-  return baseVal;
-};
+  Game_BattlerBase.prototype.sparam = function(sparamId) {
+    let baseVal = UNH_AggroLevels.BattlerBase_sparam.call(this, sparamId);
+    if (sparamId === 0) {
+      baseVal *= this.unhAggroMult();
+    }
+    return baseVal;
+  };
+}

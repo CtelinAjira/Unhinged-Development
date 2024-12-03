@@ -65,7 +65,8 @@ UNH_PreloadActors.codeParse = function(code) {
 
 UNH_PreloadActors.runPostInit = function(actorId) {
   if (typeof actorId !== 'number') return;
-  if (actorId === 0) return;
+  if (isNaN(actorId)) return;
+  if (actorId <= 0) return;
   if (actorId >= $dataActors.length) return;
   if (!UNH_PreloadActors.PostInit) return;
   if (UNH_PreloadActors.codeParse(UNH_PreloadActors.PostInit).length <= 0) return;
@@ -81,6 +82,7 @@ UNH_PreloadActors.runPostInit = function(actorId) {
 
 Game_Actors.prototype.initActors = function(actorId) {
   if (typeof actorId !== 'number') actorId = 0;
+  if (isNaN(actorId)) actorId = 0;
   if (this._data === undefined) {
     this.clear();
   } else if (!Array.isArray(this._data)) {
@@ -112,9 +114,13 @@ Game_Actors.prototype.resetData = function() {
   this.initActors();
 };
 
-Game_Actors.prototype.data = function() {
-  this.initActors();
-  return this._data;
+Game_Actors.prototype.data = function(actorId) {
+  this.initActors(actorId);
+  if (typeof actorId !== 'number') actorId = 0;
+  if (isNaN(actorId)) actorId = 0;
+  if (actorId <= 0) return this._data;
+  if (actorId >= $dataActors.length) return this._data;
+  return this._data[actorId];
 };
 
 UNH_PreloadActors.Actors_actor = Game_Actors.prototype.actor;

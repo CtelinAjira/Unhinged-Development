@@ -88,23 +88,21 @@
 const UNH_CustomResource = {};
 UNH_CustomResource.pluginName = 'UNH_CustomResource';
 UNH_CustomResource.parameters = PluginManager.parameters(UNH_CustomResource.pluginName);
+UNH_CustomResource.CustGauge = UNH_CustomResource.parameters['CustGauge'] || [];
 
-UNH_CustomResource.checkParams = function() {
-  const params = this.parameters['CustGauge'];
-  if (!params) return false;
-  if (!Array.isArray(params)) return false;
-  if (params.length <= 0) return false;
-  return true;
+UNH_MiscFunc.Boot_onDatabaseLoaded = Scene_Boot.prototype.onDatabaseLoaded;
+Scene_Boot.prototype.onDatabaseLoaded = function () {
+  UNH_MiscFunc.Boot_onDatabaseLoaded.call(this);
+  UNH_MiscFunc.makeCustomResources();
 };
 
-if (UNH_CustomResource.checkParams()) {
-  const unhResources = UNH_CustomResource.parameters['CustGauge'];
-
-  for (const param of unhResources) {
+UNH_CustomResource.makeCustomResources = function() {
+  for (const param of UNH_CustomResource.CustGauge) {
     Game_BattlerBase.prototype[String(param.maxFunc)] = function() {
       try{
-        const paramEval = Function('user', 'note', String(param.code));
-        return Math.round(paramEval(this, String(param.name)));
+        const user = this;
+        const note = String(param.name);
+        return eval(param.code)
       } catch (e) {
         return 0;
       }
@@ -119,28 +117,29 @@ if (UNH_CustomResource.checkParams()) {
       this[String(param.propName)] = value;
       this.refresh();
     };
-    Game_BattlerBase.prototype[param.gainName] = function(value) {
+    Game_BattlerBase.prototype[String(param.gainName)] = function(value) {
       let resource = this[String(param.getName)]();
       this[String(param.setName)](resource + value);
     };
     Object.defineProperty(Game_BattlerBase.prototype, String(param.key), {
-      get: function() {
+      get() {
         return this[String(param.getName)]();
       },
       configurable: true
     });
     Object.defineProperty(Game_BattlerBase.prototype, String(param.maxName), {
-      get: function() {
+      get() {
         return this[String(param.maxFunc)]();
       },
       configurable: true
     });
   }
-  UNH_CustomResource.BattlerBase_refresh = Game_BattlerBase.prototype.refresh;
-  Game_BattlerBase.prototype.refresh = function() {
-    UNH_CustomResource.BattlerBase_refresh.call(this);
-    for (const param of unhResources) {
-      this[String(param.propName)] = this[String(param.propName)].clamp(0, this[String(param.maxName)]);
-    }
-  };
-}
+};
+
+UNH_CustomResource.BattlerBase_refresh = Game_BattlerBase.prototype.refresh;
+Game_BattlerBase.prototype.refresh = function() {
+  UNH_CustomResource.BattlerBase_refresh.call(this);
+  for (const param of UNH_CustomResource.CustGauge) {
+    this[String(param.propName)] = this[String(param.propName)].clamp(0, this[String(param.maxName)]);
+  }
+};
