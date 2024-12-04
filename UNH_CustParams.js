@@ -1980,6 +1980,43 @@ Game_Action.prototype.gobCount = function(target) {
   return 0;
 };
 
+Game_Battler.prototype.unhIsRanged = function(curWpn) {
+  const user = this;
+  const note = 'unhRanged';
+  const states = user.states();
+  const isDoublehand = user.unhIsDoublehand();
+  let isRanged = false;
+  if (!!item) {
+    if (!!item.meta) {
+      if (!!item.meta[note]) {
+        isRanged = eval(item.meta[note]);
+        if (!!isRanged) return true;
+      }
+    }
+  }
+  if (user.hasNoWeapons()) return false;
+  const weapons = user.weapons();
+  if (!curWpn) curWpn = 0;
+  if (typeof curWpn !== 'number') curWpn = 0;
+  if (isNaN(curWpn)) curWpn = 0;
+  curWpn = Math.max(curWpn, 0);
+  curWpn = Math.min(curWpn, weapons.length);
+  const weapon = weapons[curWpn];
+  if (!!weapon) {
+    if (!!weapon.meta) {
+      if (!!weapon.meta[note]) {
+        try {
+          isRanged = eval(weapon.meta[note]);
+          if (isRanged) return true;
+        } catch (e) {
+          return false;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 Game_Action.prototype.unhIsRanged = function(target, curWpn) {
   if (this.isMagical()) return true;
   const action = this;
