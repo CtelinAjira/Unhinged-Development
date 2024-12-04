@@ -1388,7 +1388,7 @@ Game_BattlerBase.prototype.unhDblWpn = function(index) {
 Game_Action.prototype.physBlock = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1415,7 +1415,7 @@ Game_Action.prototype.physBlock = function(target) {
 Game_Action.prototype.magBlock = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
@@ -1442,7 +1442,7 @@ Game_Action.prototype.magBlock = function(target) {
 Game_Action.prototype.physParry = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1497,7 +1497,7 @@ Game_Action.prototype.physParry = function(target) {
 Game_Action.prototype.magParry = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
@@ -1558,7 +1558,7 @@ Game_Action.prototype.checkPhysBreak = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1610,7 +1610,7 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
@@ -1661,7 +1661,7 @@ Game_Action.prototype.checkPhysFeint = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1712,7 +1712,7 @@ Game_Action.prototype.checkMagFeint = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('a.wpnPow()')) return false;
+  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
