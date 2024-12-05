@@ -288,6 +288,31 @@ Game_BattlerBase.prototype.gainQp = function(value) {
   this.setQp(resource + value);
 };
 
+Game_BattlerBase.prototype.unhSetOldStats = function() {
+  this._unhOldStats = {hp:this.hp, mp:this.mp, fp:this.fp, ep:this.ep, pp:this.pp, qp:this.qp};
+};
+
+Game_BattlerBase.prototype.unhInitOldStats = function() {
+  if (!this._unhOldStats) this.unhSetOldStats();
+  if (!Array.isArray(this._unhOldStats)) this.unhSetOldStats();
+};
+
+Game_BattlerBase.prototype.unhGetOldStats = function(property) {
+  this.unhInitOldStats();
+  if (property === undefined) return this._unhOldStats;
+  if (property === null) return this._unhOldStats;
+  if (typeof property === 'boolean') return this._unhOldStats;
+  if (!this._unhOldStats.hasOwnProperty(property)) return this._unhOldStats;
+  return this._unhOldStats[property];
+};
+
+UNH_PlaneshardResources.Action_apply = Game_Action.prototype.apply;
+Game_Action.prototype.apply = function(target) {
+  this.subject().unhSetOldStats();
+  target.unhSetOldStats();
+  UNH_PlaneshardResources.Action_apply.call(this);
+};
+
 UNH_PlaneshardResources.BattlerBase_recoverAll = Game_BattlerBase.prototype.recoverAll;
 Game_BattlerBase.prototype.recoverAll = function() {
   UNH_PlaneshardResources.BattlerBase_recoverAll.call(this);

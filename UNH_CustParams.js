@@ -37,7 +37,9 @@ Object.defineProperties(Game_Actor.prototype, {
       const user = this;
       const battler = this.object();
       const curClass = this.currentClass();
+      const equips = this.equips();
       const weapons = this.weapons();
+      const armors = this.armors();
       const states = this.states();
       for (const state of states) {
         if (!state) continue;
@@ -45,11 +47,23 @@ Object.defineProperties(Game_Actor.prototype, {
         if (state.meta[note] === undefined) continue;
         return eval(state.meta[note]);
       }
-      for (const weapon of weapons) {
-        if (!weapon) continue;
-        if (!weapon.meta) continue;
-        if (weapon.meta[note] === undefined) continue;
-        return eval(weapon.meta[note]);
+      if (Imported.VisuMZ_1_BattleCore) {
+        const weapon = this.equips()[this._activeWeaponSlot || 0];
+        if (DataManager.isWeapon(weapon)) {
+          if (!!weapon.meta) {
+            if (weapon.meta[note] === undefined) {
+              return eval(weapon.meta[note]);
+            }
+          }
+        }
+      } else if (weapons.length > 0) {
+        const weaponSum = weapons.reduce(function(r, weapon) {
+          if (!weapon) return r;
+          if (!weapon.meta) return r;
+          if (weapon.meta[note] === undefined) return r;
+          return r + eval(weapon.meta[note]);
+        }, 0);
+        return (weaponSum / weapons.length);
       }
       if (!!curClass) {
         if (!!curClass.meta) {
@@ -508,7 +522,9 @@ Object.defineProperties(Game_Enemy.prototype, {
       const user = this;
       const battler = this.object();
       const curClass = this.currentClass();
+      const equips = this.equips();
       const weapons = this.weapons();
+      const armors = this.armors();
       const states = this.states();
       for (const state of states) {
         if (!state) continue;
@@ -516,11 +532,13 @@ Object.defineProperties(Game_Enemy.prototype, {
         if (state.meta[note] === undefined) continue;
         return eval(state.meta[note]);
       }
-      for (const weapon of weapons) {
-        if (!weapon) continue;
-        if (!weapon.meta) continue;
-        if (weapon.meta[note] === undefined) continue;
-        return eval(weapon.meta[note]);
+      const weapon = this.equips()[this._activeWeaponSlot || 0];
+      if (DataManager.isWeapon(weapon)) {
+        if (!!weapon.meta) {
+          if (weapon.meta[note] === undefined) {
+            return eval(weapon.meta[note]);
+          }
+        }
       }
       if (!!curClass) {
         if (!!curClass.meta) {
@@ -992,23 +1010,32 @@ UNH_CustParams.weaponSkill = function(user, wtypeId) {
   return 0;
 };
 
-Game_BattlerBase.prototype.wMag = function(handDex) {
-  if (this.hasNoWeapons()) return false;
-  if (!handDex) handDex = 0;
-  if (typeof handDex !== 'number') handDex = 0;
-  if (isNaN(handDex)) handDex = 0;
-  if (handDex < 0) handDex = 0;
-  const weapons = this.weapons();
-  if (handDex > weapons.length) handDex = weapons.length - 1;
-  const user = this;
+Game_Action.prototype.wMag = function(target, handDex) {
+  const action = this;
+  const item = this.item();
   const note = 'Magic Weapon';
-  const states = this.states();
-  const isDoublehand = this.unhIsDoublehand();
+  const user = this.subject();
+  const weapons = user.weapons();
+  const states = user.states();
+  const isDoublehand = user.unhIsDoublehand();
   const isDisarmed = states.some(function(state) {
     if (!state) return false;
     if (!state.meta) return false;
     return !!state.meta['Disarm State'];
   });
+  if (!!item) {
+    if (!!item.meta) {
+      if (item.meta[note] !== undefined) {
+        if (!!eval(item.meta[note])) return true;
+      }
+    }
+  }
+  if (this.hasNoWeapons()) return false;
+  if (!handDex) handDex = 0;
+  if (typeof handDex !== 'number') handDex = 0;
+  if (isNaN(handDex)) handDex = 0;
+  if (handDex < 0) handDex = 0;
+  if (handDex > weapons.length) handDex = weapons.length - 1;
   if (!isDisarmed) {
     const weapon = weapons[handDex];
     if (!!weapon) {
@@ -1028,14 +1055,21 @@ Game_BattlerBase.prototype.wMag = function(handDex) {
 };
 
 Game_Action.prototype.wPow = function(target, handDex) {
+  const note = 'Weapon Power';
   const action = this;
   const item = this.item();
-  const user = this.subject;
-  const note = 'Weapon Power';
+  const user = this.subject();
   const battler = user.object();
   const curClass = user.currentClass();
   const weapons = user.weapons();
   const states = user.states();
+  if (!!item) {
+    if (!!item.meta) {
+      if (item.meta[note] !== undefined) {
+        if (!!eval(item.meta[note])) return true;
+      }
+    }
+  }
   if (user.hasNoWeapons()) {
     for (const state of states) {
       if (!state) continue;
@@ -1113,6 +1147,13 @@ Game_Action.prototype.wPow = function(target, handDex) {
 Game_BattlerBase.prototype.lgtArmCheck = function() {
   const user = this;
   const note = 'Light Armor';
+  const stateArmor = this.states().some(function(state) {
+    if (!state) return false;
+    if (!state.meta) return false;
+    if (!state.meta[note]) return false;
+    return !!eval(state.meta[note]);
+  });
+  if (stateArmor) return true;
   return this.armors().some(function(armor) {
     if (!armor) return false;
     if (!armor.meta) return false;
@@ -1124,6 +1165,13 @@ Game_BattlerBase.prototype.lgtArmCheck = function() {
 Game_BattlerBase.prototype.medArmCheck = function() {
   const user = this;
   const note = 'Medium Armor';
+  const stateArmor = this.states().some(function(state) {
+    if (!state) return false;
+    if (!state.meta) return false;
+    if (!state.meta[note]) return false;
+    return !!eval(state.meta[note]);
+  });
+  if (stateArmor) return true;
   return this.armors().some(function(armor) {
     if (!armor) return false;
     if (!armor.meta) return false;
@@ -1135,6 +1183,13 @@ Game_BattlerBase.prototype.medArmCheck = function() {
 Game_BattlerBase.prototype.hvyArmCheck = function() {
   const user = this;
   const note = 'Heavy Armor';
+  const stateArmor = this.states().some(function(state) {
+    if (!state) return false;
+    if (!state.meta) return false;
+    if (!state.meta[note]) return false;
+    return !!eval(state.meta[note]);
+  });
+  if (stateArmor) return true;
   return this.armors().some(function(armor) {
     if (!armor) return false;
     if (!armor.meta) return false;
@@ -1335,16 +1390,10 @@ Game_Action.prototype.wpnPow = function(target) {
   return (this.wPow(Math.max(Math.min(target, weaponSlot, 1), 0)) * dblWpn);
 };
 
-Game_Actor.prototype.wpnMag = function() {
-  if (!Imported.VisuMZ_1_BattleCore) return (this.wMag(0) || this.wMag(1));
-  if (!!this._activeWeaponSlot) return this.wMag(1);
-  return this.wMag(0);
-};
-
-Game_Enemy.prototype.wpnMag = function() {
-  if (!Imported.VisuMZ_1_BattleCore) return (this.wMag(0) || this.wMag(1));
-  if (!!this._activeWeaponSlot) return this.wMag(1);
-  return this.wMag(0);
+Game_Action.prototype.wpnMag = function(target) {
+  if (!Imported.VisuMZ_1_BattleCore) return (this.wMag(target, 0) || this.wMag(target, 1));
+  if (!!this._activeWeaponSlot) return this.wMag(target, 1);
+  return this.wMag(target, 0);
 };
 
 Game_BattlerBase.prototype.wpnTr = function(index) {
@@ -1361,23 +1410,37 @@ Game_BattlerBase.prototype.wpnTr = function(index) {
 Game_BattlerBase.prototype.unhDblWpn = function(index) {
   const user = this;
   const note = 'Double Weapon';
+  const statesDouble = this.states().some(function(state) {
+    if (!state) return false;
+    if (!state.meta) return false;
+    if (!state.meta[note]) return false;
+    return !!eval(state.meta[note]);
+  });
+  if (statesDouble) return true;
   if (this.hasNoWeapons()) {
+    const statesNoFist = this.states().some(function(state) {
+      if (!state) return false;
+      if (!state.meta) return false;
+      if (!state.meta['No Fist']) return false;
+      return !!eval(state.meta['No Fist']);
+    });
+    if (statesNoFist) return true;
     const offhand = user.equips()[1];
     if (!DataManager.isArmor(offhand)) return true;
     const meta = offhand.meta;
     if (!meta) return true;
     return !meta['No Fist'];
   }
-  const totalDouble = this.weapons().some(function(weapon) {
+  const weaponsDouble = this.weapons().some(function(weapon) {
     if (!weapon) return false;
     if (!weapon.meta) return false;
     if (!weapon.meta[note]) return false;
     return !!eval(weapon.meta[note]);
   });
-  if (index === undefined) return totalDouble;
-  if (index === null) return totalDouble;
-  if (typeof index !== 'number') return totalDouble;
-  if (isNaN(index)) return totalDouble;
+  if (index === undefined) return weaponsDouble;
+  if (index === null) return weaponsDouble;
+  if (typeof index !== 'number') return weaponsDouble;
+  if (isNaN(index)) return weaponsDouble;
   const weapon = this.weapons()[index];
   if (!weapon) return false;
   if (!weapon.meta) return false;
@@ -1447,6 +1510,7 @@ Game_Action.prototype.physParry = function(target) {
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
   const note = 'Physical Parry';
+  const note2 = 'Physical Parry Plus';
   const battler = target.object();
   const curClass = target.currentClass();
   const states = target.states();
@@ -1459,6 +1523,12 @@ Game_Action.prototype.physParry = function(target) {
     if (weapon.meta[note] === undefined) continue;
     wpnPry.push(eval(weapon.meta[note]));
   }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (state.meta[note] === undefined) continue;
+    wpnPry.push(eval(state.meta[note]));
+  }
   if (wpnPry.length < 0) return false;
   let parry = 0;
   let parries = [];
@@ -1470,19 +1540,19 @@ Game_Action.prototype.physParry = function(target) {
     for (const state of states) {
       if (!state) continue;
       if (!state.meta) continue;
-      if (state.meta[note] === undefined) continue;
-      parry += eval(state.meta[note]);
+      if (state.meta[note2] === undefined) continue;
+      parry += eval(state.meta[note2]);
     }
     if (!!curClass) {
       if (!!curClass.meta) {
-        if (curClass.meta[note] !== undefined) {
-          parry += eval(curClass.meta[note]);
+        if (curClass.meta[note2] !== undefined) {
+          parry += eval(curClass.meta[note2]);
         }
       }
     }
     if (!!battler.meta) {
-      if (battler.meta[note] !== undefined) {
-        parry += eval(battler.meta[note]);
+      if (battler.meta[note2] !== undefined) {
+        parry += eval(battler.meta[note2]);
       }
     }
     if (isDoublehand) parry = parry * 1.5;
@@ -1502,6 +1572,7 @@ Game_Action.prototype.magParry = function(target) {
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
   const note = 'Magical Parry';
+  const note2 = 'Magical Parry Plus';
   const battler = target.object();
   const curClass = target.currentClass();
   const states = target.states();
@@ -1514,6 +1585,12 @@ Game_Action.prototype.magParry = function(target) {
     if (weapon.meta[note] === undefined) continue;
     wpnPry.push(eval(weapon.meta[note]));
   }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (state.meta[note] === undefined) continue;
+    wpnPry.push(eval(state.meta[note]));
+  }
   if (wpnPry.length < 0) return false;
   let parry = 0;
   let parries = [];
@@ -1525,19 +1602,19 @@ Game_Action.prototype.magParry = function(target) {
     for (const state of states) {
       if (!state) continue;
       if (!state.meta) continue;
-      if (state.meta[note] === undefined) continue;
-      parry += eval(state.meta[note]);
+      if (state.meta[note2] === undefined) continue;
+      parry += eval(state.meta[note2]);
     }
     if (!!curClass) {
       if (!!curClass.meta) {
-        if (curClass.meta[note] !== undefined) {
-          parry += eval(curClass.meta[note]);
+        if (curClass.meta[note2] !== undefined) {
+          parry += eval(curClass.meta[note2]);
         }
       }
     }
     if (!!battler.meta) {
-      if (battler.meta[note] !== undefined) {
-        parry += eval(battler.meta[note]);
+      if (battler.meta[note2] !== undefined) {
+        parry += eval(battler.meta[note2]);
       }
     }
     if (isDoublehand) parry = parry * 1.5;
@@ -1994,6 +2071,12 @@ Game_Battler.prototype.unhIsRanged = function(curWpn) {
       }
     }
   }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta[note]) continue;
+    if (!!eval(state.meta[note])) return true;
+  }
   if (user.hasNoWeapons()) return false;
   const weapons = user.weapons();
   if (!curWpn) curWpn = 0;
@@ -2033,6 +2116,12 @@ Game_Action.prototype.unhIsRanged = function(target, curWpn) {
         if (!!isRanged) return true;
       }
     }
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta[note]) continue;
+    if (!!eval(state.meta[note])) return true;
   }
   if (user.hasNoWeapons()) return false;
   const weapons = user.weapons();
@@ -2074,6 +2163,12 @@ Game_Action.prototype.unhIsReach = function(target, curWpn) {
       }
     }
   }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta[note]) continue;
+    if (!!eval(state.meta[note])) return true;
+  }
   if (user.hasNoWeapons()) return false;
   const weapons = user.weapons();
   if (!curWpn) curWpn = 0;
@@ -2113,6 +2208,12 @@ Game_Action.prototype.unhIsNoContact = function(target, curWpn) {
         if (!!isRanged) return true;
       }
     }
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta[note]) continue;
+    if (!!eval(state.meta[note])) return true;
   }
   if (user.hasNoWeapons()) return false;
   const weapons = user.weapons();
