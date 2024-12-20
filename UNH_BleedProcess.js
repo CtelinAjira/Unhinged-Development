@@ -106,39 +106,60 @@ Game_BattlerBase.prototype.addBleed = function(stateId, value) {
   user.setBleed(stateId, startBleed + value);
 };
 
-Game_Action.prototype.applyBleed = function(value) {
+Game_Action.prototype.applyBleed = function(value, affUser) {
   if (!value) return value;
   if (typeof value !== 'number') return value;
   if (isNaN(value)) return value;
   if (value <= 0) return value;
-  const isSkillIgnoreBleed = this.subject().traitObjects().some(function(obj) {
-    if (!obj) return false;
-    if (!obj.meta) return false;
-    return !!obj.meta['Ignore Bleed'];
-  });
-  const isUserIgnoreBleed = this.subject().traitObjects().some(function(obj) {
+  affUser = !!affUser;
+  const item = this.item();
+  const user = this.subject();
+  let isSkillIgnoreBleed;
+  if (!!item) {
+    if (!!item.meta) {
+      isSkillIgnoreBleed = !!item.meta['Ignore Bleed']
+    } else {
+      isSkillIgnoreBleed = false;
+    }
+  } else {
+    isSkillIgnoreBleed = false;
+  }
+  const isUserIgnoreBleed = user.traitObjects().some(function(obj) {
     if (!obj) return false;
     if (!obj.meta) return false;
     return !!obj.meta['Ignore Bleed as User'];
   });
-  const isTargetIgnoreBleed = this.subject().traitObjects().some(function(obj) {
+  const isTargetIgnoreBleed = target.traitObjects().some(function(obj) {
     if (!obj) return false;
     if (!obj.meta) return false;
     return !!obj.meta['Ignore Bleed as Target'];
   });
   if (isSkillIgnoreBleed || isUserIgnoreBleed || isTargetIgnoreBleed) return value;
-  const bleedStates = JsonEx(target.bleedStates());
+  let bleedStates;
+  if (affUser) {
+    bleedStates = JsonEx.makeDeepCopy(user.bleedStates());
+  } else {
+    bleedStates = JsonEx.makeDeepCopy(target.bleedStates());
+  }
   if (bleedStates.length <= 0) return value;
   let stateId, curBleed;
   value = Math.round(value);
   for (const state of bleedStates) {
     if (!state) continue;
     stateId = state.id;
-    curBleed = target.getBleed(stateId);
+    if (affUser) {
+      curBleed = user.getBleed(stateId);
+    } else {
+      curBleed = target.getBleed(stateId);
+    }
     if (curBleed <= 0) continue;
     const bleedLoss = Math.min(value, curBleed);
     value -= bleedLoss;
-    target.addBleed(stateId, -bleedLoss);
+    if (affUser) {
+      user.addBleed(stateId, -bleedLoss);
+    } else {
+      target.addBleed(stateId, -bleedLoss);
+    }
     if (value <= 0) {
       value = 0;
       break;

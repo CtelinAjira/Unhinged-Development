@@ -56,7 +56,7 @@ VisuMZ.StealItems.DetermineStealData = function (action, target) {
     'armor': 1
   };
   let stealChange = {
-    'all': stealPlusFunc(action, action.subject(), target),
+    'all': stealPlusEval,
     'gold': 0,
     'item': 0,
     'weapon': 0,

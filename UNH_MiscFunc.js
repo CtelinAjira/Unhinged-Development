@@ -28,6 +28,16 @@ Imported.UNH_MiscFunc = true;
  * if desired.
  *
  * ============================================================================
+ * New Notetags
+ * ============================================================================
+ *
+ * <UnhBaseLevel:X>
+ * - Use for Enemies
+ * - Gives enemies a level X (JS) for the purposes of summoning
+ *   - user: the enemy being given a level
+ * - Do not use if also using VisuMZ_3_EnemyLevels.js
+ *
+ * ============================================================================
  * New Functions
  * ============================================================================
  *
@@ -76,6 +86,7 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
 
   Game_Enemy.prototype.getLevel = function() {
     if (this._level === undefined) this._level = this.createLevel(99);
+    return this._level;
   };
 
   Game_Enemy.prototype.createLevel = function(max) {
@@ -84,7 +95,7 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
     if (!user) return defaultLevel;
     const meta = user.meta;
     if (!meta) return defaultLevel;
-    const level = meta.unhSummonerLevel;
+    const level = meta.UnhBaseLevel;
     if (!level) return defaultLevel;
     if (typeof level === 'number') {
       if (isNaN(level)) return defaultLevel;
@@ -92,6 +103,8 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
     }
     try {
       const dummy = eval(level);
+      if (dummy === undefined) return defaultLevel;
+      if (dummy === null) return defaultLevel;
       if (typeof dummy === 'object') return ((dummy.isActor()) ? (dummy.level) : (defaultLevel));
       if (isNaN(dummy)) return defaultLevel;
       return Math.min(Math.max(Number(dummy), 1), max);

@@ -96,7 +96,32 @@ Game_BattlerBase.prototype.maxFp = function() {
       if (!state.meta) continue;
       if (!!state.meta[prop]) return 0;
     }
-    const stat = user.paramBase(4);
+    let stat = user.paramBase(4);
+    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
+      const equips = user.equips();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['FP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['FP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    } else {
+      const equips = user.states();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['FP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['FP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    }
     if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 7;
     const skillLv = user.unhSkillLevel(skillId);
@@ -132,7 +157,32 @@ Game_BattlerBase.prototype.maxEp = function() {
       if (!state.meta) continue;
       if (!!state.meta[prop]) return 0;
     }
-    const stat = user.paramBase(5);
+    let stat = user.paramBase(5);
+    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
+      const equips = user.equips();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['EP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['EP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    } else {
+      const equips = user.states();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['EP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['EP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    }
     if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 8;
     const skillLv = user.unhSkillLevel(skillId);
@@ -168,7 +218,32 @@ Game_BattlerBase.prototype.maxPp = function() {
       if (!state.meta) continue;
       if (!!state.meta[prop]) return 0;
     }
-    const stat = user.paramBase(7);
+    let stat = user.paramBase(7);
+    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
+      const equips = user.equips();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['PP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['PP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    } else {
+      const equips = user.states();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['PP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['PP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    }
     if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 9;
     const skillLv = user.unhSkillLevel(skillId);
@@ -204,7 +279,32 @@ Game_BattlerBase.prototype.maxQp = function() {
       if (!state.meta) continue;
       if (!!state.meta[prop]) return 0;
     }
-    const stat = user.paramBase(6);
+    let stat = user.paramBase(6);
+    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
+      const equips = user.equips();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['QP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['QP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    } else {
+      const equips = user.states();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta['QP Plus']) continue;
+        try {
+          stat += parseInt(eval(equip.meta['QP Plus']));
+        } catch (e) {
+          continue;
+        }
+      }
+    }
     if (!Imported.UNH_SkillLevels) return stat * 2;
     const skillId = 10;
     const skillLv = user.unhSkillLevel(skillId);

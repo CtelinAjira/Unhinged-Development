@@ -31,8 +31,9 @@ Game_BattlerBase.prototype.param = function(paramId) {
 
 Game_BattlerBase.prototype.getNewParamID = function(paramId) {
   const objects = this.traitObjects();
-  for (var i = 0; i < objects.length; i++) {
-    var object = objects[i];
+  let object;
+  for (let i = 0; i < objects.length; i++) {
+    object = objects[i];
     let index1 = 0;
     let index2 = 0;
     if (!!object && object.note.match(/<Swap (\d+) with (\d+)>/i)) {

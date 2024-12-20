@@ -30,6 +30,11 @@ Game_Action.prototype.lukEffectRate = function(target) {
   if (UNH_AltLukEff.LukEffect === '') {
     return UNH_AltLukEff.Action_lukEffectRate.call(this);
   }
-  const lukEval = new Function('user', 'target', 'const lukDiff = user.luk - target.luk;\n' + UNH_AltLukEff.LukEffect + ';');
-  return Math.max(lukEval(this.subject(), target), 0);
+  if (!UNH_AltLukEff.LukEffect.includes('return ') {
+    return UNH_AltLukEff.Action_lukEffectRate.call(this);
+  }
+  const action = this;
+  const user = this.subject();
+  const lukEval = new Function('action', 'user', 'target', '' + UNH_AltLukEff.LukEffect);
+  return Math.max(lukEval(this, this.subject(), target), 0);
 };

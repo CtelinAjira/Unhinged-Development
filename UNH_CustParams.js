@@ -14,22 +14,90 @@ Imported.UNH_CustParams = true;
  * @base UNH_MiscFunc
  * @orderAfter UNH_MiscFunc
  *
+ * @param LevelScale
+ * @text Level Scaling Divisor
+ * @desc The number of levels needed to double HP & damage
+ * @type number
+ * @default 10
+ *
  * @help
  */
 //=============================================================================
 
 const UNH_CustParams = {};
 UNH_CustParams.pluginName = 'UNH_CustParams';
+UNH_CustParams.parameters = PluginManager.parameters(UNH_CustParams.pluginName);
+UNH_CustParams.LevelScale = Number(UNH_CustParams.parameters['LevelScale'] || 10);
 
 Object.defineProperties(Game_Actor.prototype, {
   lvScale: {
     get: function() {
-      const scaling = 4;
+      const scaling = UNH_CustParams.LevelScale - 1;
       return ((scaling + this.level) / (scaling + 1));
     }, configurable: true
   }, armCheck: {
     get: function() {
       return (this.lgtArmCheck() || this.medArmCheck() || this.hvyArmCheck());
+    }, configurable: true
+  }, floorDmg: {
+    get: function() {
+      const note1 = 'Floor Damage Plus';
+      const note2 = 'Floor Damage Rate';
+      const user = this;
+      const battler = this.enemy();
+      const curClass = ((Imported.UNH_VS_EnemyWeapons) ? (this.currentClass()) : (null));
+      const equips = ((Imported.UNH_VS_EnemyWeapons) ? (this.equips()) : ([]));
+      const states = this.states();
+      let buffer = 1;
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (state.meta[note1] === undefined) continue;
+        buffer += eval(state.meta[note1]);
+      }
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (equip.meta[note1] === undefined) continue;
+        buffer += eval(equip.meta[note1]);
+      }
+      if (!!curClass) {
+        if (!!curClass.meta) {
+          if (curClass.meta[note1] !== undefined) {
+            buffer += eval(curClass.meta[note1]);
+          }
+        }
+      }
+      if (!!battler.meta) {
+        if (battler.meta[note1] !== undefined) {
+          buffer += eval(battler.meta[note1]);
+        }
+      }
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (state.meta[note2] === undefined) continue;
+        buffer *= eval(state.meta[note2]);
+      }
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (equip.meta[note2] === undefined) continue;
+        buffer *= eval(equip.meta[note2]);
+      }
+      if (!!curClass) {
+        if (!!curClass.meta) {
+          if (curClass.meta[note2] !== undefined) {
+            buffer *= eval(curClass.meta[note2]);
+          }
+        }
+      }
+      if (!!battler.meta) {
+        if (battler.meta[note2] !== undefined) {
+          buffer *= eval(battler.meta[note2]);
+        }
+      }
+      return buffer;
     }, configurable: true
   }, kPar: {
     get: function() {
@@ -326,12 +394,19 @@ Object.defineProperties(Game_Actor.prototype, {
       const note = 'Speed Boost';
       const user = this;
       const states = this.states();
+      const equips = this.equips();
       let buffer = 0;
       for (const state of states) {
         if (!state) continue;
         if (!state.meta) continue;
         if (!state.meta[note]) continue;
         buffer += eval(state.meta[note]);
+      }
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta[note]) continue;
+        buffer += eval(equip.meta[note]);
       }
       return buffer;
     }, configurable: true
@@ -510,11 +585,72 @@ Object.defineProperties(Game_Actor.prototype, {
 Object.defineProperties(Game_Enemy.prototype, {
   lvScale: {
     get: function() {
-      return ((4 + this.level) / 5);
+      const scaling = UNH_CustParams.LevelScale - 1;
+      return ((scaling + this.level) / (scaling + 1));
     }, configurable: true
   }, armCheck: {
     get: function() {
       return (this.lgtArmCheck() || this.medArmCheck() || this.hvyArmCheck());
+    }, configurable: true
+  }, floorDmg: {
+    get: function() {
+      const note1 = 'Floor Damage Plus';
+      const note2 = 'Floor Damage Rate';
+      const user = this;
+      const battler = this.enemy();
+      const curClass = ((Imported.UNH_VS_EnemyWeapons) ? (this.currentClass()) : (null));
+      const equips = ((Imported.UNH_VS_EnemyWeapons) ? (this.equips()) : ([]));
+      const states = this.states();
+      let buffer = 1;
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (state.meta[note1] === undefined) continue;
+        buffer += eval(state.meta[note1]);
+      }
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (equip.meta[note1] === undefined) continue;
+        buffer += eval(equip.meta[note1]);
+      }
+      if (!!curClass) {
+        if (!!curClass.meta) {
+          if (curClass.meta[note1] !== undefined) {
+            buffer += eval(curClass.meta[note1]);
+          }
+        }
+      }
+      if (!!battler.meta) {
+        if (battler.meta[note1] !== undefined) {
+          buffer += eval(battler.meta[note1]);
+        }
+      }
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (state.meta[note2] === undefined) continue;
+        buffer *= eval(state.meta[note2]);
+      }
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (equip.meta[note2] === undefined) continue;
+        buffer *= eval(equip.meta[note2]);
+      }
+      if (!!curClass) {
+        if (!!curClass.meta) {
+          if (curClass.meta[note2] !== undefined) {
+            buffer *= eval(curClass.meta[note2]);
+          }
+        }
+      }
+      if (!!battler.meta) {
+        if (battler.meta[note2] !== undefined) {
+          buffer *= eval(battler.meta[note2]);
+        }
+      }
+      return buffer;
     }, configurable: true
   }, kPar: {
     get: function() {
@@ -801,12 +937,21 @@ Object.defineProperties(Game_Enemy.prototype, {
       const note = 'Speed Boost';
       const user = this;
       const states = this.states();
+      const equips = ((Imported.UNH_VS_EnemyWeapons) ? (this.equips()) : ([]));
       let buffer = 0;
       for (const state of states) {
         if (!state) continue;
         if (!state.meta) continue;
         if (!state.meta[note]) continue;
         buffer += eval(state.meta[note]);
+      }
+      if (Imported.UNH_VS_EnemyWeapons) {
+        for (const equip of equips) {
+          if (!equip) continue;
+          if (!equip.meta) continue;
+          if (!equip.meta[note]) continue;
+          buffer += eval(equip.meta[note]);
+        }
       }
       return buffer;
     }, configurable: true
@@ -1010,12 +1155,62 @@ UNH_CustParams.weaponSkill = function(user, wtypeId) {
   return 0;
 };
 
+Game_Action.prototype.tLv = function(target) {
+  const action = this;
+  const item = this.item();
+  const user = this.subject();
+  const note = 'UnhLevelPlus';
+  let actnLv = 0;
+  if (!!item) {
+    if (!!item.meta) {
+      if (!!item.meta[note]) {
+        actnLv = Number(eval(item.meta[note]));
+      }
+    }
+  }
+  const userLv = user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    return r + Number(eval(obj.meta[note]));
+  }, user.level);
+  const targLv = target.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    return r + Number(eval(obj.meta[note]));
+  }, target.level);
+  return (actnLv + userLv - targLv);
+};
+
+Game_Action.prototype.tLvScl = function(target) {
+  const action = this;
+  const item = this.item();
+  const user = this.subject();
+  const scaling = UNH_CustParams.LevelScale - 1;
+  return ((scaling + user.level + this.tLv(target)) / (scaling + 1));
+};
+
+Game_BattlerBase.prototype.bossScale = function() {
+  const action = this;
+  const item = this.item();
+  const user = this.subject();
+  const note = 'UnhLevelPlus';
+  const level = user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    return r + Number(eval(obj.meta[note]));
+  }, user.level);
+  const scaling = UNH_CustParams.LevelScale - 1;
+  return ((scaling + level) / (scaling + 1));
+};
+
 Game_Action.prototype.wMag = function(target, handDex) {
   const action = this;
   const item = this.item();
   const note = 'Magic Weapon';
   const user = this.subject();
+  const equips = user.equips();
   const weapons = user.weapons();
+  const armors = user.armors();
   const states = user.states();
   const isDoublehand = user.unhIsDoublehand();
   const isDisarmed = states.some(function(state) {
@@ -1035,10 +1230,10 @@ Game_Action.prototype.wMag = function(target, handDex) {
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
   if (handDex < 0) handDex = 0;
-  if (handDex > weapons.length) handDex = weapons.length - 1;
+  if (handDex > equips.length) handDex = equips.length - 1;
   if (!isDisarmed) {
-    const weapon = weapons[handDex];
-    if (!!weapon) {
+    const weapon = equips[handDex];
+    if (DataManager.isWeapon(weapon)) {
       if (!!weapon.meta) {
         if (weapon.meta[note] !== undefined) {
           if (!!eval(weapon.meta[note])) return true;
@@ -1061,7 +1256,9 @@ Game_Action.prototype.wPow = function(target, handDex) {
   const user = this.subject();
   const battler = user.object();
   const curClass = user.currentClass();
+  const equips = user.equips();
   const weapons = user.weapons();
+  const armors = user.armors();
   const states = user.states();
   if (!!item) {
     if (!!item.meta) {
@@ -1098,7 +1295,7 @@ Game_Action.prototype.wPow = function(target, handDex) {
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
   if (handDex < 0) handDex = 0;
-  if (handDex > weapons.length) handDex = weapons.length - 1;
+  if (handDex > equips.length) handDex = equips.length - 1;
   const isDoublehand = user.unhIsDoublehand();
   const isDisarmed = states.some(function(state) {
     if (!state) return false;
@@ -1106,8 +1303,8 @@ Game_Action.prototype.wPow = function(target, handDex) {
     return !!state.meta['Disarm State'];
   });
   if (!isDisarmed) {
-    const weapon = weapons[handDex];
-    if (!!weapon) {
+    const weapon = equips[handDex];
+    if (DataManager.isWeapon(weapon)) {
       if (!!weapon.meta) {
         if (weapon.meta[note] !== undefined) {
           const power = eval(weapon.meta[note]);
@@ -1196,6 +1393,82 @@ Game_BattlerBase.prototype.hvyArmCheck = function() {
     if (!armor.meta[note]) return false;
     return !!eval(armor.meta[note]);
   });
+};
+
+Game_BattlerBase.prototype.tpHpDmgMult = function() {
+  const user = this;
+  const note = 'Unh TP Damage by HP';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 1;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.note) continue;
+    if (!equip.meta[note]) continue;
+    tpGain *= eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.note) continue;
+    if (!state.meta[note]) continue;
+    tpGain *= eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain *= eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain *= eval(curClass.meta[note]);
+      }
+    }
+  }
+  return tpGain;
+};
+
+Game_BattlerBase.prototype.tpMpDmgMult = function() {
+  const user = this;
+  const note = 'Unh TP Damage by MP';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 1;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.note) continue;
+    if (!equip.meta[note]) continue;
+    tpGain *= eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.note) continue;
+    if (!state.meta[note]) continue;
+    tpGain *= eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain *= eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain *= eval(curClass.meta[note]);
+      }
+    }
+  }
+  return tpGain;
 };
 
 Game_BattlerBase.prototype.tpTakeDmgMult = function() {
@@ -1312,9 +1585,175 @@ Game_BattlerBase.prototype.tpGainRegen = function() {
   return Math.round(tpGain);
 };
 
+Game_BattlerBase.prototype.tpGainDeadMembers = function() {
+  const user = this;
+  const note = 'Unh TP Per Dead Ally';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 0;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.note) continue;
+    if (!equip.meta[note]) continue;
+    tpGain += eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.note) continue;
+    if (!state.meta[note]) continue;
+    tpGain += eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain += eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  if (this.isActor()) {
+    return Math.round(tpGain * $gameParty.deadMembers().length);
+  } else {
+    return Math.round(tpGain * $gameTroop.deadMembers().length);
+  }
+};
+
 Game_BattlerBase.prototype.tpGainEvade = function() {
   const user = this;
   const note = 'Unh TP Evasion';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 0;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.note) continue;
+    if (!equip.meta[note]) continue;
+    tpGain += eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.note) continue;
+    if (!state.meta[note]) continue;
+    tpGain += eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain += eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  return Math.round(tpGain);
+};
+
+Game_BattlerBase.prototype.tpGainSolo = function() {
+  const user = this;
+  const note = 'Unh TP Last Standing';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 0;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.note) continue;
+    if (!equip.meta[note]) continue;
+    tpGain += eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.note) continue;
+    if (!state.meta[note]) continue;
+    tpGain += eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain += eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  return Math.round(tpGain);
+};
+
+Game_Actor.prototype.tpGainSolo = function() {
+  if ($gameParty.deadMembers().length <= 0) return 0;
+  return Game_BattlerBase.prototype.tpGainSolo.call(this);
+};
+
+Game_Enemy.prototype.tpGainSolo = function() {
+  if ($gameTroop.deadMembers().length <= 0) return 0;
+  return Game_BattlerBase.prototype.tpGainSolo.call(this);
+};
+
+Game_BattlerBase.prototype.tpGainAllyDeath = function() {
+  const user = this;
+  const note = 'Unh TP Ally Death';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 0;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.note) continue;
+    if (!equip.meta[note]) continue;
+    tpGain += eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.note) continue;
+    if (!state.meta[note]) continue;
+    tpGain += eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain += eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  return Math.round(tpGain);
+};
+
+Game_BattlerBase.prototype.tpGainEnemyDeath = function() {
+  const user = this;
+  const note = 'Unh TP Enemy Death';
   const states = this.states();
   const equips = this.equips();
   const object = this.object();
@@ -1383,17 +1822,24 @@ Game_BattlerBase.prototype.unhIsSkyward = function() {
   });
 };
 
+Game_Action.prototype.isWeapon = function(target) {
+  return this.item().damage.formula.includes('this.wpnPow()');
+};
+
 Game_Action.prototype.wpnPow = function(target) {
-  const weaponSlot = this._activeWeaponSlot || 0;
-  const dblWpn = this.subject().unhDblWpn(weaponSlot) ? 0.5 : 1;
-  if (!Imported.VisuMZ_1_BattleCore) return ((this.wPow(target, 0) + this.wPow(target, 1)) * dblWpn);
+  const user = this.subject();
+  if (!Imported.VisuMZ_1_BattleCore) return ((this.wPow(target, 0) + this.wPow(target, 1)));
+  const weaponSlot = user._activeWeaponSlot || 0;
+  const dblWpn = user.unhDblWpn(weaponSlot) ? 0.5 : 1;
   return (this.wPow(Math.max(Math.min(target, weaponSlot, 1), 0)) * dblWpn);
 };
 
 Game_Action.prototype.wpnMag = function(target) {
+  if (!this.isWeapon(target)) return false;
+  const user = this.subject();
   if (!Imported.VisuMZ_1_BattleCore) return (this.wMag(target, 0) || this.wMag(target, 1));
-  if (!!this._activeWeaponSlot) return this.wMag(target, 1);
-  return this.wMag(target, 0);
+  const weaponSlot = user._activeWeaponSlot || 0;
+  return this.wMag(target, weaponSlot);
 };
 
 Game_BattlerBase.prototype.wpnTr = function(index) {
@@ -1451,7 +1897,7 @@ Game_BattlerBase.prototype.unhDblWpn = function(index) {
 Game_Action.prototype.physBlock = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1478,7 +1924,7 @@ Game_Action.prototype.physBlock = function(target) {
 Game_Action.prototype.magBlock = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
@@ -1505,7 +1951,7 @@ Game_Action.prototype.magBlock = function(target) {
 Game_Action.prototype.physParry = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1567,7 +2013,7 @@ Game_Action.prototype.physParry = function(target) {
 Game_Action.prototype.magParry = function(target) {
   if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
@@ -1635,7 +2081,7 @@ Game_Action.prototype.checkPhysBreak = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1687,7 +2133,7 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
@@ -1738,7 +2184,7 @@ Game_Action.prototype.checkPhysFeint = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && user.wpnMag()) return false;
   if (this.isMagical() && !user.wpnMag()) return false;
@@ -1789,7 +2235,7 @@ Game_Action.prototype.checkMagFeint = function(target, handDex) {
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
   const action = this;
-  if (!action.item().damage.formula.includes('this.wpnPow()')) return false;
+  if (!action.isWeapon(target)) return false;
   const user = this.subject();
   if (this.isPhysical() && !user.wpnMag()) return false;
   if (this.isMagical() && user.wpnMag()) return false;
@@ -1839,7 +2285,7 @@ Game_Action.prototype.physBreak = function(target) {
 };
 
 Game_Action.prototype.magBreak = function(target) {
-  if (!action.isPhysical()) return false;
+  if (!action.isMagical()) return false;
   if (!Imported.VisuMZ_1_BattleCore) return (this.checkMagBreak(target, 0) || this.checkMagBreak(target, 1));
   if (!!user._activeWeaponSlot) return this.checkMagBreak(target, 1);
   return this.checkMagBreak(target, 0);
@@ -1853,7 +2299,7 @@ Game_Action.prototype.physFeint = function(target) {
 };
 
 Game_Action.prototype.magFeint = function(target) {
-  if (!action.isPhysical()) return false;
+  if (!action.isMagical()) return false;
   if (!Imported.VisuMZ_1_BattleCore) return (this.checkMagFeint(target, 0) || this.checkMagFeint(target, 1));
   if (!!user._activeWeaponSlot) return this.checkMagFeint(target, 1);
   return this.checkMagFeint(target, 0);
@@ -1866,20 +2312,20 @@ Game_Action.prototype.blockExec = function(target) {
 };
 
 Game_Action.prototype.parryExec = function(target) {
-  if (!action.isPhysical()) return action.physParry(target);
-  if (!action.isMagical()) return action.magParry(target);
+  if (action.isPhysical()) return action.physParry(target);
+  if (action.isMagical()) return action.magParry(target);
   return false;
 };
 
 Game_Action.prototype.breakExec = function(target) {
-  if (!action.isPhysical()) return action.physBreak(target);
-  if (!action.isMagical()) return action.magBreak(target);
+  if (action.isPhysical()) return action.physBreak(target);
+  if (action.isMagical()) return action.magBreak(target);
   return false;
 };
 
 Game_Action.prototype.feintExec = function(target) {
-  if (!action.isPhysical()) return action.physFeint(target);
-  if (!action.isMagical()) return action.magFeint(target);
+  if (action.isPhysical()) return action.physFeint(target);
+  if (action.isMagical()) return action.magFeint(target);
   return false;
 };
 
@@ -1887,14 +2333,6 @@ Game_Action.prototype.advHit = function(target) {
   const action = this;
   const user = this.subject();
   const item = this.item();
-  const userBattler = user.object();
-  const userClass = user.currentClass();
-  const userStates = user.states();
-  const userEquips = user.equips();
-  const targetBattler = target.object();
-  const targetClass = target.currentClass();
-  const targetStates = target.states();
-  const targetEquips = target.equips();
   let advLvl = 0;
   if (!!item) {
     if (!!item.meta) {
@@ -1902,49 +2340,17 @@ Game_Action.prototype.advHit = function(target) {
       if (!!item.meta['Accuracy Disadvantage']) advLvl -= Number(eval(item.meta['Accuracy Disadvantage']));
     }
   }
-  for (const equip of userEquips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!!equip.meta['Accuracy Advantage']) advLvl += Number(eval(equip.meta['Accuracy Advantage']));
-    if (!!equip.meta['Accuracy Disadvantage']) advLvl -= Number(eval(equip.meta['Accuracy Disadvantage']));
+  for (const obj of user.traitObjects()) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!!obj.meta['Accuracy Advantage']) advLvl += Number(eval(obj.meta['Accuracy Advantage']));
+    if (!!obj.meta['Accuracy Disadvantage']) advLvl -= Number(eval(obj.meta['Accuracy Disadvantage']));
   }
-  for (const equip of targetEquips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!!equip.meta['Evasion Advantage']) advLvl -= Number(eval(equip.meta['Evasion Advantage']));
-    if (!!equip.meta['Evasion Disadvantage']) advLvl += Number(eval(equip.meta['Evasion Disadvantage']));
-  }
-  for (const state of userStates) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!!state.meta['Accuracy Advantage']) advLvl += Number(eval(state.meta['Accuracy Advantage']));
-    if (!!state.meta['Accuracy Disadvantage']) advLvl -= Number(eval(state.meta['Accuracy Disadvantage']));
-  }
-  for (const state of targetStates) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!!state.meta['Evasion Advantage']) advLvl -= Number(eval(state.meta['Evasion Advantage']));
-    if (!!state.meta['Evasion Disadvantage']) advLvl += Number(eval(state.meta['Evasion Disadvantage']));
-  }
-  if (!!userClass) {
-    if (!!userClass.meta) {
-      if (!!userClass.meta['Accuracy Advantage']) advLvl += Number(eval(userClass.meta['Accuracy Advantage']));
-      if (!!userClass.meta['Accuracy Disadvantage']) advLvl -= Number(eval(userClass.meta['Accuracy Disadvantage']));
-    }
-  }
-  if (!!targetClass) {
-    if (!!targetClass.meta) {
-      if (!!targetClass.meta['Evasion Advantage']) advLvl -= Number(eval(targetClass.meta['Evasion Advantage']));
-      if (!!targetClass.meta['Evasion Disadvantage']) advLvl += Number(eval(targetClass.meta['Evasion Disadvantage']));
-    }
-  }
-  if (!!userBattler.meta) {
-    if (!!userBattler.meta['Accuracy Advantage']) advLvl += Number(eval(userBattler.meta['Accuracy Advantage']));
-    if (!!userBattler.meta['Accuracy Disadvantage']) advLvl -= Number(eval(userBattler.meta['Accuracy Disadvantage']));
-  }
-  if (!!targetBattler.meta) {
-    if (!!targetBattler.meta['Evasion Advantage']) advLvl -= Number(eval(targetBattler.meta['Evasion Advantage']));
-    if (!!targetBattler.meta['Evasion Disadvantage']) advLvl += Number(eval(targetBattler.meta['Evasion Disadvantage']));
+  for (const obj of target.traitObjects()) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!!obj.meta['Evasion Advantage']) advLvl -= Number(eval(obj.meta['Evasion Advantage']));
+    if (!!obj.meta['Evasion Disadvantage']) advLvl += Number(eval(obj.meta['Evasion Disadvantage']));
   }
   return advLvl;
 };
@@ -1953,14 +2359,6 @@ Game_Action.prototype.advCrit = function(target) {
   const action = this;
   const user = this.subject();
   const item = this.item();
-  const userBattler = user.object();
-  const userClass = user.currentClass();
-  const userStates = user.states();
-  const userEquips = user.equips();
-  const targetBattler = target.object();
-  const targetClass = target.currentClass();
-  const targetStates = target.states();
-  const targetEquips = target.equips();
   let advLvl = 0;
   if (!!item) {
     if (!!item.meta) {
@@ -1968,49 +2366,17 @@ Game_Action.prototype.advCrit = function(target) {
       if (!!item.meta['Critrate Disadvantage']) advLvl -= Number(eval(item.meta['Critrate Disadvantage']));
     }
   }
-  for (const equip of userEquips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!!equip.meta['Critrate Advantage']) advLvl += Number(eval(equip.meta['Critrate Advantage']));
-    if (!!equip.meta['Critrate Disadvantage']) advLvl -= Number(eval(equip.meta['Critrate Disadvantage']));
+  for (const obj of user.traitObjects()) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!!obj.meta['Critrate Advantage']) advLvl += Number(eval(obj.meta['Critrate Advantage']));
+    if (!!obj.meta['Critrate Disadvantage']) advLvl -= Number(eval(obj.meta['Critrate Disadvantage']));
   }
-  for (const equip of targetEquips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!!equip.meta['Critavoid Advantage']) advLvl -= Number(eval(equip.meta['Critavoid Advantage']));
-    if (!!equip.meta['Critavoid Disadvantage']) advLvl += Number(eval(equip.meta['Critavoid Disadvantage']));
-  }
-  for (const state of userStates) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!!state.meta['Critrate Advantage']) advLvl += Number(eval(state.meta['Critrate Advantage']));
-    if (!!state.meta['Critrate Disadvantage']) advLvl -= Number(eval(state.meta['Critrate Disadvantage']));
-  }
-  for (const state of targetStates) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!!state.meta['Critavoid Advantage']) advLvl -= Number(eval(state.meta['Critavoid Advantage']));
-    if (!!state.meta['Critavoid Disadvantage']) advLvl += Number(eval(state.meta['Critavoid Disadvantage']));
-  }
-  if (!!userClass) {
-    if (!!userClass.meta) {
-      if (!!userClass.meta['Critrate Advantage']) advLvl += Number(eval(userClass.meta['Critrate Advantage']));
-      if (!!userClass.meta['Critrate Disadvantage']) advLvl -= Number(eval(userClass.meta['Critrate Disadvantage']));
-    }
-  }
-  if (!!targetClass) {
-    if (!!targetClass.meta) {
-      if (!!targetClass.meta['Critavoid Advantage']) advLvl -= Number(eval(targetClass.meta['Critavoid Advantage']));
-      if (!!targetClass.meta['Critavoid Disadvantage']) advLvl += Number(eval(targetClass.meta['Critavoid Disadvantage']));
-    }
-  }
-  if (!!userBattler.meta) {
-    if (!!userBattler.meta['Critrate Advantage']) advLvl += Number(eval(userBattler.meta['Critrate Advantage']));
-    if (!!userBattler.meta['Critrate Disadvantage']) advLvl -= Number(eval(userBattler.meta['Critrate Disadvantage']));
-  }
-  if (!!targetBattler.meta) {
-    if (!!targetBattler.meta['Critavoid Advantage']) advLvl -= Number(eval(targetBattler.meta['Critavoid Advantage']));
-    if (!!targetBattler.meta['Critavoid Disadvantage']) advLvl += Number(eval(targetBattler.meta['Critavoid Disadvantage']));
+  for (const obj of target.traitObjects()) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!!obj.meta['Critavoid Advantage']) advLvl -= Number(eval(obj.meta['Critavoid Advantage']));
+    if (!!obj.meta['Critavoid Disadvantage']) advLvl += Number(eval(obj.meta['Critavoid Disadvantage']));
   }
   return advLvl;
 };

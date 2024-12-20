@@ -4,6 +4,7 @@
 //=============================================================================
 
 var Imported = Imported || {};
+Imported.UNH_SummonLevels = true;
 
 //=============================================================================
  /*:
@@ -49,6 +50,7 @@ var Imported = Imported || {};
  * - Use for Enemies
  * - Gives enemies a level X (JS) for the purposes of summoning
  *   - user: the enemy being given a level
+ * - Do not use if also using UNH_MiscFunc.js
  * - Do not use if also using VisuMZ_3_EnemyLevels.js
  */
 //=============================================================================
@@ -74,6 +76,7 @@ Game_BattlerBase.prototype.summons = function() {
 
 Game_Actor.prototype.summons = function() {
   const summons = Game_BattlerBase.prototype.summons.call(this);
+  const user = this;
   for (const actor of $gameActors.data()) {
     if (!actor) continue;
     if (actor === this) continue;
@@ -82,7 +85,7 @@ Game_Actor.prototype.summons = function() {
     if (!actor.actor().meta.unhActorSummon) continue;
     if (isNaN(actor.actor().meta.unhActorSummon)) continue;
     const actorId = this.actorId();
-    const summonId = Number(actor.actor().meta.unhActorSummon);
+    const summonId = Number(eval(actor.actor().meta.unhActorSummon));
     if (actorId === summonId) {
       actor._isSummon = true;
       summons.push(actor);
@@ -95,6 +98,7 @@ Game_Actor.prototype.summons = function() {
 
 Game_Enemy.prototype.summons = function() {
   const summons = Game_BattlerBase.prototype.summons.call(this);
+  const user = this;
   for (const actor of $gameActors.data()) {
     if (!actor) continue;
     if (actor === this) continue;
@@ -103,7 +107,7 @@ Game_Enemy.prototype.summons = function() {
     if (!actor.actor().meta.unhEnemySummon) continue;
     if (isNaN(actor.actor().meta.unhEnemySummon)) continue;
     const enemyId = this.enemyId();
-    const summonId = Number(actor.actor().meta.unhActorSummon);
+    const summonId = Number(eval(actor.actor().meta.unhEnemySummon));
     if (enemyId === summonId) {
       actor._isSummon = true;
       summons.push(actor);
@@ -140,6 +144,7 @@ if (!Imported.VisuMZ_3_EnemyLevels && !Imported.UNH_MiscFunc) {
 
   Game_Enemy.prototype.getLevel = function() {
     if (this._level === undefined) this._level = this.createLevel(99);
+    return this._level;
   };
 
   Game_Enemy.prototype.createLevel = function(max) {

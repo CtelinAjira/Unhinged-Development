@@ -3,6 +3,9 @@
 // UNH_VS_EnemyWeapons.js
 //=============================================================================
 
+var Imported = Imported || {};
+Imported.UNH_VS_EnemyWeapons = true;
+
 //=============================================================================
  /*:
  * @target MZ
@@ -21,10 +24,10 @@
  * - Marks this state to act as a disarming check.
  *   - Being disarmed means your weapons are treated as null.
  *
- * <X:Y>
+ * <Slot X:Y>
  * - Marks this enemy as equipped with this item.
- *   - X is the database name for that equipment slot.
- *     - If enemy is dual-wielding, X is named as if they weren't.
+ *   - X is the slot ID for that equipment slot.
+ *     - Indexed at per Equipment Types in the System tab of your database
  *   - Y is the database ID for the armor/weapon being "given".
  *
  * ============================================================================
@@ -143,15 +146,16 @@ Game_Enemy.prototype.initEquips = function() {
   this._equips = [];
   let eqpEval;
   let slotName;
+  let eqpId;
   for (let h = 0; h < $gameSystem.equipTypes.length; h++) {
     this._equips.push(null);
   }
   for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
-    slotName = $gameSystem.equipTypes[i];
+    slotName = 'Slot ' + i;
     if (!this.enemy().meta) continue;
     if (!this.enemy().meta[slotName]) continue;
     try {
-      const eqpId = eval(this.enemy().meta[slotName]);
+      eqpId = Number(eval(this.enemy().meta[slotName]));
       if (i === 1) {
         this._equips[i - 1] = $dataWeapons[eqpId];
       } else if (i === 2 && this.isDualWield()) {
