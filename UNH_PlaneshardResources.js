@@ -79,6 +79,7 @@ Game_BattlerBase.prototype.maxFp = function() {
     const curClass = user.currentClass();
     const states = user.states();
     const prop = 'NullFp';
+    const prop2 = 'FP Plus';
     if (!!object.meta) {
       if (!!object.meta[prop]) {
         return 0;
@@ -97,14 +98,26 @@ Game_BattlerBase.prototype.maxFp = function() {
       if (!!state.meta[prop]) return 0;
     }
     let stat = user.paramBase(4);
+    if (!!object.meta) {
+      if (!!object.meta[prop2]) {
+        stat += parseInt(eval(equip.meta[prop2]));
+      }
+    }
+    if (!!curClass) {
+      if (!!curClass.meta) {
+        if (!!curClass.meta[prop2]) {
+          stat += parseInt(eval(equip.meta[prop2]));
+        }
+      }
+    }
     if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
       const equips = user.equips();
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['FP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['FP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
@@ -114,9 +127,9 @@ Game_BattlerBase.prototype.maxFp = function() {
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['FP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['FP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
@@ -140,6 +153,7 @@ Game_BattlerBase.prototype.maxEp = function() {
     const curClass = user.currentClass();
     const states = user.states();
     const prop = 'NullEp';
+    const prop2 = 'EP Plus';
     if (!!object.meta) {
       if (!!object.meta[prop]) {
         return 0;
@@ -158,14 +172,26 @@ Game_BattlerBase.prototype.maxEp = function() {
       if (!!state.meta[prop]) return 0;
     }
     let stat = user.paramBase(5);
+    if (!!object.meta) {
+      if (!!object.meta[prop2]) {
+        stat += parseInt(eval(equip.meta[prop2]));
+      }
+    }
+    if (!!curClass) {
+      if (!!curClass.meta) {
+        if (!!curClass.meta[prop2]) {
+          stat += parseInt(eval(equip.meta[prop2]));
+        }
+      }
+    }
     if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
       const equips = user.equips();
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['EP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['EP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
@@ -175,9 +201,9 @@ Game_BattlerBase.prototype.maxEp = function() {
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['EP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['EP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
@@ -201,6 +227,7 @@ Game_BattlerBase.prototype.maxPp = function() {
     const curClass = user.currentClass();
     const states = user.states();
     const prop = 'NullPp';
+    const prop2 = 'PP Plus';
     if (!!object.meta) {
       if (!!object.meta[prop]) {
         return 0;
@@ -219,14 +246,26 @@ Game_BattlerBase.prototype.maxPp = function() {
       if (!!state.meta[prop]) return 0;
     }
     let stat = user.paramBase(7);
+    if (!!object.meta) {
+      if (!!object.meta[prop2]) {
+        stat += parseInt(eval(equip.meta[prop2]));
+      }
+    }
+    if (!!curClass) {
+      if (!!curClass.meta) {
+        if (!!curClass.meta[prop2]) {
+          stat += parseInt(eval(equip.meta[prop2]));
+        }
+      }
+    }
     if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
       const equips = user.equips();
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['PP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['PP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
@@ -236,9 +275,9 @@ Game_BattlerBase.prototype.maxPp = function() {
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['PP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['PP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
@@ -262,6 +301,7 @@ Game_BattlerBase.prototype.maxQp = function() {
     const curClass = user.currentClass();
     const states = user.states();
     const prop = 'NullQp';
+    const prop2 = 'QP Plus';
     if (!!object.meta) {
       if (!!object.meta[prop]) {
         return 0;
@@ -280,14 +320,26 @@ Game_BattlerBase.prototype.maxQp = function() {
       if (!!state.meta[prop]) return 0;
     }
     let stat = user.paramBase(6);
+    if (!!object.meta) {
+      if (!!object.meta[prop2]) {
+        stat += parseInt(eval(equip.meta[prop2]));
+      }
+    }
+    if (!!curClass) {
+      if (!!curClass.meta) {
+        if (!!curClass.meta[prop2]) {
+          stat += parseInt(eval(equip.meta[prop2]));
+        }
+      }
+    }
     if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
       const equips = user.equips();
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['QP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['QP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
@@ -297,9 +349,9 @@ Game_BattlerBase.prototype.maxQp = function() {
       for (const equip of equips) {
         if (!equip) continue;
         if (!equip.meta) continue;
-        if (!equip.meta['QP Plus']) continue;
+        if (!equip.meta[prop2]) continue;
         try {
-          stat += parseInt(eval(equip.meta['QP Plus']));
+          stat += parseInt(eval(equip.meta[prop2]));
         } catch (e) {
           continue;
         }
