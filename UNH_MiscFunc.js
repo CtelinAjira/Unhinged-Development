@@ -121,6 +121,10 @@ Game_BattlerBase.prototype.unhGetEleRates = function() {
   });
 };
 
+Game_BattlerBase.prototype.object = function() {
+  return null;
+};
+
 Game_Actor.prototype.object = function() {
   //return $dataActors[this._actorId];
   return this.actor();

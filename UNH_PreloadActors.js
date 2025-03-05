@@ -6,7 +6,7 @@
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.03] [Unhinged] [PreloadActors]
+ * @plugindesc [RPG Maker MZ] [Version 1.04] [Unhinged] [PreloadActors]
  * @author Unhinged Developer
  *
  * @param PostInit
@@ -15,6 +15,41 @@
  * Variables: actor, actorId
  * @type note
  * @default ""
+ *
+ * @command Add_With_Scaling
+ * @text Add With Scaling
+ * @desc Sets target party member to the chosen level, then adds them to the party
+ * 
+ * @arg ActorId
+ * @text New Member
+ * @desc New member to be added
+ * @type actor
+ * @default 0
+ * 
+ * @arg ScaleType
+ * @text Scaling Type
+ * @desc How to calculate level scaling
+ * @type select
+ * @option Eval
+ * @value eval level
+ * @option Party Maximum
+ * @value max level
+ * @option Party Average
+ * @value avg level
+ * @option Party Minimum
+ * @value min level
+ * @option Leader's Level
+ * @value lead level
+ * @option No Scaling
+ * @value cur level
+ * @default eval level
+ * 
+ * @arg TgLevel
+ * @text Target Level
+ * @desc Code for Eval Scaling
+ * Variables: actor, actorId, party, alive, dead, leader
+ * @type note
+ * @default "return Math.min(Math.max(actor.expForLevel(leader.level), 1), actor.maxLevel());"
  *
  * @help
  * ============================================================================
@@ -57,6 +92,70 @@ const UNH_PreloadActors = {};
 UNH_PreloadActors.pluginName = 'UNH_PreloadActors';
 UNH_PreloadActors.parameters = PluginManager.parameters(UNH_PreloadActors.pluginName);
 UNH_PreloadActors.PostInit = String(UNH_PreloadActors.parameters['PostInit'] || "");
+
+PluginManager.registerCommand(UNH_PreloadActors.pluginName, "Add_With_Scaling", params => {
+  UNH_PreloadActors.addWithScaling(params);
+});
+
+UNH_PreloadActors.addWithScaling = function(params) {
+  if (isNaN(params.ActorId)) {
+    return;
+  }
+  if (params.ActorId < 1) {
+    return;
+  }
+  if (params.ActorId >= $dataActors.length) {
+    return;
+  }
+  const actorId = Number(params.ActorId);
+  let scaleType = String(params.ScaleType).toLowerCase();
+  if (scaleType === 'cur level') {
+  } else if (scaleType === 'max level') {
+    const tgLv = $gameParty.members().reduce(function(r, member) {
+      if (!member) return r;
+      return Math.max(r, member.level);
+    }, 0);
+    if (tgLv !== actor.level) {
+      actor.changeLevel(tgLv, false);
+    }
+  } else if (scaleType === 'avg level') {
+    const tgLv = $gameParty.members().reduce(function(r, member) {
+      if (!member) return r;
+      return Math.max(r, member.level);
+    }, 0);
+    if (tgLv !== actor.level) {
+      actor.changeLevel(Math.round(tgLv / Math.max($gameParty.size(), 1)), false);
+    }
+  } else if (scaleType === 'min level') {
+    const tgLv = $gameParty.members().reduce(function(r, member) {
+      if (!member) return r;
+      return Math.min(r, member.level);
+    }, Number.MAX_SAFE_INTEGER);
+    if (tgLv !== actor.level) {
+      actor.changeLevel(tgLv, false);
+    }
+  } else if (scaleType === 'lead level') {
+    const tgLv = $gameParty.leader().level;
+    if (tgLv !== actor.level) {
+      actor.changeLevel(tgLv, false);
+    }
+  } else {
+    if (!!params.TgLevel) {
+      const actor = $gameActors.actor(actorId);
+      const party = $gameParty.members();
+      const alive = $gameParty.aliveMembers();
+      const dead = $gameParty.deadMembers();
+      const leader = $gameParty.leader();
+      const tgLv = eval(params.TgLevel);
+      if (!isNaN(tgLv)) {
+        if (tgLv !== actor.level) {
+          actor.changeLevel(tgLv, false);
+        }
+      }
+    }
+  }
+  $gameParty.addActor(actorId);
+};
 
 UNH_PreloadActors.codeParse = function(code) {
   if (typeof code !== 'string') return [];
@@ -116,6 +215,7 @@ Game_Actors.prototype.resetData = function() {
 
 Game_Actors.prototype.data = function(actorId) {
   this.initActors(actorId);
+  if (actorId === undefined) actorId = 0;
   if (typeof actorId !== 'number') actorId = 0;
   if (isNaN(actorId)) actorId = 0;
   if (actorId <= 0) return this._data;

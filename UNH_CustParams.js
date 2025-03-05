@@ -29,6 +29,11 @@ UNH_CustParams.pluginName = 'UNH_CustParams';
 UNH_CustParams.parameters = PluginManager.parameters(UNH_CustParams.pluginName);
 UNH_CustParams.LevelScale = Number(UNH_CustParams.parameters['LevelScale'] || 10);
 
+UNH_CustParams.levelScaling = function(level) {
+  const scaling = UNH_CustParams.LevelScale - 1;
+  return ((scaling + level) / (scaling + 1));
+};
+
 Object.defineProperties(Game_Actor.prototype, {
   lvScale: {
     get: function() {
@@ -1164,19 +1169,25 @@ Game_Action.prototype.tLv = function(target) {
   if (!!item) {
     if (!!item.meta) {
       if (!!item.meta[note]) {
-        actnLv = Number(eval(item.meta[note]));
+        actnLv = Number(eval(obj.meta[note]));
+        if (isNaN(actnLv)) actnLv = 0;
       }
     }
   }
+  let retAdd;
   const userLv = user.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.meta) return r;
-    return r + Number(eval(obj.meta[note]));
+    retAdd = Number(eval(obj.meta[note]));
+    if (isNaN(retAdd)) return r;
+    return r + retAdd;
   }, user.level);
   const targLv = target.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.meta) return r;
-    return r + Number(eval(obj.meta[note]));
+    retAdd = Number(eval(obj.meta[note]));
+    if (isNaN(retAdd)) return r;
+    return r + retAdd;
   }, target.level);
   return (actnLv + userLv - targLv);
 };
@@ -1185,8 +1196,7 @@ Game_Action.prototype.tLvScl = function(target) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  const scaling = UNH_CustParams.LevelScale - 1;
-  return ((scaling + user.level + this.tLv(target)) / (scaling + 1));
+  return UNH_CustParams.levelScaling(user.level + this.tLv(target));
 };
 
 Game_BattlerBase.prototype.bossScale = function() {
@@ -1194,13 +1204,15 @@ Game_BattlerBase.prototype.bossScale = function() {
   const item = this.item();
   const user = this.subject();
   const note = 'UnhLevelPlus';
+  let retAdd;
   const level = user.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.meta) return r;
-    return r + Number(eval(obj.meta[note]));
+    retAdd = Number(eval(obj.meta[note]));
+    if (isNaN(retAdd)) return r;
+    return r + retAdd;
   }, user.level);
-  const scaling = UNH_CustParams.LevelScale - 1;
-  return ((scaling + level) / (scaling + 1));
+  return UNH_CustParams.levelScaling(level);
 };
 
 Game_Action.prototype.wMag = function(target, handDex) {
@@ -2407,7 +2419,7 @@ Game_Action.prototype.gobCount = function(target) {
   return gobCount;
 };
 
-Game_Action.prototype.gobCount = function(target) {
+Game_Action.prototype.gnomeAct = function(target) {
   if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
   const user = this.subject();
   const random = Math.randomInt(300);

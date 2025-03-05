@@ -30,6 +30,9 @@ Imported.UNH_VS_EnemyWeapons = true;
  *     - Indexed at per Equipment Types in the System tab of your database
  *   - Y is the database ID for the armor/weapon being "given".
  *
+ * <Dual Wield>
+ * - Marks this enemy as dual wielding.
+ *
  * ============================================================================
  * Adapted Functions
  * ============================================================================
@@ -121,19 +124,14 @@ Game_Enemy.prototype.setup = function(enemyId, x, y) {
 
 UNH_VS_EnemyWeapons.Actor_equips = Game_Actor.prototype.equips;
 Game_Actor.prototype.equips = function() {
-  const isDisarmed = this.states().some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    return !!state.meta['Disarm State'];
-  });
   let object;
-  if (isDisarmed) {
+  if (this.isDisarmed()) {
     return this._equips.map(function(item) {
       if (!item) {
         return null;
       }
       object = item.object();
-      if (isDisarmed && DataManager.isWeapon(object)) {
+      if (DataManager.isWeapon(object)) {
         return null;
       }
       return object;
@@ -141,6 +139,15 @@ Game_Actor.prototype.equips = function() {
   }
   return UNH_VS_EnemyWeapons.Actor_equips.call(this);
 };
+
+Game_Enemy.prototype.unhIsDualWield = function() {
+  const user = this;
+  const object = this.enemy();
+  if (!object) return false;
+  const meta = object.meta;
+  if (!meta) return false;
+  return !!eval(meta['Dual Wield']);
+}
 
 Game_Enemy.prototype.initEquips = function() {
   this._equips = [];
@@ -158,7 +165,7 @@ Game_Enemy.prototype.initEquips = function() {
       eqpId = Number(eval(this.enemy().meta[slotName]));
       if (i === 1) {
         this._equips[i - 1] = $dataWeapons[eqpId];
-      } else if (i === 2 && this.isDualWield()) {
+      } else if (i === 2 && this.unhIsDualWield()) {
         this._equips[i - 1] = $dataWeapons[eqpId];
       } else {
         this._equips[i - 1] = $dataArmors[eqpId];
@@ -174,25 +181,32 @@ Game_Enemy.prototype.equipSlots = function() {
     for (let i = 1; i < $dataSystem.equipTypes.length; i++) {
         slots.push(i);
     }
-    if (slots.length >= 2 && this.isDualWield()) {
+    if (slots.length >= 2 && this.unhIsDualWield()) {
         slots[1] = 1;
     }
     return slots;
+};
+
+Game_BattlerBase.prototype.isDisarmed = function() {
+  return this.states().some(function(state) {
+    if (!state) return false;
+    if (!state.meta) return false;
+    return !!state.meta['Disarm State'];
+  });
 };
 
 Game_Enemy.prototype.equips = function() {
   if (!this._equips) this.initEquips();
   if (!Array.isArray(this._equips)) this.initEquips();
   if (this._equips.length <= 0) this.initEquips();
-  const equips = this._equips;
-  for (const state of this.states()) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta['Disarm State']) continue;
+  const equips = [];
+  for (let i = 0; i < this._equips.length) {
+    equips.push(this._equips[i]);
+  }
+  if (this.isDisarmed()) {
 	for (let i = 0; i < equips.length; i++) {
       if (DataManager.isWeapon(equips[i])) equips[i] = null;
     }
-    break;
   }
   if (this._tempEquipCheck) {
     return equips;

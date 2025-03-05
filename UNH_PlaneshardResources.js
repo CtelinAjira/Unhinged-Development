@@ -75,72 +75,27 @@ Object.defineProperties(Game_BattlerBase.prototype, {
 Game_BattlerBase.prototype.maxFp = function() {
   try {
     const user = this;
-    const object = user.object();
-    const curClass = user.currentClass();
-    const states = user.states();
+    const objects = user.traitObjects();
     const prop = 'NullFp';
     const prop2 = 'FP Plus';
-    if (!!object.meta) {
-      if (!!object.meta[prop]) {
-        return 0;
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop]) {
-          return 0;
-        }
-      }
-    }
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (!!state.meta[prop]) return 0;
-    }
-    let stat = user.paramBase(4);
-    if (!!object.meta) {
-      if (!!object.meta[prop2]) {
-        stat += parseInt(eval(equip.meta[prop2]));
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop2]) {
-          stat += parseInt(eval(equip.meta[prop2]));
-        }
-      }
-    }
-    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
-      const equips = user.equips();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    } else {
-      const equips = user.states();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    }
-    if (!Imported.UNH_SkillLevels) return stat * 2;
+    const isNull = objects.some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      return !!obj.meta[prop];
+    });
+    const plus = objects.reduce(function(r, obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta[prop2]) return false;
+      return r + Number(eval(equip.meta[prop2]));
+    }, 0);
+    const stat = 2 * (isNull ? 0 : user.paramBase(4));
+    if (!Imported.UNH_SkillLevels) return (stat + plus);
     const skillId = 7;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round(stat * 2 * skillRate);
+    return Math.round((stat * skillRate) + plus);
   } catch (e) {
     return 0;
   }
@@ -149,72 +104,27 @@ Game_BattlerBase.prototype.maxFp = function() {
 Game_BattlerBase.prototype.maxEp = function() {
   try {
     const user = this;
-    const object = user.object();
-    const curClass = user.currentClass();
-    const states = user.states();
+    const objects = user.traitObjects();
     const prop = 'NullEp';
     const prop2 = 'EP Plus';
-    if (!!object.meta) {
-      if (!!object.meta[prop]) {
-        return 0;
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop]) {
-          return 0;
-        }
-      }
-    }
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (!!state.meta[prop]) return 0;
-    }
-    let stat = user.paramBase(5);
-    if (!!object.meta) {
-      if (!!object.meta[prop2]) {
-        stat += parseInt(eval(equip.meta[prop2]));
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop2]) {
-          stat += parseInt(eval(equip.meta[prop2]));
-        }
-      }
-    }
-    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
-      const equips = user.equips();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    } else {
-      const equips = user.states();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    }
-    if (!Imported.UNH_SkillLevels) return stat * 2;
+    const isNull = objects.some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      return !!obj.meta[prop];
+    });
+    const plus = objects.reduce(function(r, obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta[prop2]) return false;
+      return r + Number(eval(equip.meta[prop2]));
+    }, 0);
+    const stat = 2 * (isNull ? 0 : user.paramBase(5));
+    if (!Imported.UNH_SkillLevels) return (stat + plus);
     const skillId = 8;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round(stat * 2 * skillRate);
+    return Math.round((stat * skillRate) + plus);
   } catch (e) {
     return 0;
   }
@@ -223,72 +133,27 @@ Game_BattlerBase.prototype.maxEp = function() {
 Game_BattlerBase.prototype.maxPp = function() {
   try {
     const user = this;
-    const object = user.object();
-    const curClass = user.currentClass();
-    const states = user.states();
+    const objects = user.traitObjects();
     const prop = 'NullPp';
     const prop2 = 'PP Plus';
-    if (!!object.meta) {
-      if (!!object.meta[prop]) {
-        return 0;
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop]) {
-          return 0;
-        }
-      }
-    }
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (!!state.meta[prop]) return 0;
-    }
-    let stat = user.paramBase(7);
-    if (!!object.meta) {
-      if (!!object.meta[prop2]) {
-        stat += parseInt(eval(equip.meta[prop2]));
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop2]) {
-          stat += parseInt(eval(equip.meta[prop2]));
-        }
-      }
-    }
-    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
-      const equips = user.equips();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    } else {
-      const equips = user.states();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    }
-    if (!Imported.UNH_SkillLevels) return stat * 2;
+    const isNull = objects.some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      return !!obj.meta[prop];
+    });
+    const plus = objects.reduce(function(r, obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta[prop2]) return false;
+      return r + Number(eval(equip.meta[prop2]));
+    }, 0);
+    const stat = 2 * (isNull ? 0 : user.paramBase(7));
+    if (!Imported.UNH_SkillLevels) return (stat + plus);
     const skillId = 9;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round(stat * 2 * skillRate);
+    return Math.round((stat * skillRate) + plus);
   } catch (e) {
     return 0;
   }
@@ -297,72 +162,27 @@ Game_BattlerBase.prototype.maxPp = function() {
 Game_BattlerBase.prototype.maxQp = function() {
   try {
     const user = this;
-    const object = user.object();
-    const curClass = user.currentClass();
-    const states = user.states();
+    const objects = user.traitObjects();
     const prop = 'NullQp';
     const prop2 = 'QP Plus';
-    if (!!object.meta) {
-      if (!!object.meta[prop]) {
-        return 0;
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop]) {
-          return 0;
-        }
-      }
-    }
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (!!state.meta[prop]) return 0;
-    }
-    let stat = user.paramBase(6);
-    if (!!object.meta) {
-      if (!!object.meta[prop2]) {
-        stat += parseInt(eval(equip.meta[prop2]));
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[prop2]) {
-          stat += parseInt(eval(equip.meta[prop2]));
-        }
-      }
-    }
-    if (!!Imported.UNH_VS_EnemyWeapons || user.isActor()) {
-      const equips = user.equips();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    } else {
-      const equips = user.states();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[prop2]) continue;
-        try {
-          stat += parseInt(eval(equip.meta[prop2]));
-        } catch (e) {
-          continue;
-        }
-      }
-    }
-    if (!Imported.UNH_SkillLevels) return stat * 2;
+    const isNull = objects.some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      return !!obj.meta[prop];
+    });
+    const plus = objects.reduce(function(r, obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta[prop2]) return false;
+      return r + Number(eval(equip.meta[prop2]));
+    }, 0);
+    const stat = 2 * (isNull ? 0 : user.paramBase(6));
+    if (!Imported.UNH_SkillLevels) return (stat + plus);
     const skillId = 10;
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round(stat * 2 * skillRate);
+    return Math.round((stat * skillRate) + plus);
   } catch (e) {
     return 0;
   }

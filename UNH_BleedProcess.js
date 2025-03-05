@@ -85,9 +85,14 @@ Game_BattlerBase.prototype.setBleed = function(stateId, value) {
       if (Imported.VisuMZ_1_SkillsStatesCore) this.clearStateDisplay(stateId);
       this.removeState(stateId);
     }
+  } else if (value <= 0) {
+    this._bleedStacks[stateId] = undefined;
+    if (this.isStateAffected(stateId)) {
+      if (Imported.VisuMZ_1_SkillsStatesCore) this.clearStateDisplay(stateId);
+      this.removeState(stateId);
+    }
   } else {
     if (this.isStateResist(stateId)) return;
-    if (Math.random() >= this.stateRate(stateId)) return;
     if (!this.isStateAffected(stateId)) this.addState(stateId);
     const roundVal = Math.round(value);
     this._bleedStacks[stateId] = roundVal;
@@ -95,15 +100,24 @@ Game_BattlerBase.prototype.setBleed = function(stateId, value) {
   }
 };
 
-Game_BattlerBase.prototype.addBleed = function(stateId, value) {
+Game_BattlerBase.prototype.addBleed = function(stateId, value, ignoreRate) {
   if (!stateId) stateId = 0;
   if (typeof stateId !== 'number') stateId = 0;
   if (isNaN(stateId)) stateId = 0;
   if (!value) return;
   if (typeof value !== 'number') return;
   if (isNaN(value)) return;
+  const stateRate = this.stateRate(stateId);
+  if (stateRate <= 0) return;
+  let bleedToAdd = value;
+  if (this.isStateResist(stateId)) {
+    bleedToAdd = 0;
+  } else {
+    bleedToAdd *= stateRate;
+  }
+  bleedToAdd = Math.round(bleedToAdd);
   const startBleed = user.getBleed(stateId);
-  user.setBleed(stateId, startBleed + value);
+  user.setBleed(stateId, startBleed + bleedToAdd);
 };
 
 Game_Action.prototype.applyBleed = function(value, affUser) {

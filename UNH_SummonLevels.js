@@ -66,8 +66,7 @@ Game_BattlerBase.prototype.summons = function() {
     if (actor === this) return false;
     if (!actor.actor()) return false;
     if (!actor.actor().meta) return false;
-    if (!!actor.actor().meta.unhSummon) {
-      actor._isSummon = true;
+    if (!!eval(actor.actor().meta.unhSummon)) {
       return true;
     }
     return false;
@@ -81,16 +80,18 @@ Game_Actor.prototype.summons = function() {
     if (!actor) continue;
     if (actor === this) continue;
     if (!actor.actor()) continue;
+    if (summons.includes(actor)) continue;
     if (!actor.actor().meta) continue;
     if (!actor.actor().meta.unhActorSummon) continue;
+    if (typeof actor.actor().meta.unhActorSummon === 'boolean') {
+      summons.push(actor);
+      continue;
+    }
     if (isNaN(actor.actor().meta.unhActorSummon)) continue;
     const actorId = this.actorId();
     const summonId = Number(eval(actor.actor().meta.unhActorSummon));
     if (actorId === summonId) {
-      actor._isSummon = true;
       summons.push(actor);
-    } else if (!summons.includes(actor)) {
-      actor._isSummon = undefined;
     }
   }
   return summons;
@@ -103,16 +104,18 @@ Game_Enemy.prototype.summons = function() {
     if (!actor) continue;
     if (actor === this) continue;
     if (!actor.actor()) continue;
+    if (summons.includes(actor)) continue;
     if (!actor.actor().meta) continue;
     if (!actor.actor().meta.unhEnemySummon) continue;
+    if (typeof actor.actor().meta.unhEnemySummon === 'boolean') {
+      summons.push(actor);
+      continue;
+    }
     if (isNaN(actor.actor().meta.unhEnemySummon)) continue;
     const enemyId = this.enemyId();
     const summonId = Number(eval(actor.actor().meta.unhEnemySummon));
     if (enemyId === summonId) {
-      actor._isSummon = true;
       summons.push(actor);
-    } else if (!summons.includes(actor)) {
-      actor._isSummon = undefined;
     }
   }
   return summons;
@@ -181,41 +184,3 @@ Game_Actor.prototype.unhLevel = function(max) {
 Game_Enemy.prototype.unhLevel = function(max) {
   return Math.min(Math.max(Number(this.level), 1), max);
 };
-
-/*UNH_SummonLevels.BattlerBase_recoverAll = Game_BattlerBase.prototype.recoverAll;
-Game_BattlerBase.prototype.recoverAll = function(healAllSummons) {
-  UNH_SummonLevels.BattlerBase_recoverAll.call(this);
-  if (!this._isSummon) this.recoverAllForSummons(healAllSummons);
-};
-
-Game_BattlerBase.prototype.recoverAllForSummons = function(healAllSummons) {
-  this.unhSummonCalcLevel();
-  if (!!healAllSummons) {
-    this.recoverAllForAllSummons();
-  } else {
-    this.recoverAllForPersonalSummons();
-  }
-};
-
-Game_BattlerBase.prototype.recoverAllForAllSummons = function() {
-  const summons = this.summons();
-  if (summons.length > 0) {
-    for (const actor of summons) {
-      actor.recoverAll();
-    }
-  }
-};
-
-Game_BattlerBase.prototype.recoverAllForPersonalSummons = function() {
-  const summons = this.summons().filter(function(summon) {
-    if (!summon) return false;
-    if (!summon.actor()) return false;
-    if (!summon.actor().meta) return false;
-    return !summon.actor().meta.unhSummon;
-  });
-  if (summons.length > 0) {
-    for (const actor of summons) {
-      actor.recoverAll();
-    }
-  }
-};*/
