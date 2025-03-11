@@ -12,9 +12,9 @@
  * @param CheckSub
  * @text BattleManager.checkSubstitute(target)
  * @desc Variables: action, user, target
- * Return Type: Boolean
- * @type note
- * @default "return target.isDying() && !action.isCertainHit();"
+ * Must Eval To: Boolean
+ * @type string
+ * @default target.isDying() && !action.isCertainHit()
  *
  * @help
  * ============================================================================
@@ -144,7 +144,7 @@ Game_Battler.prototype.coverChance = function(stateId) {
   if (isNaN(stateId)) return false;
   if (stateId <= 0 || stateId > $dataStates.length) return false;
   const state = $dataStates[stateId];
-  if (state.coverChance < 0) return true;
+  if (state.coverChance < 0) return false;
   const coverChance = Math.max(Math.min(state.coverChance, 100), 0);
   if (coverChance === 100) return true;
   if (coverChance === 0) return false;
@@ -172,51 +172,39 @@ Game_Battler.prototype.coverAtHpPercent = function(stateId, target) {
   if (isNaN(stateId)) return false;
   if (stateId <= 0 || stateId > $dataStates.length) return false;
   const state = $dataStates[stateId];
-  const coverDying = Math.max(Math.min(state.coverDying, 100), 0);
+  const isDying = state.coverDying;
+  if (isDying === undefined) return false;
+  if (typeof isDying !== 'number') return false;
+  if (isNaN(isDying)) return false;
+  const coverDying = Math.max(Math.min(isDying, 100), 0);
   if (coverDying === 0) return false;
   return target.hp <= (target.mhp * coverDying / 100);
 };
 
 UNH_CoverConditions.runChecks = function(action, target) {
   const party = target.friendsUnit().members();
+  let stateId;
   for (const member of party) {
-    const coverChecks = [];
-    let isCover;
-    let stateId;
+    if (member === target) continue;
+    member._unhCheckSub = undefined;
     for (const state of member.states()) {
       stateId = state.id;
-      isCover = member.coverChance(stateId);
-      if (!isCover) {
-        coverChecks.push(isCover);
+      if (!member.coverChance(stateId)) {
         continue;
       }
-      isCover = member.coverAtHpPercent(stateId, target);
-      if (!isCover) {
-        coverChecks.push(isCover);
+      if (!member.coverAtHpPercent(stateId, target)) {
         continue;
       }
-      const hitTypes = member.coverSkillType(stateId);
-      if (hitTypes.length > 0) isCover = hitTypes.includes(action.item().hitType);
-      if (!isCover) {
-        coverChecks.push(isCover);
+      if (member.coverSingleOnly(stateId) && !action.isForOne()) {
         continue;
       }
-      if (action.isForRandom()) {
-        isCover = member.coverRandomTarget(stateId);
-      }
-      if (!isCover) {
-        coverChecks.push(isCover);
+      if (action.isForRandom() && !member.coverRandomTarget(stateId)) {
         continue;
       }
-      if (user.coverSingleOnly(stateId)) {
-        isCover = action.isForOne();
-      }
-      coverChecks.push(isCover);
-    }
-    member._unhCheckSub = coverChecks.some(function(ele) {
-      return !!ele;
-    });
-    if (!!member._unhCheckSub) {
+      if (!member.coverSkillType(stateId).includes(action.item().hitType)) {
+        continue;
+	  }
+      member._unhCheckSub = true;
       return true;
     }
   }
@@ -228,19 +216,22 @@ BattleManager.checkSubstitute = function(target) {
   const action = this._action;
   const user = action.subject();
   if (user.isActor() === target.isActor()) return false;
-  if (UNH_CoverConditions.runChecks(target)) return true;
+  if (UNH_CoverConditions.runChecks(action, target)) return true;
+  const baseCover = UNH_CoverConditions.checkSubstitute.call(this, target);
+  if (!UNH_CoverConditions.CheckSub) return baseCover;
   try {
-    const origFunc = new Function('action', 'user', 'target', (!!UNH_CoverConditions.CheckSub) ? UNH_CoverConditions.CheckSub : 'return target.isDying() && !action.isCertainHit();')
-    return origFunc(action, user, target);
+    const checkSub = eval(UNH_CoverConditions.CheckSub);
+    return checkSub;
   } catch (e) {
-    return UNH_CoverConditions.checkSubstitute.call(this, target);
+    return baseCover;
   }
 };
 
 UNH_CoverConditions.Unit_substituteBattler = Game_Unit.prototype.substituteBattler;
 Game_Unit.prototype.substituteBattler = function(target) {
   for (const member of this.members()) {
-    if ((!!member._unhCheckSub) && (member !== target)) {
+    if (member === target) continue;
+    if (!!member._unhCheckSub) {
       member._unhCheckSub = undefined;
       return member;
     }

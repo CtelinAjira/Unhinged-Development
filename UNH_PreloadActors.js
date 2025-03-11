@@ -22,7 +22,7 @@
  * 
  * @arg ActorId
  * @text New Member
- * @desc New member to be added
+ * @desc New actor to be added to the party
  * @type actor
  * @default 0
  * 
@@ -46,10 +46,46 @@
  * 
  * @arg TgLevel
  * @text Target Level
- * @desc Code for Eval Scaling
- * Variables: actor, actorId, party, alive, dead, leader
+ * @desc Variables: actor, maxLv, party, alive, dead, leader, tgLv
+ * Returns: tgLv
  * @type note
- * @default "return Math.min(Math.max(actor.expForLevel(leader.level), 1), actor.maxLevel());"
+ * @default "tgLv = actor.expForLevel(leader.level);\ntgLv = Math.max(tgLv, 1);\ntgLv = Math.min(tgLv, maxLv);"
+ *
+ * @command Add_With_Scaling_Eval
+ * @text Add With Scaling (JS Eval)
+ * @desc Sets target party member to the chosen level, then adds them to the party
+ * 
+ * @arg ActorId
+ * @text Actor ID (JS Eval)
+ * @desc Actor ID for member to be added
+ * See Actors tab in Database for valid values
+ * @type string
+ * @default 0
+ * 
+ * @arg ScaleType
+ * @text Scaling Type
+ * @desc How to calculate level scaling
+ * @type select
+ * @option Eval
+ * @value eval level
+ * @option Party Maximum
+ * @value max level
+ * @option Party Average
+ * @value avg level
+ * @option Party Minimum
+ * @value min level
+ * @option Leader's Level
+ * @value lead level
+ * @option No Scaling
+ * @value cur level
+ * @default eval level
+ * 
+ * @arg TgLevel
+ * @text Target Level
+ * @desc Variables: actor, maxLv, party, alive, dead, leader, tgLv
+ * Returns: tgLv
+ * @type note
+ * @default "tgLv = actor.expForLevel(leader.level);\ntgLv = Math.max(tgLv, 1);\ntgLv = Math.min(tgLv, maxLv);"
  *
  * @help
  * ============================================================================
@@ -94,10 +130,24 @@ UNH_PreloadActors.parameters = PluginManager.parameters(UNH_PreloadActors.plugin
 UNH_PreloadActors.PostInit = String(UNH_PreloadActors.parameters['PostInit'] || "");
 
 PluginManager.registerCommand(UNH_PreloadActors.pluginName, "Add_With_Scaling", params => {
+  if (!params.ActorId) {
+    return;
+  }
+  UNH_PreloadActors.addWithScaling(params);
+});
+
+PluginManager.registerCommand(UNH_PreloadActors.pluginName, "Add_With_Scaling_Eval", params => {
+  if (!params.ActorId) {
+    return;
+  }
+  params.ActorId = eval(params.ActorId);
   UNH_PreloadActors.addWithScaling(params);
 });
 
 UNH_PreloadActors.addWithScaling = function(params) {
+  if (typeof params.ActorId !== 'number') {
+    return;
+  }
   if (isNaN(params.ActorId)) {
     return;
   }
@@ -107,7 +157,7 @@ UNH_PreloadActors.addWithScaling = function(params) {
   if (params.ActorId >= $dataActors.length) {
     return;
   }
-  const actorId = Number(params.ActorId);
+  const actorId = params.ActorId;
   let scaleType = String(params.ScaleType).toLowerCase();
   if (scaleType === 'cur level') {
   } else if (scaleType === 'max level') {
@@ -130,7 +180,7 @@ UNH_PreloadActors.addWithScaling = function(params) {
     const tgLv = $gameParty.members().reduce(function(r, member) {
       if (!member) return r;
       return Math.min(r, member.level);
-    }, Number.MAX_SAFE_INTEGER);
+    }, actor.maxLevel());
     if (tgLv !== actor.level) {
       actor.changeLevel(tgLv, false);
     }
@@ -141,16 +191,24 @@ UNH_PreloadActors.addWithScaling = function(params) {
     }
   } else {
     if (!!params.TgLevel) {
-      const actor = $gameActors.actor(actorId);
-      const party = $gameParty.members();
-      const alive = $gameParty.aliveMembers();
-      const dead = $gameParty.deadMembers();
-      const leader = $gameParty.leader();
-      const tgLv = eval(params.TgLevel);
-      if (!isNaN(tgLv)) {
-        if (tgLv !== actor.level) {
-          actor.changeLevel(tgLv, false);
+      try {
+        const actor = $gameActors.actor(actorId);
+        const maxLv = actor.maxLevel();
+        const party = $gameParty.members();
+        const alive = $gameParty.aliveMembers();
+        const dead = $gameParty.deadMembers();
+        const leader = $gameParty.leader();
+        let tgLv = 0;
+        eval(params.TgLevel);
+        if (!isNaN(tgLv)) {
+          if (tgLv > 0 && tgLv < maxLv) {
+            if (tgLv !== actor.level) {
+              actor.changeLevel(tgLv, false);
+            }
+          }
         }
+      } catch (e) {
+        console.log(e);
       }
     }
   }

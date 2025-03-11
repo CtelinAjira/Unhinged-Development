@@ -1418,13 +1418,13 @@ Game_BattlerBase.prototype.tpHpDmgMult = function() {
   let tpGain = 1;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain *= eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain *= eval(state.meta[note]);
   }
@@ -1456,13 +1456,13 @@ Game_BattlerBase.prototype.tpMpDmgMult = function() {
   let tpGain = 1;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain *= eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain *= eval(state.meta[note]);
   }
@@ -1494,13 +1494,13 @@ Game_BattlerBase.prototype.tpTakeDmgMult = function() {
   let tpGain = 1;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain *= eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain *= eval(state.meta[note]);
   }
@@ -1532,13 +1532,13 @@ Game_BattlerBase.prototype.tpDealDmgMult = function() {
   let tpGain = 1;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain *= eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain *= eval(state.meta[note]);
   }
@@ -1570,13 +1570,13 @@ Game_BattlerBase.prototype.tpGainRegen = function() {
   let tpGain = 0;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain += eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain += eval(state.meta[note]);
   }
@@ -1608,13 +1608,13 @@ Game_BattlerBase.prototype.tpGainDeadMembers = function() {
   let tpGain = 0;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain += eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain += eval(state.meta[note]);
   }
@@ -1650,13 +1650,13 @@ Game_BattlerBase.prototype.tpGainEvade = function() {
   let tpGain = 0;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain += eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain += eval(state.meta[note]);
   }
@@ -1688,13 +1688,13 @@ Game_BattlerBase.prototype.tpGainSolo = function() {
   let tpGain = 0;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain += eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain += eval(state.meta[note]);
   }
@@ -1736,13 +1736,13 @@ Game_BattlerBase.prototype.tpGainAllyDeath = function() {
   let tpGain = 0;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain += eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain += eval(state.meta[note]);
   }
@@ -1774,13 +1774,13 @@ Game_BattlerBase.prototype.tpGainEnemyDeath = function() {
   let tpGain = 0;
   for (const equip of equips) {
     if (!equip) continue;
-    if (!equip.note) continue;
+    if (!equip.meta) continue;
     if (!equip.meta[note]) continue;
     tpGain += eval(equip.meta[note]);
   }
   for (const state of states) {
     if (!state) continue;
-    if (!state.note) continue;
+    if (!state.meta) continue;
     if (!state.meta[note]) continue;
     tpGain += eval(state.meta[note]);
   }
@@ -1795,6 +1795,194 @@ Game_BattlerBase.prototype.tpGainEnemyDeath = function() {
     if (!!curClass.meta) {
       if (!!curClass.meta[note]) {
         tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  return Math.round(tpGain);
+};
+
+Game_BattlerBase.prototype.tpGainSkill = function() {
+  const user = this;
+  const action = this.currentAction();
+  if (!action) return 0;
+  if (action.isItem()) return 0;
+  if (action.isGuard()) return 0;
+  if (action.isAttack()) return 0;
+  const item = action.item();
+  if (item.tpCost !== 0) return 0;
+  const note = 'Unh TP Skill';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 0;
+  if (!!item) {
+    if (!!item.meta) {
+      if (!!item.meta[note]) {
+        tpGain += eval(item.meta[note]);
+      }
+    }
+  }
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.meta) continue;
+    if (!equip.meta[note]) continue;
+    tpGain += eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta[note]) continue;
+    tpGain += eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain += eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  return Math.round(tpGain);
+};
+
+Game_BattlerBase.prototype.tpGainAttack = function() {
+  const user = this;
+  const action = this.currentAction();
+  if (!action) return 0;
+  if (!action.isAttack()) return 0;
+  const item = action.item();
+  if (item.tpCost !== 0) return 0;
+  const note = 'Unh TP Attack';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 0;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.meta) continue;
+    if (!equip.meta[note]) continue;
+    tpGain += eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta[note]) continue;
+    tpGain += eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain += eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  return Math.round(tpGain);
+};
+
+Game_BattlerBase.prototype.tpGainGuard = function() {
+  const user = this;
+  const action = this.currentAction();
+  if (!action) return 0;
+  if (!action.isGuard()) return 0;
+  const item = action.item();
+  if (item.tpCost !== 0) return 0;
+  const note = 'Unh TP Guard';
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let tpGain = 0;
+  for (const equip of equips) {
+    if (!equip) continue;
+    if (!equip.meta) continue;
+    if (!equip.meta[note]) continue;
+    tpGain += eval(equip.meta[note]);
+  }
+  for (const state of states) {
+    if (!state) continue;
+    if (!state.meta) continue;
+    if (!state.meta[note]) continue;
+    tpGain += eval(state.meta[note]);
+  }
+  if (!!object) {
+    if (!!object.meta) {
+      if (!!object.meta[note]) {
+        tpGain += eval(object.meta[note]);
+      }
+    }
+  }
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        tpGain += eval(curClass.meta[note]);
+      }
+    }
+  }
+  return Math.round(tpGain);
+};
+
+Game_BattlerBase.prototype.tpGainSkillType = function() {
+  const user = this;
+  const action = this.currentAction();
+  if (!action) return 0;
+  if (action.isItem()) return 0;
+  if (action.isGuard()) return 0;
+  if (action.isAttack()) return 0;
+  const item = action.item();
+  if (item.tpCost !== 0) return 0;
+  let tpGain = this.tpGainSkill();
+  const stypes = ((!!Imported.VisuMZ_1_SkillsStatesCore) ? (DataManager.getSkillTypes(item.id)) : ([item.stypeId]));
+  if (stypes.length <= 0) return tpGain;
+  const states = this.states();
+  const equips = this.equips();
+  const object = this.object();
+  const curClass = this.currentClass();
+  const max = this.maxTp();
+  let note;
+  for (const stypeId of stypes) {
+    note = 'Unh TP %1 Skill Type'.format(stypeId);
+    for (const equip of equips) {
+      if (!equip) continue;
+      if (!equip.meta) continue;
+      if (!equip.meta[note]) continue;
+      tpGain += eval(equip.meta[note]);
+    }
+    for (const state of states) {
+      if (!state) continue;
+      if (!state.meta) continue;
+      if (!state.meta[note]) continue;
+      tpGain += eval(state.meta[note]);
+    }
+    if (!!object) {
+      if (!!object.meta) {
+        if (!!object.meta[note]) {
+          tpGain += eval(object.meta[note]);
+        }
+      }
+    }
+    if (!!curClass) {
+      if (!!curClass.meta) {
+        if (!!curClass.meta[note]) {
+          tpGain += eval(curClass.meta[note]);
+        }
       }
     }
   }
