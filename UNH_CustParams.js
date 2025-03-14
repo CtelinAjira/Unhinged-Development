@@ -1145,16 +1145,22 @@ UNH_CustParams.weaponSkill = function(user, wtypeId) {
   for (const state of states) {
     if (!state) continue;
     if (!state.meta) continue;
-    if (!!state.meta[note]) return user.unhSkillLevel(skillId);
+    if (!state.meta[note]) continue;
+    if (!eval(state.meta[note])) continue;
+    return user.unhSkillLevel(skillId);
   }
   if (!!curClass.meta) {
     if (!!curClass.meta[note]) {
-      return user.unhSkillLevel(skillId);
+      if (!!eval(curClass.meta[note])) {
+        return user.unhSkillLevel(skillId);
+      }
     }
   }
   if (!!battler.meta) {
     if (!!battler.meta[note]) {
-      return user.unhSkillLevel(skillId);
+      if (!!eval(battler.meta[note])) {
+        return user.unhSkillLevel(skillId);
+      }
     }
   }
   return 0;
