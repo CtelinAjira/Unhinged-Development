@@ -9,7 +9,7 @@ Imported.UNH_MiscFunc = true;
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.02] [Unhinged] [MiscFunc]
+ * @plugindesc [RPG Maker MZ] [Version 1.03] [Unhinged] [MiscFunc]
  * @author Unhinged Developer
  *
  * @param DamageFormula
@@ -19,14 +19,14 @@ Imported.UNH_MiscFunc = true;
  * @type string
  * @default (pow + atk - def)
  *
+ * @param ActionStart
+ * @text Action Start Code
+ * @desc JS code to run after BattleManager.startAction()
+ * Variables: action, user, targets
+ * @type note
+ * @default ""
+ *
  * @help
- * ============================================================================
- * New Parameters
- * ============================================================================
- *
- * You may now assign custom parameters.  These can be calculated via notetags 
- * if desired.
- *
  * ============================================================================
  * New Notetags
  * ============================================================================
@@ -47,7 +47,7 @@ Imported.UNH_MiscFunc = true;
  * battler.object();
  * - Returns the battler's database object, whether Actor or Enemy
  *
- * action.unhDmgFormula(target, pow, atk, def);
+ * action.unhDamageFormula(target, pow, atk, def);
  * - Returns a damage formula defined within the plugin parameters
  *
  * battler.friendsUnitNotUser();
@@ -75,6 +75,31 @@ const UNH_MiscFunc = {};
 UNH_MiscFunc.pluginName = 'UNH_MiscFunc';
 UNH_MiscFunc.parameters = PluginManager.parameters(UNH_MiscFunc.pluginName);
 UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || "0");
+if (UNH_MiscFunc.parameters['ActionStart'] === "") {
+  UNH_MiscFunc.ActionStart = new Function("return 0;");
+} else {
+  let code = '';
+  code += 'const action = arguments[0];\n';
+  code += 'const user = arguments[1];\n';
+  code += 'const targets = arguments[2];\n';
+  code += 'try {';
+  code += UNH_MiscFunc.parameters['ActionStart'];
+  code += '} catch (e) {';
+  code += 'return 0;';
+  code += '}';
+  UNH_MiscFunc.ActionStart = new Function(code);
+}
+
+UNH_MiscFunc.knuthShuffle = function(arr) {
+  let rand, temp, i;
+  for (i = arr.length - 1; i > 0; i--) {
+    rand = Math.floor((i + 1) * Math.random());
+    temp = arr[rand];
+    arr[rand] = arr[i];
+    arr[i] = temp;
+  }
+  return arr;
+};
 
 if (!Imported.VisuMZ_3_EnemyLevels) {
   Object.defineProperty(Game_Enemy.prototype, "level", {
@@ -114,6 +139,24 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
   };
 };
 
+Game_BattlerBase.prototype.meta = function() {
+  if (!!this._unhMetadata) return this._unhMetadata;
+  this._unhMetadata = {};
+  for (const trait of this.traitObjects()) {
+    if (!trait) continue;
+    if (!trait.note) continue;
+    if (!trait.meta) DataManager.extractMetadata(trait);
+    for (const [key, value] of Object.entries(trait.meta)) {
+      if (isNaN(value)) {
+        this._unhMetadata[key] = value;
+	  } else {
+        this._unhMetadata[key] += value;
+      }
+    }
+  }
+  return this._unhMetadata;
+};
+
 Game_BattlerBase.prototype.unhGetEleRates = function() {
   const user = this;
   return $gameSystem.elements.map(function(ele, index) {
@@ -121,7 +164,17 @@ Game_BattlerBase.prototype.unhGetEleRates = function() {
   });
 };
 
+UNH_MiscFunc.BattleManager_startAction = BattleManager.startAction;
+BattleManager.startAction = function() {
+  UNH_MiscFunc.BattleManager_startAction.call(this);
+  if (!!UNH_MiscFunc.ActionStart) {
+    UNH_MiscFunc.ActionStart(this._action, this._subject, this._targets);
+  }
+};
+
 Game_BattlerBase.prototype.object = function() {
+  if (this.isActor()) return $dataActors[this._actorId];
+  if (this.isEnemy()) return $dataEnemies[this._enemyId];
   return null;
 };
 
@@ -135,7 +188,17 @@ Game_Enemy.prototype.object = function() {
   return this.enemy();
 };
 
-Game_Action.prototype.unhDmgFormula = function(target, pow, atk, def) {
+Game_BattlerBase.prototype.isCastTime = function() {
+  let meta;
+  return this.states().some(function(state) {
+    if (!state) return false;
+    meta = state.meta;
+    if (!meta) return false;
+    return !!meta['CastTime'];
+  });
+};
+
+Game_Action.prototype.unhDamageFormula = function(target, pow, atk, def) {
   try {
     const action = this;
     const item = this.item();

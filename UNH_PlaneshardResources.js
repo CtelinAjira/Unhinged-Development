@@ -95,7 +95,7 @@ Game_BattlerBase.prototype.maxFp = function() {
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round((stat * skillRate) + plus);
+    return Math.max(Math.round((stat * skillRate) + plus), 0);
   } catch (e) {
     return 0;
   }
@@ -124,7 +124,7 @@ Game_BattlerBase.prototype.maxEp = function() {
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round((stat * skillRate) + plus);
+    return Math.max(Math.round((stat * skillRate) + plus), 0);
   } catch (e) {
     return 0;
   }
@@ -153,7 +153,7 @@ Game_BattlerBase.prototype.maxPp = function() {
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round((stat * skillRate) + plus);
+    return Math.max(Math.round((stat * skillRate) + plus), 0);
   } catch (e) {
     return 0;
   }
@@ -182,7 +182,7 @@ Game_BattlerBase.prototype.maxQp = function() {
     const skillLv = user.unhSkillLevel(skillId);
     const skillMax = user.unhMaxSkillLevel(skillId);
     const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.round((stat * skillRate) + plus);
+    return Math.max(Math.round((stat * skillRate) + plus), 0);
   } catch (e) {
     return 0;
   }

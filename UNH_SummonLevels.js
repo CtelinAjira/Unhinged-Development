@@ -128,12 +128,23 @@ BattleManager.startAction = function() {
   UNH_SummonLevels.BattleManager_startAction.call(this);
 };
 
-Game_BattlerBase.prototype.unhSummonCalcLevel = function() {
+Game_BattlerBase.prototype.unhSummonCalcLevel = function(actorId) {
+  const summons = this.summons();
+  const actors = $gameActors.data();
+  if (typeof actorId !== 'number') actorId = 0;
+  if (isNaN(actorId)) actorId = 0;
+  if (actorId < 0) actorId = 0;
+  if (actorId >= actors.length) actorId = 0;
   const maxLevel = this.isActor() ? this.maxLevel() : ((!!Imported.VisuMZ_3_EnemyLevels) ? this.maxLevel() : 99);
   const level = this.unhLevel(maxLevel);
-  for (const summon of this.summons()) {
-    if (summon.level === level) continue;
-    summon.changeExp(summon.expForLevel(level), false);
+  if (actorId > 0) {
+    const summon = $gameActors.actor(actorId);
+    if (summons.includes(summon)) summon.changeExp(summon.expForLevel(level), false);
+  } else {
+    for (const summon of this.summons()) {
+      if (summon.level === level) continue;
+      summon.changeExp(summon.expForLevel(level), false);
+    }
   }
 };
 

@@ -41,8 +41,7 @@ UNH_VS_KnockbackResist.pluginName = 'UNH_VS_KnockbackResist';
 
 UNH_VS_KnockbackResist.Action_applyBattleGridSystemTargetMovement = Game_Action.prototype.applyBattleGridSystemTargetMovement;
 Game_Action.prototype.applyBattleGridSystemTargetMovement = function (target) {
-  const regexp = UNH_VS_KnockbackResist.ResistKnockback;
-  const note = this.item().note || '';
+  const note = ((target.isActor()) ? (target.actor().note || '') : (target.enemy().note || ''));
   if (note.match(/<RESIST KNOCKBACK>/i)) return;
   if (note.match(/<RESIST KNOCKBACK:[ ](\d+)([%％])>/i)) {
     const perChance = parseInt(RegExp.$1);
@@ -59,7 +58,6 @@ Game_Action.prototype.applyBattleGridSystemTargetMovement = function (target) {
     const action = this;
     const user = this.subject();
     const item = this.item();
-    const meta = item.meta;
     if (!!eval(checkStr)) return;
   }
   UNH_VS_KnockbackResist.Action_applyBattleGridSystemTargetMovement.call(this, target);

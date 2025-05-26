@@ -204,6 +204,11 @@ DataManager.processUnhSkillLevelNotetags = function(group) {
         const skillLv = Number(RegExp.$2);
         const initSkill = {skillId:skillId, skillLv:skillLv};
         obj.levels.push(initSkill);
+      } else if (line.match(/<SKILL (\d+) INITIAL LEVEL:[ ](.+)>/i)) {
+        const skillId = Number(RegExp.$1);
+        const skillLv = String(RegExp.$2);
+        const initSkill = {skillId:skillId, skillLv:skillLv};
+        obj.levels.push(initSkill);
       }
     }
   }
@@ -306,6 +311,30 @@ Game_Actors.prototype.actor = function(actorId) {
   return actor;
 };
 
+Game_Actor.prototype.skillsToLearn = function() {
+  try {
+    return this.traitObjects().map(function(obj) {
+      if (!obj) return [];
+      if (!obj.meta) return [];
+      const skills = String(obj.meta.SkillsToLevel).trim().split(' ');
+      for (let skill of skills) {
+        if (isNaN(skill)) {
+          skill = 0;
+        } else {
+          skill = Number(skill);
+        }
+      }
+      return skills;
+    }).flat(Infinity).filter(function(num) {
+      if (num <= 0) return false;
+      if (num >= $dataSkills.length) return false;
+      return true;
+    });
+  } catch (e) {
+    return [];
+  }
+};
+
 UNH_SkillLevels.Battler_onBattleStart = Game_Battler.prototype.onBattleStart;
 Game_Battler.prototype.onBattleStart = function(advantageous) {
   UNH_SkillLevels.Battler_onBattleStart.call(this, advantageous);
@@ -345,7 +374,14 @@ Game_Enemy.prototype.unhInitSkillLevels = function() {
   const isInit = Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
   if (!isInit) {
     for (const r of this.enemy().levels) {
-      this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+      if (typeof r.skillLv === 'number') {
+        if (!isNaN(r.skillLv)) {
+          this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+        }
+      } else {
+        const user = this;
+        this._unhSkillLevel[r.skillId] = {level:eval(r.skillLv), exp:0};
+      }
     }
   }
   return isInit;
@@ -355,7 +391,14 @@ Game_Actor.prototype.unhInitSkillLevels = function() {
   const isInit = Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
   if (!isInit) {
     for (const r of this.actor().levels) {
-      this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+      if (typeof r.skillLv === 'number') {
+        if (!isNaN(r.skillLv)) {
+          this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
+        }
+      } else {
+        const user = this;
+        this._unhSkillLevel[r.skillId] = {level:eval(r.skillLv), exp:0};
+      }
     }
   }
   return isInit;

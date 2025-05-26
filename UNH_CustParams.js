@@ -3,6 +3,7 @@
 // UNH_CustParams.js
 //=============================================================================
 
+var Ramza = Ramza || {};
 var Imported = Imported || {};
 Imported.UNH_CustParams = true;
 
@@ -28,6 +29,13 @@ const UNH_CustParams = {};
 UNH_CustParams.pluginName = 'UNH_CustParams';
 UNH_CustParams.parameters = PluginManager.parameters(UNH_CustParams.pluginName);
 UNH_CustParams.LevelScale = Number(UNH_CustParams.parameters['LevelScale'] || 10);
+
+if (!Imported.VisuMZ_1_SkillsStatesCore) {
+  DataManager.getSkillTypes = function(skill) {
+    if (!skill.stypeId) return [];
+    return [skill.stypeId];
+  };
+}
 
 UNH_CustParams.levelScaling = function(level) {
   const scaling = UNH_CustParams.LevelScale - 1;
@@ -1312,8 +1320,17 @@ Game_Action.prototype.wPow = function(target, handDex) {
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
+  if (!!Ramza._loaded_DW) {
+    if (!!item) {
+      if (item._isMHAction) {
+        handDex = 0;
+      } else if (item._isOHAction) {
+        handDex = 1;
+      }
+    }
+  }
   if (handDex < 0) handDex = 0;
-  if (handDex > equips.length) handDex = equips.length - 1;
+  if (handDex >= equips.length) handDex = equips.length - 1;
   const isDoublehand = user.unhIsDoublehand();
   const isDisarmed = states.some(function(state) {
     if (!state) return false;
@@ -1955,7 +1972,7 @@ Game_BattlerBase.prototype.tpGainSkillType = function() {
   const item = action.item();
   if (item.tpCost !== 0) return 0;
   let tpGain = this.tpGainSkill();
-  const stypes = ((!!Imported.VisuMZ_1_SkillsStatesCore) ? (DataManager.getSkillTypes(item.id)) : ([item.stypeId]));
+  const stypes = DataManager.getSkillTypes(item);
   if (stypes.length <= 0) return tpGain;
   const states = this.states();
   const equips = this.equips();
@@ -2587,15 +2604,58 @@ Game_Action.prototype.advCrit = function(target) {
   return advLvl;
 };
 
-Game_Action.prototype.orcCount = function(target) {
+Game_Action.prototype.orcCount = function(target, orcType) {
   if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
   const user = this.subject();
+  const orcTypes = ['green', 'red', 'black', 'purple', 'white', 'blue', 'yellow'];
+  if (!orcType) {
+    orcType = orcTypes[0];
+  } else if (typeof orcType === 'number') {
+    if (isNaN(orcType)) return 0;
+    if (orcType >= orcTypes.length) orcType = 0;
+    if (orcType < 0) orcType = 0;
+    orcType = orcTypes[orcType];
+  } else if (typeof orcType === 'string') {
+    if (orcTypes.indexOf(orcType) < 0) orcType = orcTypes[0];
+  } else {
+    return 0;
+  }
+  orcType += ' orc';
   let orcCount = 0;
   for (const member of user.friendUnit().aliveMembers()) {
-    if (member.hasTraitSet('orc')) orcCount += 0.5;
+    if (member.hasTraitSet(orcType)) orcCount += 0.5;
   }
   for (const member of target.friendUnit().aliveMembers()) {
-    if (member.hasTraitSet('orc')) orcCount -= 0.5;
+    if (member.hasTraitSet(orcType)) orcCount += 0.5;
+  }
+  return orcCount;
+};
+
+Game_Battler.prototype.orcCount = function(orcType, incFoes) {
+  if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
+  const user = this;
+  const orcTypes = ['green', 'red', 'black', 'purple', 'white', 'blue', 'yellow'];
+  if (!orcType) {
+    orcType = orcTypes[0];
+  } else if (typeof orcType === 'number') {
+    if (isNaN(orcType)) return 0;
+    if (orcType >= orcTypes.length) orcType = 0;
+    if (orcType < 0) orcType = 0;
+    orcType = orcTypes[orcType];
+  } else if (typeof orcType === 'string') {
+    if (orcTypes.indexOf(orcType) < 0) orcType = orcTypes[0];
+  } else {
+    return 0;
+  }
+  orcType += ' orc';
+  let orcCount = 0;
+  for (const member of user.friendUnit().aliveMembers()) {
+    if (member.hasTraitSet(orcType)) orcCount += 0.5;
+  }
+  if (!!incFoes) {
+    for (const member of user.opponentsUnit().aliveMembers()) {
+      if (member.hasTraitSet(orcType)) orcCount += 0.5;
+    }
   }
   return orcCount;
 };
@@ -2609,6 +2669,21 @@ Game_Action.prototype.gobCount = function(target) {
   }
   for (const member of target.friendUnit().aliveMembers()) {
     if (member.hasTraitSet('goblin')) gobCount -= 0.5;
+  }
+  return gobCount;
+};
+
+Game_Battler.prototype.gobCount = function() {
+  if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
+  const user = this;
+  let gobCount = 0;
+  for (const member of user.friendUnit().aliveMembers()) {
+    if (member.hasTraitSet('goblin')) gobCount += 0.5;
+  }
+  if (!!incFoes) {
+    for (const member of user.opponentsUnit().aliveMembers()) {
+      if (member.hasTraitSet('goblin')) gobCount -= 0.5;
+    }
   }
   return gobCount;
 };

@@ -27,7 +27,7 @@ Imported.UNH_TimeStop = true;
 //=============================================================================
 
 const UNH_TimeStop = {};
-UNH_TimeStop.pluginName = 'UNH_SummonLevels';
+UNH_TimeStop.pluginName = 'UNH_TimeStop';
 
 UNH_TimeStop.markedStates = function(state) {
   if (!state) return false;

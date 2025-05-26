@@ -10,7 +10,7 @@ var Imported = Imported || {};
  * @target MZ
  * @orderAfter UNH_BleedStacks
  * @orderAfter VisuMZ_0_CoreEngine
- * @plugindesc [RPG Maker MZ] [Version 1.02] [Unhinged] [AggroLevels]
+ * @plugindesc [RPG Maker MZ] [Version 1.03] [Unhinged] [AggroLevels]
  * @author Unhinged Developer
  *
  * @param BaseAggro
@@ -94,6 +94,9 @@ var Imported = Imported || {};
  * <unhTaunt>
  * - Use for States
  * - Forces all enemy attacks to target the battler afflicted with this state
+ * <unhHide>
+ * - Use for States
+ * - Forces all enemy attacks AWAY from the battler afflicted with this state
  * <unhProvoke>
  * - Use for States
  * - Forces all the afflicted battler's attacks to target the state's source
@@ -138,6 +141,8 @@ var Imported = Imported || {};
  * 
  * action.decideRandomTarget()
  * - ignores party's TGR values for actual random-target skills
+ * action.makeTargets()
+ * - now checks <unhHide> notetag
  */
 //=============================================================================
 
@@ -164,6 +169,19 @@ Game_Action.prototype.randomTargets = function(unit) {
   } else {
     UNH_AggroLevels.Action_randomTargets.call(this, unit);
   }
+};
+
+UNH_AggroLevels.Action_makeTargets = Game_Action.prototype.makeTargets;
+Game_Action.prototype.makeTargets = function() {
+  const baseTargets = UNH_AggroLevels.Action_makeTargets.call(this);
+  return baseTargets.filter(function(target) {
+    if (!target) return false;
+    return target.states().some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      return !!obj.meta['unhHide'];
+    });
+  });
 };
 
 UNH_AggroLevels.Action_decideRandomTarget = Game_Action.prototype.decideRandomTarget;
@@ -501,7 +519,7 @@ Game_Action.prototype.unhAddAggro = function(target, value, ignoreRates) {
     value += this.unhAggroFlat(target);
   }
   value = Math.round(value);
-  this.subject().unhSetAggro(value + this.unhAggroBase());
+  this.subject().unhSetAggro(value + this.subject().unhAggroBase());
 };
 
 Game_BattlerBase.prototype.unhHpMult = function() {

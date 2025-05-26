@@ -107,20 +107,23 @@ Game_BattlerBase.prototype.addBleed = function(stateId, value, ignoreRate) {
   if (!value) return;
   if (typeof value !== 'number') return;
   if (isNaN(value)) return;
-  const stateRate = this.stateRate(stateId);
+  ignoreRate = !!ignoreRate;
+  const stateRate = ((ignoreRate) ? (1) : (this.stateRate(stateId)));
   if (stateRate <= 0) return;
   let bleedToAdd = value;
-  if (this.isStateResist(stateId)) {
-    bleedToAdd = 0;
-  } else {
-    bleedToAdd *= stateRate;
+  if (!ignoreRate) {
+    if (this.isStateResist(stateId)) {
+      bleedToAdd = 0;
+    } else {
+      bleedToAdd *= stateRate;
+    }
   }
   bleedToAdd = Math.round(bleedToAdd);
   const startBleed = user.getBleed(stateId);
   user.setBleed(stateId, startBleed + bleedToAdd);
 };
 
-Game_Action.prototype.applyBleed = function(value, affUser) {
+Game_Action.prototype.applyBleed = function(value, target, affUser) {
   if (!value) return value;
   if (typeof value !== 'number') return value;
   if (isNaN(value)) return value;

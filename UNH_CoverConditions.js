@@ -238,3 +238,23 @@ Game_Unit.prototype.substituteBattler = function(target) {
   }
   return UNH_CoverConditions.Unit_substituteBattler.call(this, target);
 };
+
+UNH_CoverConditions.BattleManager_startAction = BattleManager.startAction;
+BattleManager.startAction = function() {
+  UNH_CoverConditions.BattleManager_startAction.call(this);
+  this._action.unhSetOldTargets(this._targets);
+};
+
+Game_Action.prototype.unhGetOldTargets = function() {
+  if (!this._oldTargets) return [];
+  if (!Array.isArray(this._oldTargets)) return [];
+  return this._oldTargets;
+};
+
+Game_Action.prototype.unhSetOldTargets = function(arr) {
+  if (!Array.isArray(arr)) {
+    this._unhOldTargets = [];
+  } else {
+    this._unhOldTargets = arr;
+  }
+};

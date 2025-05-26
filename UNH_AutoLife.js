@@ -127,6 +127,10 @@ Game_Battler.prototype.unhReraiseStates = function() {
   return states;
 };
 
+Game_Battler.prototype.unhIsReraise = function() {
+  return (this.unhReraiseStates().length > 0);
+};
+
 Game_Battler.prototype.unhReraiseHealing = function(state) {
   if (typeof state === 'number') {
     state = $dataStates[state];
