@@ -16,7 +16,7 @@ Imported.UNH_CustEncStep = true;
  * @text New Encounter Step Code
  * @desc JS code for Game_Player.prototype.makeEncounterCount()
  * @type note
- * @default "const n = $gameMap.encounterStep();\nthis._encounterCount = Math.randomInt(n) + Math.randomInt(n) + 1;"
+ * @default "const amp = Math.round($gameMap.encounterStep() / 2);\nconst v = Math.randomInt(2 * amp + 1) - amp;\nthis._encounterCount = $gameMap.encounterStep() + v;"
  *
  * @help
  * ============================================================================
@@ -38,7 +38,8 @@ Imported.UNH_CustEncStep = true;
  * steps you set the average to.
  * 
  * If that bothers you, I've just given you a plugin that lets you alter that 
- * code yourself.
+ * code yourself.  I've even included a default that isn't just two randomInt 
+ * calls, so even plug-n-players don't have to deal with 1-step encounters.
  */
 //=============================================================================
 
