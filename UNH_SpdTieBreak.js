@@ -25,7 +25,13 @@ BattleManager.makeActionOrders = function() {
   this._actionBattlers.sort(function(a, b) {
     const aSpd = a.speed();
     const bSpd = b.speed();
-    if (aSpd === bSpd) return ((2 * (Math.randomInt(100) % 2)) - 1);
+    if (aSpd === bSpd) {
+      if ((Math.randomInt(100) % 2) === 0) {
+        return 1;
+      } else {
+        return -1;
+      }
+    }
     return bSpd - aSpd;
   });
 };

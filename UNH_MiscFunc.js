@@ -101,6 +101,14 @@ UNH_MiscFunc.knuthShuffle = function(arr) {
   return arr;
 };
 
+Game_Variables.prototype.addValue = function(variableId, value) {
+  this.setValue(variableId, this.value(variableId) + value);
+};
+
+Game_Variables.prototype.subValue = function(variableId, value) {
+  this.setValue(variableId, this.value(variableId) - value);
+};
+
 if (!Imported.VisuMZ_3_EnemyLevels) {
   Object.defineProperty(Game_Enemy.prototype, "level", {
     get: function () {
