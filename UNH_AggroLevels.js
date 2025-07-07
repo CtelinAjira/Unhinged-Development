@@ -644,9 +644,7 @@ if (!!UNH_AggroLevels.autoCalc) {
 UNH_AggroLevels.BattlerBase_sparam = Game_BattlerBase.prototype.sparam;
   Game_BattlerBase.prototype.sparam = function(sparamId) {
     let baseVal = UNH_AggroLevels.BattlerBase_sparam.call(this, sparamId);
-    if (sparamId === 0) {
-      baseVal *= this.unhAggroMult();
-    }
+    if (sparamId === 0) return baseVal * this.unhAggroMult();
     return baseVal;
   };
 }
