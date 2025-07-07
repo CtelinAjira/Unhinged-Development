@@ -174,7 +174,7 @@ Game_Action.prototype.randomTargets = function(unit) {
 UNH_AggroLevels.Action_makeTargets = Game_Action.prototype.makeTargets;
 Game_Action.prototype.makeTargets = function() {
   const baseTargets = UNH_AggroLevels.Action_makeTargets.call(this);
-  return baseTargets.filter(function(target) {
+  const targets = baseTargets.filter(function(target) {
     if (!target) return false;
     return target.states().some(function(obj) {
       if (!obj) return false;
@@ -182,6 +182,8 @@ Game_Action.prototype.makeTargets = function() {
       return !!obj.meta['unhHide'];
     });
   });
+  if (targets.length <= 0) return baseTargets;
+  return targets;
 };
 
 UNH_AggroLevels.Action_decideRandomTarget = Game_Action.prototype.decideRandomTarget;
