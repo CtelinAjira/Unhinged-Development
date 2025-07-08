@@ -217,17 +217,17 @@ Game_BattlerBase.prototype.maxPoise = function() {
     if (!obj) return r;
     if (!obj.poisePlus) return r;
     return r + eval(obj.poisePlus);
-  });
+  }, 0);
   const rate = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseRate) return r;
-    return r + eval(obj.poiseRate);
-  });
+    return r * eval(obj.poiseRate);
+  }, 1);
   const flat = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseFlat) return r;
     return r + eval(obj.poiseFlat);
-  });
+  }, 0);
   return (((base + plus) * rate) + flat);
 };
 
@@ -239,23 +239,23 @@ Game_Action.prototype.makePoiseDamage = function(target) {
     if (!obj) return r;
     if (!obj.poisePlus) return r;
     return r + eval(obj.poiseDmgPlus);
-  });
+  }, 0);
   const rate = item.poiseDmgRate + this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseRate) return r;
-    return r + eval(obj.poiseDmgRate);
-  });
+    return r * eval(obj.poiseDmgRate);
+  }, 1);
   const flat = item.poiseDmgFlat + this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseFlat) return r;
     return r + eval(obj.poiseDmgFlat);
-  });
+  }, 0);
   let value = (((base + plus) * rate) + flat);
   const defn = target.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgDefn) return r;
     return r + eval(obj.poiseDmgDefn);
-  });
+  }, 0);
   return Math.round(10000 * (value - defn)) / 10000;
 };
 
