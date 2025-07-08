@@ -1430,6 +1430,18 @@ Game_BattlerBase.prototype.hvyArmCheck = function() {
   });
 };
 
+Game_BattlerBase.prototype.nullifyTpGain = function() {
+  const user = this;
+  const note = 'Unh TP Nullify';
+  const objects = this.traitObjects();
+  const tpGain = this.traitObjects().some(function(obj) {
+   if (!obj) return false;
+   if (!obj.meta) return false;
+   return !!obj.meta[note];
+  });
+  return tpGain;
+};
+
 Game_BattlerBase.prototype.tpHpDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage by HP';
