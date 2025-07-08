@@ -267,7 +267,7 @@ Game_Action.prototype.apply = function(target) {
     target.addPoise(-poiseDamage);
   }
   if (this.item().poiseRestore) {
-    target.setPoise(target.maxPoise())
+    user.setPoise(user.maxPoise())
   }
 };
 
