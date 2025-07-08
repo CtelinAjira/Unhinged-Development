@@ -66,7 +66,7 @@ var Imported = Imported || {};
  * 
  * <Stance Restore>
  * - Use for Skills/Items
- * - Flag a skill as restoring its target's Stance HP
+ * - Flag a skill as restoring its user's Stance HP
  */
 //=============================================================================
 
