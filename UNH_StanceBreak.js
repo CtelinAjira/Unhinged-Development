@@ -280,9 +280,9 @@ BattleManager.startBattle = function() {
 };
 
 if (this.isTpb()) {
-  UNH_VS_StanceBreak.BattleManager_startAction = BattleManager.startAction;
-  BattleManager.startAction = function() {
-    UNH_VS_StanceBreak.BattleManager_startAction.call(this);
+  UNH_VS_StanceBreak.BattleManager_endAction = BattleManager.endAction;
+  BattleManager.endAction = function() {
+    UNH_VS_StanceBreak.BattleManager_endAction.call(this);
     const subject = this._subject;
     subject.setPoise(subject.maxPoise());
   };
