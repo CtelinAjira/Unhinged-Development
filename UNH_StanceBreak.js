@@ -66,7 +66,7 @@ var Imported = Imported || {};
  * 
  * <Stance Restore>
  * - Use for Skills/Items
- * - Flag a skill as restoring its user's Stance HP
+ * - Flag a skill as restoring its target's Stance HP
  */
 //=============================================================================
 
@@ -267,7 +267,7 @@ Game_Action.prototype.apply = function(target) {
     target.addPoise(-poiseDamage);
   }
   if (this.item().poiseRestore) {
-    user.setPoise(user.maxPoise())
+    target.setPoise(target.maxPoise())
   }
 };
 
