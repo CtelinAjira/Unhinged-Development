@@ -67,6 +67,10 @@ var Imported = Imported || {};
  * <Stance Restore>
  * - Use for Skills/Items
  * - Flag a skill as restoring its target's Stance HP
+ * 
+ * <Stance Retain>
+ * - Use for Actors/Classes/Weapons/Armors/Enemies/States
+ * - Flag a battler as not restoring its Stance as normal
  */
 //=============================================================================
 
@@ -104,31 +108,32 @@ DataManager.processStanceHpNotetags = function(group) {
   const note2 = /<(?:STANCE HP RATE):[ ](.*)>/i;
   const note3 = /<(?:STANCE HP FLAT):[ ](.*)>/i;
   const note4 = /<(?:STANCE RESIST):[ ](.*)>/i;
+  const note5 = /<(?:STANCE RETAIN)>/i;
   let obj, notedata, line;
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
     notedata = obj.note.split(/[\r\n]+/);
+    obj.poisePlus = "";
+    obj.poiseRate = "";
+    obj.poiseFlat = "";
+    obj.poiseDmgDefn = "";
+    obj.poiseDmgRetn = false;
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
       if (line.match(note1)) {
         obj.poisePlus = String(RegExp.$1);
-      } else {
-        obj.poisePlus = "";
       }
       if (line.match(note2)) {
         obj.poiseRate = String(RegExp.$1);
-      } else {
-        obj.poiseRate = "";
       }
       if (line.match(note3)) {
         obj.poiseFlat = String(RegExp.$1);
-      } else {
-        obj.poiseFlat = "";
       }
       if (line.match(note4)) {
         obj.poiseDmgDefn = String(RegExp.$1);
-      } else {
-        obj.poiseDmgDefn = "";
+      }
+      if (line.match(note5)) {
+        obj.poiseDmgRetn = true;
       }
     }
   }
@@ -141,23 +146,20 @@ DataManager.processStanceDmgNotetags = function(group) {
   let obj, notedata, line;
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
+    obj.poiseDmgPlus = "";
+    obj.poiseDmgRate = "";
+    obj.poiseDmgFlat = "";
     notedata = obj.note.split(/[\r\n]+/);
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
       if (line.match(note1)) {
         obj.poiseDmgPlus = String(RegExp.$1);
-      } else {
-        obj.poiseDmgPlus = "";
       }
       if (line.match(note2)) {
         obj.poiseDmgRate = String(RegExp.$1);
-      } else {
-        obj.poiseDmgRate = "";
       }
       if (line.match(note3)) {
         obj.poiseDmgFlat = String(RegExp.$1);
-      } else {
-        obj.poiseDmgFlat = "";
       }
     }
   }
@@ -169,6 +171,7 @@ DataManager.processStanceRestoreNotetags = function(group) {
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
     notedata = obj.note.split(/[\r\n]+/);
+    obj.poiseRestore = false;
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
       if (line.match(note)) {
@@ -208,6 +211,14 @@ Game_BattlerBase.prototype.breakPoise = function() {
 
 Game_BattlerBase.prototype.addPoise = function(value) {
   this.setPoise(this.getPoise() + value);
+};
+
+Game_BattlerBase.prototype.retainPoise = function() {
+  const user = this;
+  return this.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    return !!obj.poiseDmgRetn;
+  });
 };
 
 Game_BattlerBase.prototype.maxPoise = function() {
@@ -284,13 +295,14 @@ if (this.isTpb()) {
   BattleManager.endAction = function() {
     UNH_VS_StanceBreak.BattleManager_endAction.call(this);
     const subject = this._subject;
-    subject.setPoise(subject.maxPoise());
+    if (!subject.retainPoise()) subject.setPoise(subject.maxPoise());
   };
 } else {
   UNH_VS_StanceBreak.BattleManager_endTurn = BattleManager.endTurn;
   BattleManager.endTurn = function() {
     UNH_VS_StanceBreak.BattleManager_endTurn.call(this);
     for (const member of this.allBattleMembers()) {
+      if (member.retainPoise()) continue;
       member.setPoise(member.maxPoise());
     }
   };
