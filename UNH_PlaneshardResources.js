@@ -14,12 +14,41 @@ Imported.UNH_PlaneshardResources = true;
  * @base UNH_MiscFunc
  * @orderAfter UNH_MiscFunc
  *
+ * @param MaxFp
+ * @text Maximum FP
+ * @desc JS code to calculate maximum FP
+ * @type note
+ * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
+ *
+ * @param MaxEp
+ * @text Maximum EP
+ * @desc JS code to calculate maximum EP
+ * @type note
+ * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
+ *
+ * @param MaxPp
+ * @text Maximum PP
+ * @desc JS code to calculate maximum PP
+ * @type note
+ * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
+ *
+ * @param MaxQp
+ * @text Maximum QP
+ * @desc JS code to calculate maximum QP
+ * @type note
+ * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
+ *
  * @help
  */
 //=============================================================================
 
 const UNH_PlaneshardResources = {};
 UNH_PlaneshardResources.pluginName = 'UNH_PlaneshardResources';
+UNH_PlaneshardResources.parameters = PluginManager.parameters(UNH_PlaneshardResources.pluginName);
+UNH_PlaneshardResources.MaxFp = new Function(String(UNH_PlaneshardResources.parameters['MaxFp'] || "return (0);"));
+UNH_PlaneshardResources.MaxEp = new Function(String(UNH_PlaneshardResources.parameters['MaxEp'] || "return (0);"));
+UNH_PlaneshardResources.MaxPp = new Function(String(UNH_PlaneshardResources.parameters['MaxPp'] || "return (0);"));
+UNH_PlaneshardResources.MaxQp = new Function(String(UNH_PlaneshardResources.parameters['MaxQp'] || "return (0);"));
 
 Object.defineProperties(Game_BattlerBase.prototype, {
   fp: {
@@ -74,117 +103,45 @@ Object.defineProperties(Game_BattlerBase.prototype, {
 
 Game_BattlerBase.prototype.maxFp = function() {
   try {
-    const user = this;
-    const objects = user.traitObjects();
-    const prop = 'NullFp';
-    const prop2 = 'FP Plus';
-    const isNull = objects.some(function(obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      return !!obj.meta[prop];
-    });
-    const plus = objects.reduce(function(r, obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      if (!obj.meta[prop2]) return false;
-      return r + Number(eval(equip.meta[prop2]));
-    }, 0);
-    const stat = 2 * (isNull ? 0 : user.paramBase(4));
-    if (!Imported.UNH_SkillLevels) return (stat + plus);
-    const skillId = 7;
-    const skillLv = user.unhSkillLevel(skillId);
-    const skillMax = user.unhMaxSkillLevel(skillId);
-    const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.max(Math.round((stat * skillRate) + plus), 0);
+    const result = UNH_PlaneshardResources.MaxFp(this, 'NullFp', 'FP Plus');
+    if (typeof result !== 'number') throw new Error("non-numeric result");
+    if (isNaN(result)) throw new Error("non-numeric result");
+	return result;
   } catch (e) {
-    return 0;
+    return 100;
   }
 };
 
 Game_BattlerBase.prototype.maxEp = function() {
   try {
-    const user = this;
-    const objects = user.traitObjects();
-    const prop = 'NullEp';
-    const prop2 = 'EP Plus';
-    const isNull = objects.some(function(obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      return !!obj.meta[prop];
-    });
-    const plus = objects.reduce(function(r, obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      if (!obj.meta[prop2]) return false;
-      return r + Number(eval(equip.meta[prop2]));
-    }, 0);
-    const stat = 2 * (isNull ? 0 : user.paramBase(5));
-    if (!Imported.UNH_SkillLevels) return (stat + plus);
-    const skillId = 8;
-    const skillLv = user.unhSkillLevel(skillId);
-    const skillMax = user.unhMaxSkillLevel(skillId);
-    const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.max(Math.round((stat * skillRate) + plus), 0);
+    const result = UNH_PlaneshardResources.MaxEp(this, 'NullEp', 'EP Plus');
+    if (typeof result !== 'number') throw new Error("non-numeric result");
+    if (isNaN(result)) throw new Error("non-numeric result");
+	return result;
   } catch (e) {
-    return 0;
+    return 100;
   }
 };
 
 Game_BattlerBase.prototype.maxPp = function() {
   try {
-    const user = this;
-    const objects = user.traitObjects();
-    const prop = 'NullPp';
-    const prop2 = 'PP Plus';
-    const isNull = objects.some(function(obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      return !!obj.meta[prop];
-    });
-    const plus = objects.reduce(function(r, obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      if (!obj.meta[prop2]) return false;
-      return r + Number(eval(equip.meta[prop2]));
-    }, 0);
-    const stat = 2 * (isNull ? 0 : user.paramBase(7));
-    if (!Imported.UNH_SkillLevels) return (stat + plus);
-    const skillId = 9;
-    const skillLv = user.unhSkillLevel(skillId);
-    const skillMax = user.unhMaxSkillLevel(skillId);
-    const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.max(Math.round((stat * skillRate) + plus), 0);
+    const result = UNH_PlaneshardResources.MaxPp(this, 'NullPp', 'PP Plus');
+    if (typeof result !== 'number') throw new Error("non-numeric result");
+    if (isNaN(result)) throw new Error("non-numeric result");
+	return result;
   } catch (e) {
-    return 0;
+    return 100;
   }
 };
 
 Game_BattlerBase.prototype.maxQp = function() {
   try {
-    const user = this;
-    const objects = user.traitObjects();
-    const prop = 'NullQp';
-    const prop2 = 'QP Plus';
-    const isNull = objects.some(function(obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      return !!obj.meta[prop];
-    });
-    const plus = objects.reduce(function(r, obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      if (!obj.meta[prop2]) return false;
-      return r + Number(eval(equip.meta[prop2]));
-    }, 0);
-    const stat = 2 * (isNull ? 0 : user.paramBase(6));
-    if (!Imported.UNH_SkillLevels) return (stat + plus);
-    const skillId = 10;
-    const skillLv = user.unhSkillLevel(skillId);
-    const skillMax = user.unhMaxSkillLevel(skillId);
-    const skillRate = 1 + (skillLv * 4 / skillMax);
-    return Math.max(Math.round((stat * skillRate) + plus), 0);
+    const result = UNH_PlaneshardResources.MaxQp(this, 'NullQp', 'QP Plus');
+    if (typeof result !== 'number') throw new Error("non-numeric result");
+    if (isNaN(result)) throw new Error("non-numeric result");
+	return result;
   } catch (e) {
-    return 0;
+    return 100;
   }
 };
 

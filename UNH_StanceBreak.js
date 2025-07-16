@@ -8,7 +8,7 @@ var Imported = Imported || {};
 //=============================================================================
  /*:
  * @target MZ
- * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [VS_StanceBreak]
+ * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [StanceBreak]
  * @author Unhinged Developer
  *
  * @param StanceBreakState
