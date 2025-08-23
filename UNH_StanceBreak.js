@@ -267,7 +267,7 @@ Game_Action.prototype.makePoiseDamage = function(target) {
     if (!obj.poiseDmgDefn) return r;
     return r + eval(obj.poiseDmgDefn);
   }, 0);
-  return Math.round(10000 * (value - defn)) / 10000;
+  return Math.round(value - defn);
 };
 
 UNH_VS_StanceBreak.Action_apply = Game_Action.prototype.apply;
@@ -291,8 +291,8 @@ BattleManager.startBattle = function() {
 };
 
 if (this.isTpb()) {
-  UNH_VS_StanceBreak.BattleManager_endAction = BattleManager.endAction;
-  BattleManager.endAction = function() {
+  UNH_VS_StanceBreak.BattleManager_endAction = BattleManager.onAllActionsEnd;
+  BattleManager.onAllActionsEnd = function() {
     UNH_VS_StanceBreak.BattleManager_endAction.call(this);
     const subject = this._subject;
     if (!subject.retainPoise()) subject.setPoise(subject.maxPoise());

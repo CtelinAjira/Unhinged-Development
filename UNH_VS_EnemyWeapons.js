@@ -238,6 +238,13 @@ Game_Enemy.prototype.armors = function() {
   });
 };
 
+Game_Enemy.prototype.isWtypeEquipped = function(wtypeId) {
+  return this.weapons().some(function(weapon) {
+    if (!weapon) return false;
+    return (weapon.wtypeId === wtypeId);
+  });
+};
+
 Game_Enemy.prototype.hasNoWeapons = function() {
     return this.weapons().length === 0;
 };

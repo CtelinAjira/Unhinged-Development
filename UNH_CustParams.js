@@ -255,7 +255,7 @@ Object.defineProperties(Game_Actor.prototype, {
     }, configurable: true
   }, mBrk: {
     get: function() {
-      const note = 'Magical Break';
+      const note = 'Magical Drop';
       const user = this;
       const battler = this.object();
       const states = this.states();

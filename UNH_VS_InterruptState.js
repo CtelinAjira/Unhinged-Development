@@ -49,9 +49,9 @@ Game_Battler.prototype.addState = function(stateId) {
   if (BattleManager.isATB()) {
     const state = $dataStates[stateId];
     if (!!state) {
-      const isInterrupt = (!!state.meta) ? (!!state.meta.unhInterrupt) : false;
+      const isInterrupt = ((!!state.meta) ? (!!eval(state.meta.unhInterrupt)) : (false));
       if (!!isInterrupt) {
-        const isRestrict = (!!state.meta) ? (!!state.meta.unhRestrict) : false;
+        const isRestrict = ((!!state.meta) ? (!!eval(state.meta.unhRestrict)) : (false));
         this.atbInterrupt(isRestrict);
       }
     }
