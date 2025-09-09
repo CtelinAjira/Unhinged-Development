@@ -14,30 +14,30 @@ Imported.UNH_AgilityOverride = true;
  * @orderBefore VisuMZ_0_CoreEngine
  *
  * @param ActorAgilityFormula
- * @text $gameParty.agility() Formula
- * @desc Override of agility for each actor
- * Must return some function of "total"
+ * @text $gameParty.agility() Formula (Per Actor)
+ * @desc Variables: total, member, index, unit
+ * Returns: total
  * @type note
  * @default "return total + member.agi;"
  *
  * @param ActorAgilityAfter
  * @text $gameParty.agility() Post-Execution
- * @desc Code executed after agility for each actor
- * Must return some function of "agi"
+ * @desc Variables: agi, unit
+ * Returns: agi
  * @type note
  * @default "return agi;"
  *
  * @param EnemyAgilityFormula
- * @text $gameTroop.agility() Formula
- * @desc Override of agility for each enemy
- * Must return some function of "total"
+ * @text $gameTroop.agility() Formula (Per Enemy)
+ * @desc Variables: total, member, index, unit
+ * Returns: total
  * @type note
  * @default "return total + member.agi;"
  *
  * @param EnemyAgilityAfter
  * @text $gameTroop.agility() Post-Execution
- * @desc Code executed after agility for each enemy
- * Must return some function of "agi"
+ * @desc Variables: agi, unit
+ * Returns: agi
  * @type note
  * @default "return agi;"
  *
@@ -50,22 +50,22 @@ Imported.UNH_AgilityOverride = true;
  *
  * @param MoraleEffect
  * @text Morale Effect
- * @desc extra code for BattleManager.makeEscapeRatio()
- * Variables: escapeRatio
+ * @desc Variables: escapeRatio
+ * Returns: escapeRatio
  * @type note
  * @default "let avgMorale = $gameTroop.aliveMembers().reduce(function(r, member) {\n  return r + member.unhMorale();\n}, 0);\navgMorale /= $gameTroop.members().length;\nif ((Math.random() * 100) >= (200 - avgMorale)) {\n return = 0;\n} else if ((Math.random() * 100) >= (avgMorale)) {\n return = 1;\n}\nreturn escapeRatio;"
  *
  * @param PreemptiveRate
  * @text ratePreemptive() Formula
- * @desc $gameParty.ratePreemptive(troopAgi) override
- * Must return "rate"
+ * @desc Variables: rate, agility, troopAgi
+ * Returns: rate
  * @type note
  * @default "let rate = agility >= troopAgi ? 0.05 : 0.03;\nif (this.hasRaisePreemptive()) {\n rate *= 4;\n}\nreturn rate;"
  *
  * @param SurpriseRate
  * @text rateSurprise() Formula
- * @desc $gameParty.rateSurprise(troopAgi) override
- * Must return "rate"
+ * @desc Variables: rate, agility, troopAgi
+ * Returns: rate
  * @type note
  * @default "let rate = agility >= troopAgi ? 0.03 : 0.05;\nif (this.hasCancelSurprise()) {\n rate = 0;\n}\nreturn rate;"
  *
