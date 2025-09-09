@@ -13,6 +13,20 @@ Imported.UNH_AgilityOverride = true;
  * @author Unhinged Developer
  * @orderBefore VisuMZ_0_CoreEngine
  *
+ * @param BaseAgilityFormula
+ * @text Game_Unit.prototype.agility() Formula (Per Battler)
+ * @desc Variables: total, member, index, unit
+ * Returns: total
+ * @type note
+ * @default "return total + member.agi;"
+ *
+ * @param BaseAgilityAfter
+ * @text Game_Unit.prototype.agility() Post-Execution
+ * @desc Variables: agi, unit
+ * Returns: agi
+ * @type note
+ * @default "return agi;"
+ *
  * @param ActorAgilityFormula
  * @text $gameParty.agility() Formula (Per Actor)
  * @desc Variables: total, member, index, unit
@@ -122,6 +136,12 @@ Imported.UNH_AgilityOverride = true;
 const UNH_AgilityOverride = {};
 UNH_AgilityOverride.pluginName = 'UNH_AgilityOverride';
 UNH_AgilityOverride.parameters = PluginManager.parameters(UNH_AgilityOverride.pluginName);
+UNH_AgilityOverride.BaseAgilityFormula = String(UNH_AgilityOverride.parameters['BaseAgilityFormula'] || "");
+UNH_AgilityOverride.BaseAgilityFormulaFunc = Function('total', 'member', 'index', 'unit', 'try {\n' + UNH_AgilityOverride.BaseAgilityFormula + '\n} catch (e) {\nreturn total + member.agi;\n}');
+
+UNH_AgilityOverride.BaseAgilityAfter = String(UNH_AgilityOverride.parameters['BaseAgilityAfter'] || "");
+UNH_AgilityOverride.BaseAgilityAfterFunc = Function('agi', 'unit', 'try {\n' + UNH_AgilityOverride.BaseAgilityAfter + '\n} catch (e) {\nreturn agi;\n}');
+
 UNH_AgilityOverride.ActorAgilityFormula = String(UNH_AgilityOverride.parameters['ActorAgilityFormula'] || "");
 UNH_AgilityOverride.ActorAgilityFormulaFunc = Function('total', 'member', 'index', 'unit', 'try {\n' + UNH_AgilityOverride.ActorAgilityFormula + '\n} catch (e) {\nreturn total + member.agi;\n}');
 
@@ -143,6 +163,19 @@ UNH_AgilityOverride.PreemptiveRateFunc = Function('agility', 'troopAgi', 'try {\
 
 UNH_AgilityOverride.SurpriseRate = String(UNH_AgilityOverride.parameters['SurpriseRate'] || "");
 UNH_AgilityOverride.SurpriseRateFunc = Function('agility', 'troopAgi', 'try {\n' + UNH_AgilityOverride.SurpriseRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
+
+UNH_AgilityOverride.Unit_agility = Game_Unit.prototype.agility;
+Game_Unit.prototype.agility = function() {
+  if (!!UNH_AgilityOverride.BaseAgilityFormula) {
+    const members = this.members();
+    let agiOverride = members.reduce(UNH_AgilityOverride.BaseAgilityFormulaFunc, 0);
+    if (!!UNH_AgilityOverride.BaseAgilityAfter) {
+      return Math.max(1, UNH_AgilityOverride.BaseAgilityAfterFunc(agiOverride, $gameParty.aliveMembers()) / Math.max(1, members.length));
+    }
+    return Math.max(1, agiOverride / Math.max(1, members.length));
+  }
+  return UNH_AgilityOverride.Unit_agility.call(this);
+};
 
 Game_Party.prototype.agility = function(original = false) {
   if (!!original) return Game_Unit.prototype.agility.call(this);
