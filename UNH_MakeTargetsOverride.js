@@ -15,6 +15,7 @@ var Imported = Imported || {};
  * @param MakeTargetsCode
  * @text Extra Code
  * @desc Runs after storing action.makeTargets()
+ * Variables: action, item, user, targets
  * @type note
  * @default ""
  *
@@ -23,7 +24,7 @@ var Imported = Imported || {};
  * Overridden Functions
  * ============================================================================
  * 
- * unit.makeTargets()
+ * action.makeTargets()
  * - overridden to be defined by plugin parameters above
  *   - action: the action makeTargets() is being called for
  *   - item: the database object for action
@@ -38,21 +39,15 @@ const UNH_MakeTargetsOverride = {};
 UNH_MakeTargetsOverride.pluginName = 'UNH_MakeTargetsOverride';
 UNH_MakeTargetsOverride.parameters = PluginManager.parameters(UNH_MakeTargetsOverride.pluginName);
 UNH_MakeTargetsOverride.MakeTargetsCode = String(UNH_MakeTargetsOverride.parameters['MakeTargetsCode'] || "");
+UNH_MakeTargetsOverride.MakeTargetsFail = function() {
+  if ($gameTemp.isPlaytest()) console.log('Error found in new code for action.makeTargets()\nExtra code silenced for the sake of runtime');
+};
+UNH_MakeTargetsOverride.MakeTargetsFunc = new Function("action", "item", "user", "targets", "  try {\n    " + UNH_MakeTargetsOverride.MakeTargetsCode + "\n  } catch (e) {\n    UNH_MakeTargetsOverride.MakeTargetsFail();\n  }");
 
 UNH_MakeTargetsOverride.Action_makeTargets = Game_Action.prototype.makeTargets;
-Game_Action.prototype.makeTargets = function(original = false) {
+Game_Action.prototype.makeTargets = function(original) {
   const targets = UNH_MakeTargetsOverride.Action_makeTargets.call(this);
-  const action = this;
-  const item = this.item();
-  const user = this.subject();
-  if (!original) {
-    if (!!UNH_MakeTargetsOverride.MakeTargetsCode) {
-      try {
-        eval(UNH_MakeTargetsOverride.MakeTargetsCode)
-      } catch (e) {
-        console.log('Error found in new code for action.makeTargets()\nExtra code silenced for the sake of runtime');
-      }
-    }
-  }
+  if (!!original) return targets;
+  if (!!UNH_MakeTargetsOverride.MakeTargetsCode) UNH_MakeTargetsOverride.MakeTargetsFunc(this, this.item(), this.subject(), targets);
   return targets;
 };

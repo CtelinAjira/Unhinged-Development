@@ -4,6 +4,7 @@
 //=============================================================================
 
 var Imported = Imported || {};
+Imported.UNH_AgilityOverride = true;
 
 //=============================================================================
  /*:
@@ -122,23 +123,34 @@ const UNH_AgilityOverride = {};
 UNH_AgilityOverride.pluginName = 'UNH_AgilityOverride';
 UNH_AgilityOverride.parameters = PluginManager.parameters(UNH_AgilityOverride.pluginName);
 UNH_AgilityOverride.ActorAgilityFormula = String(UNH_AgilityOverride.parameters['ActorAgilityFormula'] || "");
+UNH_AgilityOverride.ActorAgilityFormulaFunc = Function('total', 'member', 'index', 'unit', 'try {\n' + UNH_AgilityOverride.ActorAgilityFormula + '\n} catch (e) {\nreturn total + member.agi;\n}');
+
 UNH_AgilityOverride.ActorAgilityAfter = String(UNH_AgilityOverride.parameters['ActorAgilityAfter'] || "");
+UNH_AgilityOverride.ActorAgilityAfterFunc = Function('agi', 'unit', 'try {\n' + UNH_AgilityOverride.ActorAgilityAfter + '\n} catch (e) {\nreturn agi;\n}');
+
 UNH_AgilityOverride.EnemyAgilityFormula = String(UNH_AgilityOverride.parameters['EnemyAgilityFormula'] || "");
+UNH_AgilityOverride.EnemyAgilityFormulaFunc = Function('total', 'member', 'index', 'unit', 'try {\n' + UNH_AgilityOverride.EnemyAgilityFormula + '\n} catch (e) {\nreturn total + member.agi;\n}');
+
 UNH_AgilityOverride.EnemyAgilityAfter = String(UNH_AgilityOverride.parameters['EnemyAgilityAfter'] || "");
+UNH_AgilityOverride.EnemyAgilityAfterFunc = Function('agi', 'unit', 'try {\n' + UNH_AgilityOverride.EnemyAgilityAfter + '\n} catch (e) {\nreturn agi;\n}');
+
 UNH_AgilityOverride.MoraleBase = Number(UNH_AgilityOverride.parameters['MoraleBase'] || 0);
 UNH_AgilityOverride.MoraleEffect = String(UNH_AgilityOverride.parameters['MoraleEffect'] || "");
+UNH_AgilityOverride.MoraleEffectFunc = Function('escapeRatio', UNH_AgilityOverride.MoraleEffect);
+
 UNH_AgilityOverride.PreemptiveRate = String(UNH_AgilityOverride.parameters['PreemptiveRate'] || "");
+UNH_AgilityOverride.PreemptiveRateFunc = Function('agility', 'troopAgi', 'try {\n' + UNH_AgilityOverride.PreemptiveRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
+
 UNH_AgilityOverride.SurpriseRate = String(UNH_AgilityOverride.parameters['SurpriseRate'] || "");
+UNH_AgilityOverride.SurpriseRateFunc = Function('agility', 'troopAgi', 'try {\n' + UNH_AgilityOverride.SurpriseRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
 
 Game_Party.prototype.agility = function(original = false) {
   if (!!original) return Game_Unit.prototype.agility.call(this);
   if (!!UNH_AgilityOverride.ActorAgilityFormula) {
     const members = this.members();
-    const unhAgiOverride = Function('total', 'member', 'index', 'unit', 'try {\n' + UNH_AgilityOverride.ActorAgilityFormula + '\n} catch (e) {\nreturn total + member.agi;\n}');
-    let agiOverride = members.reduce(unhAgiOverride, 0);
+    let agiOverride = members.reduce(UNH_AgilityOverride.ActorAgilityFormulaFunc, 0);
     if (!!UNH_AgilityOverride.ActorAgilityAfter) {
-      const afterAgi = Function('agi', 'unit', 'try {\n' + UNH_AgilityOverride.ActorAgilityAfter + '\n} catch (e) {\nreturn agi;\n}');
-      return Math.max(1, afterAgi(agiOverride, $gameParty.aliveMembers()) / Math.max(1, members.length));
+      return Math.max(1, UNH_AgilityOverride.ActorAgilityAfterFunc(agiOverride, $gameParty.aliveMembers()) / Math.max(1, members.length));
     }
     return Math.max(1, agiOverride / Math.max(1, members.length));
   }
@@ -149,42 +161,32 @@ Game_Troop.prototype.agility = function(original = false) {
   if (!!original) return Game_Unit.prototype.agility.call(this);
   if (!!UNH_AgilityOverride.EnemyAgilityFormula) {
     const members = this.members();
-    const unhAgiOverride = Function('total', 'member', 'index', 'unit', 'try {\n' + UNH_AgilityOverride.EnemyAgilityFormula + '\n} catch (e) {\nreturn total + member.agi;\n}');
-    let agiOverride = members.reduce(unhAgiOverride, 0);
+    let agiOverride = members.reduce(UNH_AgilityOverride.EnemyAgilityFormulaFunc, 0);
     if (!!UNH_AgilityOverride.EnemyAgilityAfter) {
-      const afterAgi = Function('agi', 'unit', 'try {\n' + UNH_AgilityOverride.EnemyAgilityAfter + '\n} catch (e) {\nreturn agi;\n}');
-      return Math.max(1, afterAgi(agiOverride, $gameTroop.aliveMembers()) / Math.max(1, members.length));
+      return Math.max(1, UNH_AgilityOverride.EnemyAgilityAfterFunc(agiOverride, $gameTroop.aliveMembers()) / Math.max(1, members.length));
     }
     return Math.max(1, agiOverride / Math.max(1, members.length));
   }
   return Game_Unit.prototype.agility.call(this);
 };
 
+UNH_AgilityOverride.Party_ratePreemptive = Game_Party.prototype.ratePreemptive;
 Game_Party.prototype.ratePreemptive = function(troopAgi) {
   const agility = this.agility(true);
   if (!!UNH_AgilityOverride.PreemptiveRate) {
-    const newFunc = Function('agility', 'troopAgi', 'try {\n' + UNH_AgilityOverride.PreemptiveRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
-    return newFunc(agility, troopAgi);
+    return UNH_AgilityOverride.PreemptiveRateFunc(agility, troopAgi);
   } else {
-    let rate = agility >= troopAgi ? 0.05 : 0.03;
-    if (this.hasRaisePreemptive()) {
-      rate *= 4;
-    }
-    return rate;
+    return UNH_AgilityOverride.Party_ratePreemptive.call(this, troopAgi);
   }
 };
 
+UNH_AgilityOverride.Party_rateSurprise = Game_Party.prototype.rateSurprise;
 Game_Party.prototype.rateSurprise = function(troopAgi) {
   const agility = this.agility(true);
   if (!!UNH_AgilityOverride.SurpriseRate) {
-    const newFunc = Function('agility', 'troopAgi', 'try {\n' + UNH_AgilityOverride.SurpriseRate + '\n} catch (e) {\nreturn total + member.agi;\n}');
-    return newFunc(agility, troopAgi);
+    return UNH_AgilityOverride.SurpriseRateFunc(agility, troopAgi);
   } else {
-    let rate = agility >= troopAgi ? 0.03 : 0.05;
-    if (this.hasCancelSurprise()) {
-      rate = 0;
-    }
-    return rate;
+    return UNH_AgilityOverride.Party_rateSurprise.call(this, troopAgi);
   }
 };
 
@@ -235,8 +237,7 @@ BattleManager.unhEscapeRatio = function() {
   const escapeRatio = this._escapeRatio || 0;
   if ((UNH_AgilityOverride.MoraleBase !== -1) && !!UNH_AgilityOverride.MoraleEffect) {
     try {
-      const evalFunc = new Function('escapeRatio', UNH_AgilityOverride.MoraleEffect);
-      return evalFunc(escapeRatio);
+      return UNH_AgilityOverride.MoraleEffectFunc(escapeRatio);
 	} catch (e) {
       return escapeRatio;
 	};

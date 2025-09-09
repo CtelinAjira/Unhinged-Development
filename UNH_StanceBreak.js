@@ -71,6 +71,10 @@ var Imported = Imported || {};
  * <Stance Retain>
  * - Use for Actors/Classes/Weapons/Armors/Enemies/States
  * - Flag a battler as not restoring its Stance as normal
+ * 
+ * <Stance Pierce>
+ * - Use for Skills/Items
+ * - Flag an action as bypassing resistance to the Stance Break state
  */
 //=============================================================================
 
@@ -166,16 +170,21 @@ DataManager.processStanceDmgNotetags = function(group) {
 };
 
 DataManager.processStanceRestoreNotetags = function(group) {
-  const note = /<(?:STANCE RESTORE)>/i;
+  const note1 = /<(?:STANCE RESTORE)>/i;
+  const note2 = /<(?:STANCE PIERCE)>/i;
   let obj, notedata, line;
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
     notedata = obj.note.split(/[\r\n]+/);
     obj.poiseRestore = false;
+    obj.poisePierce = false;
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
-      if (line.match(note)) {
+      if (line.match(note1)) {
         obj.poiseRestore = true;
+      }
+      if (line.match(note2)) {
+        obj.poisePierce = true;
       }
     }
   }
@@ -209,8 +218,14 @@ Game_BattlerBase.prototype.breakPoise = function() {
   }
 };
 
+Game_Action.prototype.piercePoise = function() {
+  const user = this.subject();
+  return !!this.item().poisePierce;
+};
+
 Game_BattlerBase.prototype.addPoise = function(value) {
-  this.setPoise(this.getPoise() + value);
+  const deltaPoise = this.getPoise() + value;
+  this.setPoise(deltaPoise);
 };
 
 Game_BattlerBase.prototype.retainPoise = function() {
@@ -267,6 +282,9 @@ Game_Action.prototype.makePoiseDamage = function(target) {
     if (!obj.poiseDmgDefn) return r;
     return r + eval(obj.poiseDmgDefn);
   }, 0);
+  if ($dataStates[UNH_VS_StanceBreak.StanceBreakState] && !this.piercePoise()) {
+    return Math.round(value - defn) * user.stateRate(UNH_VS_StanceBreak.StanceBreakState);
+  }
   return Math.round(value - defn);
 };
 
@@ -275,7 +293,7 @@ Game_Action.prototype.apply = function(target) {
   UNH_VS_StanceBreak.Action_apply.call(this);
   if (target.result().isHit()) {
     const poiseDamage = this.makePoiseDamage(target);
-    target.addPoise(-poiseDamage);
+    target.addPoise(-poiseDamage, this.piercePoise());
   }
   if (this.item().poiseRestore) {
     target.setPoise(target.maxPoise())
