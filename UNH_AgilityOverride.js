@@ -15,28 +15,28 @@ Imported.UNH_AgilityOverride = true;
  *
  * @param ActorAgilityFormula
  * @text $gameParty.agility() Formula
- * @desc unhAgiOverride(total, member, index, unit) for actors
+ * @desc Override of agility for each actor
  * Must return some function of "total"
  * @type note
  * @default "return total + member.agi;"
  *
  * @param ActorAgilityAfter
  * @text $gameParty.agility() Post-Execution
- * @desc afterAgi(agi, unit) for actors
+ * @desc Code executed after agility for each actor
  * Must return some function of "agi"
  * @type note
  * @default "return agi;"
  *
  * @param EnemyAgilityFormula
  * @text $gameTroop.agility() Formula
- * @desc unhAgiOverride(total, member, index, unit) for enemies
+ * @desc Override of agility for each enemy
  * Must return some function of "total"
  * @type note
  * @default "return total + member.agi;"
  *
  * @param EnemyAgilityAfter
  * @text $gameTroop.agility() Post-Execution
- * @desc afterAgi(agi, unit) for enemies
+ * @desc Code executed after agility for each enemy
  * Must return some function of "agi"
  * @type note
  * @default "return agi;"

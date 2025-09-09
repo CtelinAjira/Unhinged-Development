@@ -12,6 +12,20 @@ Imported.UNH_PartyAbilityStack = true;
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [PartyAbilityStack]
  * @author Unhinged Developer
  *
+ * @param NewGoldRate
+ * @text $gameTroop.goldRate() Formula
+ * @desc Override for Party Ability: Gold Double
+ * Must return a Number
+ * @type note
+ * @default "return 1 + Math.max($gameParty.hasGoldDouble(), 0);"
+ *
+ * @param NewDropItemRate
+ * @text enemy.dropItemRate() Formula
+ * @desc Override for Party Ability: Drop Item Double
+ * Must return a Number
+ * @type note
+ * @default "return 1 + Math.max($gameParty.hasDropItemDouble(), 0);"
+ *
  * @help
  * ============================================================================
  * Altered Functions
@@ -36,6 +50,11 @@ Imported.UNH_PartyAbilityStack = true;
 
 const UNH_PartyAbilityStack = {};
 UNH_PartyAbilityStack.pluginName = 'UNH_PartyAbilityStack';
+UNH_PartyAbilityStack.parameters = PluginManager.parameters(UNH_PartyAbilityStack.pluginName);
+UNH_PartyAbilityStack.NewGoldRate = String(UNH_PartyAbilityStack.parameters['NewGoldRate'] || "");
+UNH_PartyAbilityStack.NewGoldRateFunc = Function(UNH_PartyAbilityStack.NewGoldRate);
+UNH_PartyAbilityStack.NewDropItemRate = String(UNH_PartyAbilityStack.parameters['NewDropItemRate'] || "");
+UNH_PartyAbilityStack.NewDropItemRateFunc = Function(UNH_PartyAbilityStack.NewDropItemRate);
 
 Game_BattlerBase.prototype.partyAbility = function(r, abilityId) {
   return this.traits(Game_BattlerBase.TRAIT_PARTY_ABILITY).reduce(function(trait) {
@@ -65,25 +84,27 @@ Game_Player.prototype.encounterProgressValue = function() {
 };
 
 Game_Party.prototype.ratePreemptive = function(troopAgi) {
-    let rate = this.agility() >= troopAgi ? 0.05 : 0.03;
-    if (this.hasRaisePreemptive() > 0) {
-        rate *= Math.pow(4, this.hasRaisePreemptive());
-    }
-    return rate;
+  let rate = this.agility() >= troopAgi ? 0.05 : 0.03;
+  if (this.hasRaisePreemptive() > 0) {
+    rate *= Math.pow(4, this.hasRaisePreemptive());
+  }
+  return rate;
 };
 
 Game_Party.prototype.rateSurprise = function(troopAgi) {
-    let rate = this.agility() >= troopAgi ? 0.03 : 0.05;
-    if (this.hasCancelSurprise() > 0) {
-        rate = 0;
-    }
-    return rate;
+  let rate = this.agility() >= troopAgi ? 0.03 : 0.05;
+  if (this.hasCancelSurprise() > 0) {
+    rate = 0;
+  }
+  return rate;
 };
 
 Game_Troop.prototype.goldRate = function() {
-    return 1 + Math.max($gameParty.hasGoldDouble(), 0);
+  if (!!UNH_PartyAbilityStack.NewGoldRate) return UNH_PartyAbilityStack.NewGoldRateFunc();
+  return 1 + Math.max($gameParty.hasGoldDouble(), 0);
 };
 
 Game_Enemy.prototype.dropItemRate = function() {
-    return 1 + Math.max($gameParty.hasDropItemDouble(), 0);
+  if (!!UNH_PartyAbilityStack.NewDropItemRate) return UNH_PartyAbilityStack.NewDropItemRateFunc();
+  return 1 + Math.max($gameParty.hasDropItemDouble(), 0);
 };
