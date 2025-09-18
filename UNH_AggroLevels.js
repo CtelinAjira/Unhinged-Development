@@ -179,7 +179,9 @@ Game_Action.prototype.makeTargets = function() {
     return target.states().some(function(obj) {
       if (!obj) return false;
       if (!obj.meta) return false;
-      return !!obj.meta['unhHide'];
+      if (!obj.meta['unhHide']) return false;
+      if (obj.meta['unhHide'] === true) return true;
+      return !!eval(obj.meta['unhHide']);
     });
   });
   if (targets.length <= 0) return baseTargets;

@@ -75,20 +75,8 @@ const UNH_MiscFunc = {};
 UNH_MiscFunc.pluginName = 'UNH_MiscFunc';
 UNH_MiscFunc.parameters = PluginManager.parameters(UNH_MiscFunc.pluginName);
 UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || "0");
-if (UNH_MiscFunc.parameters['ActionStart'] === "") {
-  UNH_MiscFunc.ActionStart = new Function("return 0;");
-} else {
-  let code = '';
-  code += 'const action = arguments[0];\n';
-  code += 'const user = arguments[1];\n';
-  code += 'const targets = arguments[2];\n';
-  code += 'try {';
-  code += UNH_MiscFunc.parameters['ActionStart'];
-  code += '} catch (e) {';
-  code += 'return 0;';
-  code += '}';
-  UNH_MiscFunc.ActionStart = new Function(code);
-}
+UNH_MiscFunc.ActionStartCode = String(UNH_MiscFunc.parameters['ActionStart'] || "");
+UNH_MiscFunc.ActionStart = new Function('action', 'user', 'targets', 'try {\n' + UNH_MiscFunc.ActionStartCode + '\n} catch (e) {\nreturn;\n}');
 
 UNH_MiscFunc.knuthShuffle = function(arr) {
   let rand, temp, i;
@@ -175,7 +163,7 @@ Game_BattlerBase.prototype.unhGetEleRates = function() {
 UNH_MiscFunc.BattleManager_startAction = BattleManager.startAction;
 BattleManager.startAction = function() {
   UNH_MiscFunc.BattleManager_startAction.call(this);
-  if (!!UNH_MiscFunc.ActionStart) {
+  if (!!UNH_MiscFunc.ActionStartCode) {
     UNH_MiscFunc.ActionStart(this._action, this._subject, this._targets);
   }
 };

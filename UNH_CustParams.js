@@ -2066,7 +2066,7 @@ Game_Action.prototype.wpnPow = function(target) {
   if (!Imported.VisuMZ_1_BattleCore) return ((this.wPow(target, 0) + this.wPow(target, 1)));
   const weaponSlot = user._activeWeaponSlot || 0;
   const dblWpn = user.unhDblWpn(weaponSlot) ? 0.5 : 1;
-  return (this.wPow(Math.max(Math.min(target, weaponSlot, 1), 0)) * dblWpn);
+  return (this.wPow(target, Math.max(Math.min(weaponSlot, 1), 0)) * dblWpn);
 };
 
 Game_Action.prototype.wpnMag = function(target) {
@@ -2134,8 +2134,8 @@ Game_Action.prototype.physBlock = function(target) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && user.wpnMag()) return false;
-  if (this.isMagical() && !user.wpnMag()) return false;
+  if (this.isPhysical() && this.wpnMag(target)) return false;
+  if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Block';
   const states = target.states();
   if (target.unhIsDoublehand()) return false;
@@ -2161,8 +2161,8 @@ Game_Action.prototype.magBlock = function(target) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && !user.wpnMag()) return false;
-  if (this.isMagical() && user.wpnMag()) return false;
+  if (this.isPhysical() && !this.wpnMag(target)) return false;
+  if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Block';
   const states = target.states();
   if (target.unhIsDoublehand()) return false;
@@ -2188,8 +2188,8 @@ Game_Action.prototype.physParry = function(target) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && user.wpnMag()) return false;
-  if (this.isMagical() && !user.wpnMag()) return false;
+  if (this.isPhysical() && this.wpnMag(target)) return false;
+  if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Parry';
   const note2 = 'Physical Parry Plus';
   const battler = target.object();
@@ -2250,8 +2250,8 @@ Game_Action.prototype.magParry = function(target) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && !user.wpnMag()) return false;
-  if (this.isMagical() && user.wpnMag()) return false;
+  if (this.isPhysical() && !this.wpnMag(target)) return false;
+  if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Parry';
   const note2 = 'Magical Parry Plus';
   const battler = target.object();
@@ -2318,8 +2318,8 @@ Game_Action.prototype.checkPhysBreak = function(target, handDex) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && user.wpnMag()) return false;
-  if (this.isMagical() && !user.wpnMag()) return false;
+  if (this.isPhysical() && this.wpnMag(target)) return false;
+  if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Break';
   const battler = this.object();
   const curClass = this.currentClass();
@@ -2370,8 +2370,8 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && !user.wpnMag()) return false;
-  if (this.isMagical() && user.wpnMag()) return false;
+  if (this.isPhysical() && !this.wpnMag(target)) return false;
+  if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Break';
   const battler = this.object();
   const curClass = this.currentClass();
@@ -2421,8 +2421,8 @@ Game_Action.prototype.checkPhysFeint = function(target, handDex) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && user.wpnMag()) return false;
-  if (this.isMagical() && !user.wpnMag()) return false;
+  if (this.isPhysical() && this.wpnMag(target)) return false;
+  if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Feint';
   const battler = this.object();
   const curClass = this.currentClass();
@@ -2472,8 +2472,8 @@ Game_Action.prototype.checkMagFeint = function(target, handDex) {
   const action = this;
   if (!action.isWeapon(target)) return false;
   const user = this.subject();
-  if (this.isPhysical() && !user.wpnMag()) return false;
-  if (this.isMagical() && user.wpnMag()) return false;
+  if (this.isPhysical() && !this.wpnMag(target)) return false;
+  if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Feint';
   const battler = this.object();
   const curClass = this.currentClass();

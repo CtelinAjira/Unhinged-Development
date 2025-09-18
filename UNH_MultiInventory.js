@@ -12,6 +12,11 @@ var Imported = Imported || {};
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [MultiInventory]
  * @author Unhinged Developer
  *
+ * @param InitInv
+ * @text Starting Inventories
+ * @desc Create starting inventories for the groups
+ * @type struct<Inventory>[]
+ *
  * @command StoreInventory
  * @text Store Inventory
  * @desc Stores the current party's inventory
@@ -73,10 +78,73 @@ var Imported = Imported || {};
  * 
  * Just be warned: item maximums are respected when merging inventories.
  */
+/*~struct~Inventory:
+ *
+ * @param Items
+ * @text Items
+ * @type struct<ItemObj>[]
+ *
+ * @param Weapons
+ * @text Weapons
+ * @type struct<WeaponObj>[]
+ *
+ * @param Armors
+ * @text Armors
+ * @type struct<ArmorObj>[]
+ *
+ * @param Gold
+ * @text Currency
+ * @type number
+ * @default 0
+ * @min 0
+ */
+/*~struct~ItemObj:
+ *
+ * @param ItemID
+ * @text Item
+ * @type item
+ *
+ * @param Count
+ * @text Count
+ * @type number
+ * @default 1
+ * @min 1
+ */
+/*~struct~WeaponObj:
+ *
+ * @param WeaponID
+ * @text Weapon
+ * @type weapon
+ *
+ * @param Count
+ * @text Count
+ * @type number
+ * @default 1
+ * @min 1
+ */
+/*~struct~ArmorObj:
+ *
+ * @param ArmorID
+ * @text Armor
+ * @type armor
+ *
+ * @param Count
+ * @text Count
+ * @type number
+ * @default 1
+ * @min 1
+ */
 //=============================================================================
 
 const UNH_MultiInventory = {};
 UNH_MultiInventory.pluginName = 'UNH_MultiInventory';
+UNH_MultiInventory.parameters = PluginManager.parameters(UNH_MultiInventory.pluginName);
+UNH_MultiInventory.InitInv = JSON.parse(UNH_MultiInventory.parameters['InitInv'] || []).map(function(entry) {
+  return JSON.parse(entry);
+});
+for (let i = 0; i < UNH_MultiInventory.InitInv.length; i++) {
+  UNH_MultiInventory.InitInv[i].SlotID = i;
+}
 
 PluginManager.registerCommand(UNH_MultiInventory.pluginName, "StoreInventory", function(args) {
   const slotId = Number(args.SlotID);
@@ -95,6 +163,15 @@ PluginManager.registerCommand(UNH_MultiInventory.pluginName, "ResetInventory", f
   $gameParty.resetInventory(slotId);
 });
 
+UNH_MultiInventory.Party_initAllItems = Game_Party.prototype.initAllItems;
+Game_Party.prototype.initAllItems = function(id) {
+  if (id === undefined) id = 0;
+  UNH_MultiInventory.Party_initAllItems.call(this);
+  if (id >= 0) {
+    this.loadInventory(id);
+  }
+};
+
 Game_Party.prototype.defaultInventory = function() {
   return {
     items:{},
@@ -104,9 +181,45 @@ Game_Party.prototype.defaultInventory = function() {
   };
 };
 
+Game_Party.prototype.paramInventory = function(id) {
+  if (!UNH_MultiInventory.InitInv[id]) return this.defaultInventory();
+  const inventory = UNH_MultiInventory.InitInv[id];
+  const tempInv = {
+    items:{},
+    weapons:{},
+    armors:{},
+    gold:Number(inventory.Gold);
+  };
+  for (const item of inventory.Items) {
+    tempInv.items[item.ItemID] = Number(item.Count);
+  }
+  for (const item of inventory.Weapons) {
+    tempInv.items[item.WeaponID] = Number(item.Count);
+  }
+  for (const item of inventory.Armors) {
+    tempInv.items[item.ArmorID] = Number(item.Count);
+  }
+  return tempInv;
+};
+
+Game_Party.prototype.multiParamInventory = function() {
+  if (!this._invSlots) this._invSlots = [];
+  if (!Array.isArray(this._invSlots)) this._invSlots = [];
+  for (const inventory of UNH_MultiInventory.InitInv) {
+    if (!this._invSlots[inventory.SlotID]) {
+      this.setInvSlot(inventory.SlotID, this.paramInventory(inventory.SlotID));
+    }
+  }
+};
+
 Game_Party.prototype.initInvStorage = function(id) {
   if (!this._invSlots) this._invSlots = [];
   if (!Array.isArray(this._invSlots)) this._invSlots = [];
+  if (id === undefined) this.multiParamInventory();
+  if (typeof id !== 'number') this.multiParamInventory();
+  if (isNaN(id)) this.multiParamInventory();
+  if (id < 0) this.multiParamInventory();
+  this.setInvSlot(id, this.paramInventory(id));
 };
 
 Game_Party.prototype.getInvSlot = function(id) {
@@ -167,8 +280,8 @@ Game_Party.prototype.storeInventory = function(slotId, copy) {
     gold:$gameParty._gold
   };
   this.setInvSlot(tempInv);
-  if (!!copy) {
-    $gameParty.initAllItems();
+  if (!copy) {
+    $gameParty.initAllItems(-1);
     $gameParty._gold = 0;
   }
 };

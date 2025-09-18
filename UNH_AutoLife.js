@@ -146,7 +146,7 @@ Game_Battler.prototype.unhReraiseHealing = function(state) {
   } else {
     origin = this;
   }
-  const retVal = Math.round(eval(value));
+  const retVal = Math.round(Number(eval(value)));
   const amp = Math.floor(Math.max((Math.abs(retVal) * eval(variance)) / 100, 0));
   const v = Math.randomInt(amp + 1) + Math.randomInt(amp + 1) - amp;
   return retVal + v;
