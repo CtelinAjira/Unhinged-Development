@@ -359,6 +359,7 @@ Game_BattlerBase.prototype.unhExpToLevel = function(index, level) {
   index = index % $dataSkills.length;
   level = Math.max(level, 1);
   if (index === 0) return Math.round(eval(UNH_SkillLevels.ExpToLevel));
+  const lvlCap = this.unhMaxSkillLevel(index);
   const expCap = $dataSkills[index].expCap;
   return Math.round(eval(expCap));
 };

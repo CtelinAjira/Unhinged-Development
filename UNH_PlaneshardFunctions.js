@@ -13,6 +13,7 @@ Imported.UNH_PlaneshardFunctions = true;
  * @author Unhinged Developer
  * @base UNH_MiscFunc
  * @orderAfter UNH_MiscFunc
+ * @orderAfter UNH_PlaneshardResources
  *
  * @help
  */
@@ -25,27 +26,11 @@ Object.defineProperties(Game_BattlerBase.prototype, {
   tempHp: {
     get: function() {
       return this.tempHp();
-	}, configurable: true
+    }, configurable: true
   }, tempMp: {
     get: function() {
       return this.tempMp();
-	}, configurable: true
-  }, tempFp: {
-    get: function() {
-      return this.tempFp();
-	}, configurable: true
-  }, tempEp: {
-    get: function() {
-      return this.tempEp();
-	}, configurable: true
-  }, tempPp: {
-    get: function() {
-      return this.tempPp();
-	}, configurable: true
-  }, tempQp: {
-    get: function() {
-      return this.tempQp();
-	}, configurable: true
+    }, configurable: true
   }
 });
 
@@ -59,36 +44,6 @@ Game_BattlerBase.prototype.tempStates = function(note) {
   });
 };
 
-Game_BattlerBase.prototype.tempHpStates = function() {
-  if (!Imported.VisuMZ_3_AntiDmgBarriers) return [];
-  return this.getAntiDamageBarrierStates().filter(function(state) {
-    const match = state.note.match(VisuMZ.AntiDmgBarriers.RegExp.AbsorbBarrier)
-    if (!match) return false;
-    if (match.length <= 0) return false;
-    return true;
-  });
-};
-
-Game_BattlerBase.prototype.tempMpStates = function() {
-  return this.tempStates('Temporary MP');
-};
-
-Game_BattlerBase.prototype.tempFpStates = function() {
-  return this.tempStates('Temporary FP');
-};
-
-Game_BattlerBase.prototype.tempEpStates = function() {
-  return this.tempStates('Temporary EP');
-};
-
-Game_BattlerBase.prototype.tempPpStates = function() {
-  return this.tempStates('Temporary PP');
-};
-
-Game_BattlerBase.prototype.tempQpStates = function() {
-  return this.tempStates('Temporary QP');
-};
-
 Game_BattlerBase.prototype.getTemp = function(states) {
   if (!states) return 0;
   if (!Array.isArray(states)) return 0;
@@ -98,30 +53,6 @@ Game_BattlerBase.prototype.getTemp = function(states) {
     if (isNaN(this.getStateDisplay(state.id))) return r;
     return r + Number(this.getStateDisplay(state.id));
   });
-};
-
-Game_BattlerBase.prototype.tempHp = function() {
-  return this.getTemp(this.tempHpStates());
-};
-
-Game_BattlerBase.prototype.tempMp = function() {
-  return this.getTemp(this.tempMpStates());
-};
-
-Game_BattlerBase.prototype.tempFp = function() {
-  return this.getTemp(this.tempFpStates());
-};
-
-Game_BattlerBase.prototype.tempEp = function() {
-  return this.getTemp(this.tempEpStates());
-};
-
-Game_BattlerBase.prototype.tempPp = function() {
-  return this.getTemp(this.tempPpStates());
-};
-
-Game_BattlerBase.prototype.tempQp = function() {
-  return this.getTemp(this.tempQpStates());
 };
 
 Game_BattlerBase.prototype.applyTemp = function(value, array) {
@@ -150,22 +81,56 @@ Game_BattlerBase.prototype.applyTemp = function(value, array) {
   return value;
 };
 
+Game_BattlerBase.prototype.tempHpStates = function() {
+  if (!Imported.VisuMZ_3_AntiDmgBarriers) return [];
+  return this.getAntiDamageBarrierStates().filter(function(state) {
+    const match = state.note.match(VisuMZ.AntiDmgBarriers.RegExp.AbsorbBarrier)
+    if (!match) return false;
+    if (match.length <= 0) return false;
+    return true;
+  });
+};
+
+Game_BattlerBase.prototype.tempHp = function() {
+  return this.getTemp(this.tempHpStates());
+};
+
+Game_BattlerBase.prototype.tempMpStates = function() {
+  return this.tempStates('Temporary MP');
+};
+
+Game_BattlerBase.prototype.tempMp = function() {
+  return this.getTemp(this.tempMpStates());
+};
+
 Game_BattlerBase.prototype.applyTempMp = function(value) {
   return this.applyTemp(value, this.tempMpStates());
 };
 
-Game_BattlerBase.prototype.applyTempFp = function(value) {
-  return this.applyTemp(value, this.tempFpStates());
-};
-
-Game_BattlerBase.prototype.applyTempEp = function(value) {
-  return this.applyTemp(value, this.tempEpStates());
-};
-
-Game_BattlerBase.prototype.applyTempPp = function(value) {
-  return this.applyTemp(value, this.tempPpStates());
-};
-
-Game_BattlerBase.prototype.applyTempQp = function(value) {
-  return this.applyTemp(value, this.tempQpStates());
-};
+if (!!Imported.UNH_PlaneshardResources) {
+  for (const param of UNH_PlaneshardResources.NewParams) {
+    const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
+    const paramName = 'temp' + funcParam;
+    const statesName = 'temp' + funcParam + 'States';
+    const applyName = 'applyTemp' + funcParam;
+    const tempName = 'Temporary ' + param.Name.toUpperCase(;
+    Object.defineProperty(Game_BattlerBase.prototype, paramName, {
+      get: function() {
+        return this[paramName]();
+      },
+      configurable: true
+    });
+    
+    Game_BattlerBase.prototype[statesName] = function() {
+      return this.tempStates(tempName);
+    };
+    
+    Game_BattlerBase.prototype[paramName] = function() {
+      return this.getTemp(this[statesName]());
+    };
+    
+    Game_BattlerBase.prototype[applyName] = function(value) {
+      return this.applyTemp(value, this[statesName]());
+    };
+  }
+}

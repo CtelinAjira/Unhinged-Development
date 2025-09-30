@@ -2410,7 +2410,19 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
   return (random < feint);
 };
 
+Game_Action.prototype.checkNoFeint = function(target) {
+  const note = 'No Parry';
+  const objects = this.traitObjects();
+  return objects.some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (obj.meta[note] === undefined) return false;
+    return eval(obj.meta[note]);
+  });
+};
+
 Game_Action.prototype.checkPhysFeint = function(target, handDex) {
+  if (this.checkNoFeint()) return false;
   if (this.isCertainHit()) return false;
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
@@ -2462,6 +2474,7 @@ Game_Action.prototype.checkPhysFeint = function(target, handDex) {
 };
 
 Game_Action.prototype.checkMagFeint = function(target, handDex) {
+  if (this.checkNoFeint()) return false;
   if (this.isCertainHit()) return false;
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
@@ -2685,7 +2698,7 @@ Game_Action.prototype.gobCount = function(target) {
   return gobCount;
 };
 
-Game_Battler.prototype.gobCount = function() {
+Game_Battler.prototype.gobCount = function(incFoes) {
   if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
   const user = this;
   let gobCount = 0;

@@ -133,7 +133,15 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
       return defaultLevel;
     }
   };
-};
+}
+
+if (!Imported.VisuMZ_1_BattleCore) {
+  Game_BattlerBase.prototype.battler = function () {
+    if (!SceneManager.isSceneBattle()) return null;
+    if (!SceneManager._scene._spriteset) return null;
+    return SceneManager._scene._spriteset.findTargetSprite(this);
+  };
+}
 
 Game_BattlerBase.prototype.meta = function() {
   if (!!this._unhMetadata) return this._unhMetadata;
@@ -166,6 +174,14 @@ BattleManager.startAction = function() {
   if (!!UNH_MiscFunc.ActionStartCode) {
     UNH_MiscFunc.ActionStart(this._action, this._subject, this._targets);
   }
+};
+
+UNH_MiscFunc.Action_isMagicSkill = Game_Action.prototype.isMagicSkill;
+Game_Action.prototype.isMagicSkill = function() {
+  if (UNH_MiscFunc.Action_isMagicSkill.call(this)) return true;
+  const item = this.item();
+  if (!item.meta) return false;
+  return !!item.meta['UNH Chant'];
 };
 
 Game_BattlerBase.prototype.object = function() {

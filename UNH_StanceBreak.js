@@ -82,8 +82,8 @@ const UNH_VS_StanceBreak = {};
 UNH_VS_StanceBreak.pluginName = 'UNH_VS_StanceBreak';
 UNH_VS_StanceBreak.parameters = PluginManager.parameters(UNH_VS_StanceBreak.pluginName);
 UNH_VS_StanceBreak.StanceBreakState = Number(UNH_VS_StanceBreak.parameters['StanceBreakState'] || "0");
-UNH_VS_StanceBreak.StanceHpBase = new Function(UNH_VS_StanceBreak.parameters['StanceHpBase'] || "");
-UNH_VS_StanceBreak.StanceDmgBase = new Function(UNH_VS_StanceBreak.parameters['StanceDmgBase'] || "");
+UNH_VS_StanceBreak.StanceHpBase = new Function(UNH_VS_StanceBreak.parameters['StanceHpBase'] || "return user.def;");
+UNH_VS_StanceBreak.StanceDmgBase = new Function(UNH_VS_StanceBreak.parameters['StanceDmgBase'] || "return 0;");
 
 UNH_VS_StanceBreak.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {

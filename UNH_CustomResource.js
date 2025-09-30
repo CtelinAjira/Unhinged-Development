@@ -59,7 +59,7 @@
  * @type string
  *
  * @param code
- * @text Code for Resource Cap
+ * @text Resource Max Function Code
  * @desc The code for determining this resource's maximum
  * Variables: user, note
  * @type note
@@ -88,7 +88,7 @@
 const UNH_CustomResource = {};
 UNH_CustomResource.pluginName = 'UNH_CustomResource';
 UNH_CustomResource.parameters = PluginManager.parameters(UNH_CustomResource.pluginName);
-UNH_CustomResource.CustGauge = UNH_CustomResource.parameters['CustGauge'] || [];
+UNH_CustomResource.CustGauge = JSON.parse(UNH_CustomResource.parameters['CustGauge'] || '{}');
 
 UNH_MiscFunc.Boot_onDatabaseLoaded = Scene_Boot.prototype.onDatabaseLoaded;
 Scene_Boot.prototype.onDatabaseLoaded = function () {
@@ -99,7 +99,7 @@ Scene_Boot.prototype.onDatabaseLoaded = function () {
 UNH_CustomResource.makeCustomResources = function() {
   for (const param of UNH_CustomResource.CustGauge) {
     Game_BattlerBase.prototype[String(param.maxFunc)] = function() {
-      try{
+      try {
         const user = this;
         const note = String(param.name);
         return eval(param.code)
