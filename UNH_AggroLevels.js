@@ -9,8 +9,9 @@ var Imported = Imported || {};
  /*:
  * @target MZ
  * @orderAfter UNH_BleedStacks
- * @orderAfter VisuMZ_0_CoreEngine
- * @plugindesc [RPG Maker MZ] [Version 1.03] [Unhinged] [AggroLevels]
+ * @orderAfter VisuMZ_1_BattleCore
+ * @orderAfter VisuMZ_3_BattleAI
+ * @plugindesc [RPG Maker MZ] [Version 1.04] [Unhinged] [AggroLevels]
  * @author Unhinged Developer
  *
  * @param BaseAggro
@@ -97,6 +98,12 @@ var Imported = Imported || {};
  * <unhHide>
  * - Use for States
  * - Forces all enemy attacks AWAY from the battler afflicted with this state
+ * - Does nothing to player attacks
+ * <unhEject>
+ * - Use for States
+ * - Forces all enemy attacks AWAY from the battler afflicted with this state
+ * - Forces all player attacks to not even recognize the battler afflicted with 
+ *   this state as a valid target
  * <unhProvoke>
  * - Use for States
  * - Forces all the afflicted battler's attacks to target the state's source
@@ -140,9 +147,12 @@ var Imported = Imported || {};
  * ============================================================================
  * 
  * action.decideRandomTarget()
+ * action.randomTargets(unit)
  * - ignores party's TGR values for actual random-target skills
+ * 
  * action.makeTargets()
- * - now checks <unhHide> notetag
+ * action.itemTargetCandidates()
+ * - now checks <unhHide> and <unhEject> notetags
  */
 //=============================================================================
 
@@ -162,8 +172,9 @@ UNH_AggroLevels.Action_randomTargets = Game_Action.prototype.randomTargets;
 Game_Action.prototype.randomTargets = function(unit) {
   if (this.isForRandom()) {
     const targets = [];
+    const aliveMem = unit.aliveMembers();
     for (let i = 0; i < this.numTargets(); i++) {
-      targets.push(unit.aliveMembers()[Math.randomInt(unit.aliveMembers().length)]);
+      targets.push(aliveMem[Math.randomInt(aliveMem.length)]);
     }
     return targets;
   } else {
@@ -171,34 +182,56 @@ Game_Action.prototype.randomTargets = function(unit) {
   }
 };
 
-UNH_AggroLevels.Action_makeTargets = Game_Action.prototype.makeTargets;
-Game_Action.prototype.makeTargets = function() {
-  const baseTargets = UNH_AggroLevels.Action_makeTargets.call(this);
-  const targets = baseTargets.filter(function(target) {
+UNH_AggroLevels.Action_itemTargetCandidates = Game_Action.prototype.itemTargetCandidates;
+Game_Action.prototype.itemTargetCandidates = function() {
+  const action = this;
+  const item = this.item();
+  const user = this.subject();
+  const origTargets = UNH_AggroLevels.Action_itemTargetCandidates.call(this);
+  const filterTargets = origTargets.filter(function(target) {
     if (!target) return false;
-    return target.states().some(function(obj) {
+    const hasHideStates = target.states().some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta['unhEject']) return false;
+      if (obj.meta['unhEject'] === true) return true;
+      return !!eval(obj.meta['unhEject']);
+    });
+    return !hasHideStates;
+  });
+  if (user.isActor()) return filterTargets;
+  const enemyTargets = filterTargets.filter(function(target) {
+    if (!target) return false;
+    const hasHideStates = target.states().some(function(obj) {
       if (!obj) return false;
       if (!obj.meta) return false;
       if (!obj.meta['unhHide']) return false;
       if (obj.meta['unhHide'] === true) return true;
       return !!eval(obj.meta['unhHide']);
     });
+    return !hasHideStates;
   });
-  if (targets.length <= 0) return baseTargets;
-  return targets;
+  return enemyTargets;
+};
+
+UNH_AggroLevels.Action_makeTargets = Game_Action.prototype.makeTargets;
+Game_Action.prototype.makeTargets = function() {
+  const baseTargets = UNH_AggroLevels.Action_makeTargets.call(this);
+  return baseTargets;
 };
 
 UNH_AggroLevels.Action_decideRandomTarget = Game_Action.prototype.decideRandomTarget;
 Game_Action.prototype.decideRandomTarget = function() {
   if (this.isForRandom()) {
-    let target;
+    let tgGroup;
     if (this.isForDeadFriend()) {
-      target = this.friendsUnit().deadMembers()[Math.randomInt(this.friendsUnit().deadMembers().length)];
+      tgGroup = this.friendsUnit().deadMembers();
     } else if (this.isForFriend()) {
-      target = this.friendsUnit().aliveMembers()[Math.randomInt(this.friendsUnit().aliveMembers().length)];
+      tgGroup = this.friendsUnit().aliveMembers();
     } else {
-      target = this.opponentsUnit().aliveMembers()[Math.randomInt(this.opponentsUnit().aliveMembers().length)];
+      tgGroup = this.opponentsUnit().aliveMembers();
     }
+    const target = tgGroup[Math.randomInt(tgGroup.length)];
     if (target) {
       this._targetIndex = target.index();
     } else {
@@ -221,8 +254,9 @@ if (!!UNH_AggroLevels.isTaunt) {
       for (const member of foes) {
         const tauntStates = JsonEx.makeDeepCopy(member.states()).filter(function() {
           if (!state.meta) return false;
-          if (!state.meta.unhTaunt) return false;
-          return true;
+          if (!state.meta['unhTaunt']) return false;
+          if (state.meta['unhTaunt'] === true) return true;
+          return !!eval(state.meta['unhTaunt']);
         });
         if (tauntStates.length > 0) {
           tauntTargets.push(member.index());
@@ -288,8 +322,9 @@ if (!!UNH_AggroLevels.isVoke) {
       const vokeOrigins = [];
       const vokeStates = JsonEx.makeDeepCopy(subject.states()).filter(function(state) {
         if (!state.meta) return false;
-        if (!state.meta.unhProvoke) return false;
-        return true;
+        if (!state.meta['unhProvoke']) return false;
+        if (state.meta['unhProvoke'] === true) return true;
+        return !!eval(state.meta['unhProvoke']);
       });
       for (const state of vokeStates) {
         const origin = subject.getStateOrigin(state.id);

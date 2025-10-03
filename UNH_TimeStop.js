@@ -66,7 +66,7 @@ Game_BattlerBase.prototype.updateStateTurns = function() {
 UNH_TimeStop.Battler_removeAuto = Game_Battler.prototype.removeStatesAuto;
 Game_Battler.prototype.removeStatesAuto = function(timing) {
   if (timing === 2) {
-    const states = this.states();
+    const states = JsonEx.makeDeepCopy(this.states());
     if (states.some(UNH_TimeStop.markedStates)) {
       const markedStates = states.filter(UNH_TimeStop.markedStates);
       for (const state of markedStates) {

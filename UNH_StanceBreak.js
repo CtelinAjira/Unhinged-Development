@@ -117,10 +117,10 @@ DataManager.processStanceHpNotetags = function(group) {
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
     notedata = obj.note.split(/[\r\n]+/);
-    obj.poisePlus = "";
-    obj.poiseRate = "";
-    obj.poiseFlat = "";
-    obj.poiseDmgDefn = "";
+    obj.poisePlus = "0";
+    obj.poiseRate = "1";
+    obj.poiseFlat = "0";
+    obj.poiseDmgDefn = "0";
     obj.poiseDmgRetn = false;
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
@@ -150,9 +150,9 @@ DataManager.processStanceDmgNotetags = function(group) {
   let obj, notedata, line;
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
-    obj.poiseDmgPlus = "";
-    obj.poiseDmgRate = "";
-    obj.poiseDmgFlat = "";
+    obj.poiseDmgPlus = "0";
+    obj.poiseDmgRate = "1";
+    obj.poiseDmgFlat = "0";
     notedata = obj.note.split(/[\r\n]+/);
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
@@ -221,7 +221,8 @@ Game_BattlerBase.prototype.breakPoise = function() {
 
 Game_Action.prototype.piercePoise = function() {
   const user = this.subject();
-  return !!this.item().poisePierce;
+  if (!this.item().poisePierce) return false;
+  return !!eval(this.item().poisePierce);
 };
 
 Game_BattlerBase.prototype.addPoise = function(value, insured) {
@@ -277,62 +278,65 @@ Game_BattlerBase.prototype.maxPoise = function() {
   return (((base + plus) * rate) + flat);
 };
 
-Game_Action.prototype.poiseDmgPlus = function(target) {
+Game_Action.prototype.poiseDmgPlus = function(target, value) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  return eval(item.poiseDmgPlus) + this.traitObjects().reduce(function(r, obj) {
+  const plus = Number(eval(item.poiseDmgPlus || "0")) + this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgPlus) return r;
-    return r + eval(obj.poiseDmgPlus);
+    return r + Number(eval(obj.poiseDmgPlus || "0"));
   }, 0);
+  return value + plus;
 };
 
-Game_Action.prototype.poiseDmgRate = function(target) {
+Game_Action.prototype.poiseDmgRate = function(target, value) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  return eval(item.poiseDmgRate) + this.traitObjects().reduce(function(r, obj) {
+  const rate = Number(eval(item.poiseDmgRate || "1")) * this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgRate) return r;
-    return r + eval(obj.poiseDmgRate);
+    return r * Number(eval(obj.poiseDmgRate || "1"));
   }, 1);
+  return value * rate;
 };
 
-Game_Action.prototype.poiseDmgFlat = function(target) {
+Game_Action.prototype.poiseDmgFlat = function(target, value) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  return eval(item.poiseDmgFlat) + this.traitObjects().reduce(function(r, obj) {
+  const flat = Number(eval(item.poiseDmgFlat || "0")) + this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgFlat) return r;
-    return r + eval(obj.poiseDmgFlat);
+    return r + Number(eval(obj.poiseDmgFlat || "0"));
   }, 0);
+  return value + flat;
 };
 
-Game_Action.prototype.poiseDmgDefn = function(target) {
+Game_Action.prototype.poiseDmgDefn = function(target, value) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  return target.traitObjects().reduce(function(r, obj) {
+  const defn = target.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgDefn) return r;
-    return r + eval(obj.poiseDmgDefn);
+    return r + Number(eval(obj.poiseDmgDefn || "0"));
   }, 0);
+  return value - defn;
 };
 
 Game_Action.prototype.makePoiseDamage = function(target) {
-  const base = UNH_VS_StanceBreak.StanceDmgBase(this, this.subject(), target);
-  const plus = this.poiseDmgPlus(target);
-  const rate = this.poiseDmgRate(target);
-  const flat = this.poiseDmgFlat(target);
-  const defn = this.poiseDmgDefn(target);
-  let value = (((base + plus) * rate) + flat);
-  if (defn > value) return 0;
+  let value = UNH_VS_StanceBreak.StanceDmgBase(this, this.subject(), target);
+  value = this.poiseDmgPlus(target, value);
+  value = this.poiseDmgRate(target, value);
+  value = this.poiseDmgFlat(target, value);
+  value = this.poiseDmgDefn(target, value);
+  if (value <= 0) return 0;
   if ($dataStates[UNH_VS_StanceBreak.StanceBreakState] && !this.piercePoise()) {
-    return Math.round((value - defn) * target.stateRate(UNH_VS_StanceBreak.StanceBreakState));
+    return Math.round(value * target.stateRate(UNH_VS_StanceBreak.StanceBreakState));
   }
-  return Math.round(value - defn);
+  return Math.round(value);
 };
 
 UNH_VS_StanceBreak.Action_apply = Game_Action.prototype.apply;
@@ -340,7 +344,7 @@ Game_Action.prototype.apply = function(target) {
   UNH_VS_StanceBreak.Action_apply.call(this);
   if (target.result().isHit()) {
     const poiseDamage = this.makePoiseDamage(target);
-    target.addPoise(-poiseDamage, !!poiseDamage);
+    if (poiseDamage > 0) target.addPoise(-poiseDamage, !poiseDamage);
   }
   if (this.item().poiseRestore) {
     target.setPoise(target.maxPoise(), true);
