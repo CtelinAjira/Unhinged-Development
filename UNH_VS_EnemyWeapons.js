@@ -1,5 +1,5 @@
 //=============================================================================
-// Unhinged Development - VS Action Sequences: Enemy Weapons
+// Unhinged Development - VS ActSeq + Items & Equip Core: Enemy Gear
 // UNH_VS_EnemyWeapons.js
 //=============================================================================
 
@@ -12,7 +12,9 @@ Imported.UNH_VS_EnemyWeapons = true;
  * @plugindesc [RPG Maker MZ] [Version 1.00] [Unhinged] [VS_EnemyWeapons]
  * @author Unhinged Developer
  * @base VisuMZ_1_BattleCore
+ * @base VisuMZ_1_ItemsEquipsCore
  * @orderAfter VisuMZ_1_BattleCore
+ * @orderAfter VisuMZ_1_ItemsEquipsCore
  * @orderAfter VisuMZ_3_WeaponAnimation
  *
  * @help
@@ -104,6 +106,17 @@ PluginManager.registerCommand("VisuMZ_1_BattleCore", "ActSeq_Weapon_SetActiveWea
   }
 });
 
+UNH_VS_EnemyWeapons.Boot_process_VisuMZ_ItemsEquipsCore_EquipSlots = Scene_Boot.prototype.process_VisuMZ_ItemsEquipsCore_EquipSlots;
+Scene_Boot.prototype.process_VisuMZ_ItemsEquipsCore_EquipSlots = function () {
+  UNH_VS_EnemyWeapons.Boot_process_VisuMZ_ItemsEquipsCore_EquipSlots.call(this);
+  for (const enemy of $dataEnemies) {
+    if (!enemy) {
+      continue;
+    }
+    VisuMZ.ItemsEquipsCore.Parse_Notetags_EquipSlots(enemy);
+  }
+};
+
 Game_Battler.prototype.setActiveWeaponSlot = function (slotIndex) {
   const weapons = this.weapons();
   if (weapons.length > 0) {
@@ -124,20 +137,20 @@ Game_Enemy.prototype.setup = function(enemyId, x, y) {
 
 UNH_VS_EnemyWeapons.Actor_equips = Game_Actor.prototype.equips;
 Game_Actor.prototype.equips = function() {
+  const fullEquips = UNH_VS_EnemyWeapons.Actor_equips.call(this);
   let object;
   if (this.isDisarmed()) {
-    return this._equips.map(function(item) {
-      if (!item) {
-        return null;
+    const partEquips = [];
+    for (let i = 0; i < fullEquips.length; i++) {
+      if (DataManager.isWeapon(fullEquips[i])) {
+        partEquips.push(null);
+      } else {
+        partEquips.push(fullEquips[i]);
       }
-      object = item.object();
-      if (DataManager.isWeapon(object)) {
-        return null;
-      }
-      return object;
-    });
+    }
+    return partEquips;
   }
-  return UNH_VS_EnemyWeapons.Actor_equips.call(this);
+  return fullEquips;
 };
 
 Game_Enemy.prototype.unhIsDualWield = function() {
@@ -147,44 +160,6 @@ Game_Enemy.prototype.unhIsDualWield = function() {
   const meta = object.meta;
   if (!meta) return false;
   return !!eval(meta['Dual Wield']);
-}
-
-Game_Enemy.prototype.initEquips = function() {
-  this._equips = [];
-  let eqpEval;
-  let slotName;
-  let eqpId;
-  for (let h = 0; h < $gameSystem.equipTypes.length; h++) {
-    this._equips.push(null);
-  }
-  for (let i = 1; i <= $gameSystem.equipTypes.length; i++) {
-    slotName = 'Slot ' + i;
-    if (!this.enemy().meta) continue;
-    if (!this.enemy().meta[slotName]) continue;
-    try {
-      eqpId = Number(eval(this.enemy().meta[slotName]));
-      if (i === 1) {
-        this._equips[i - 1] = $dataWeapons[eqpId];
-      } else if (i === 2 && this.unhIsDualWield()) {
-        this._equips[i - 1] = $dataWeapons[eqpId];
-      } else {
-        this._equips[i - 1] = $dataArmors[eqpId];
-      }
-    } catch (e) {
-      this._equips[i - 1] = null;
-    }
-  }
-};
-
-Game_Enemy.prototype.equipSlots = function() {
-    const slots = [];
-    for (let i = 1; i < $dataSystem.equipTypes.length; i++) {
-        slots.push(i);
-    }
-    if (slots.length >= 2 && this.unhIsDualWield()) {
-        slots[1] = 1;
-    }
-    return slots;
 };
 
 Game_BattlerBase.prototype.isDisarmed = function() {
@@ -195,14 +170,63 @@ Game_BattlerBase.prototype.isDisarmed = function() {
   });
 };
 
+Game_Enemy.prototype.getMatchingInitEquip = function (equips, equipType) {
+  for (const item of equips) {
+    if (!item) {
+      continue;
+    }
+    if (item.etypeId === equipType) {
+      equips.splice(equips.indexOf(item), 1);
+      return item;
+    }
+  }
+  return null;
+};
+
+Game_Enemy.prototype.equipSlots = function () {
+  const slots = VisuMZ.ItemsEquipsCore.deepCopy(this._forcedSlots || this.enemy().equipSlots);
+  if (slots.length >= 2 && this.isDualWield()) {
+    slots[1] = 1;
+  }
+  return slots;
+};
+
+Game_Enemy.prototype.initEquips = function() {
+  const slots = this.equipSlots();
+  const maxSlots = slots.length;
+  this._equips = [];
+  let slotName;
+  const equips = [];
+  for (let h = 0; h < maxSlots; h++) {
+    slotName = 'Slot ' + h;
+    if (!this.enemy().meta) {
+      equips[h] = 0;
+    } else if (!this.enemy().meta[slotName]) {
+      equips[h] = 0;
+    } else if (isNaN(this.enemy().meta[slotName])) {
+      equips[h] = 0;
+    } else {
+      equips[h] = Number(eval(this.enemy().meta[slotName]));
+    }
+  }
+  for (let i = 0; i < maxSlots; i++) {
+    this._equips[i] = new Game_Item();
+  }
+  for (let j = 0; j <= maxSlots; j++) {
+    const slot = slots[j];
+    const equip = this.getMatchingInitEquip(equips, slot);
+    this._equips[j].setObject(equip);
+  }
+  this.refresh();
+};
+
 Game_Enemy.prototype.equips = function() {
   if (!this._equips) this.initEquips();
   if (!Array.isArray(this._equips)) this.initEquips();
   if (this._equips.length <= 0) this.initEquips();
-  const equips = [];
-  for (let i = 0; i < this._equips.length) {
-    equips.push(this._equips[i]);
-  }
+  const equips = this._equips.map(function(item) {
+    return item.object();
+  });
   if (this.isDisarmed()) {
 	for (let i = 0; i < equips.length; i++) {
       if (DataManager.isWeapon(equips[i])) equips[i] = null;
@@ -245,8 +269,15 @@ Game_Enemy.prototype.isWtypeEquipped = function(wtypeId) {
   });
 };
 
+UNH_VS_EnemyWeapons.Actor_hasNoWeapons = Game_Actor.prototype.hasNoWeapons;
 Game_Enemy.prototype.hasNoWeapons = function() {
-    return this.weapons().length === 0;
+  if (this.isDisarmed()) return true;
+  return UNH_VS_EnemyWeapons.Actor_hasNoWeapons.call(this);
+};
+
+Game_Enemy.prototype.hasNoWeapons = function() {
+  if (this.isDisarmed()) return true;
+  return this.weapons().length === 0;
 };
 
 UNH_VS_EnemyWeapons.Enemy_traitObjects = Game_Enemy.prototype.traitObjects;
@@ -267,7 +298,8 @@ Game_Enemy.prototype.performWeaponAnimation = function () {
   const weapons = this.weapons().filter(function(weapon) {
     return !!weapon;
   });
-  const weaponId = weapons[0] ? weapons[0].wtypeId : defVal;
+  if (!weapons[0]) return defVal;
+  const weaponId = weapons[0].wtypeId;
   const motion = $dataSystem.attackMotions[weaponId];
   if (motion) {
     this.startWeaponAnimation(motion.weaponImageId);
@@ -281,7 +313,8 @@ Game_Enemy.prototype.attackAnimationIdSlot = function (slotId) {
   slotId = slotId || 1;
   slotId--;
   const weapons = this.weapons();
-  return weapons[slotId] ? weapons[slotId].animationId : defVal;
+  if (!weapons[slotId]) return defVal;
+  return weapons[slotId].animationId;
 };
 
 UNH_VS_EnemyWeapons.Enemy_getAttackMotion = Game_Enemy.prototype.getAttackMotion;
@@ -289,18 +322,20 @@ Game_Enemy.prototype.getAttackMotion = function () {
   const defVal = UNH_VS_EnemyWeapons.Enemy_getAttackMotion.call(this);
   if (this.hasNoWeapons()) return defVal;
   const weapons = this.weapons();
-  const weaponId = weapons[0] ? weapons[0].wtypeId : defVal;
+  if (!weapons[0]) return defVal;
+  const weaponId = weapons[0].wtypeId;
   return $dataSystem.attackMotions[weaponId];
 };
 
 UNH_VS_EnemyWeapons.Enemy_getAttackMotionSlot = Game_Enemy.prototype.getAttackMotionSlot;
-Game_Actor.prototype.getAttackMotionSlot = function (slotId) {
-  const defVal = UNH_VS_EnemyWeapons.Enemy_getAttackMotionSlot.call(this);
+Game_Enemy.prototype.getAttackMotionSlot = function (slotId) {
+  const defVal = UNH_VS_EnemyWeapons.Enemy_getAttackMotionSlot.call(this, slotId);
   if (this.hasNoWeapons()) return defVal;
   slotId = slotId || 1;
   slotId--;
   const weapons = this.weapons();
-  const weaponId = weapons[slotId] ? weapons[slotId].wtypeId : defVal;
+  if (!weapons[slotId]) return defVal;
+  const weaponId = weapons[slotId].wtypeId;
   return $dataSystem.attackMotions[weaponId];
 };
 
