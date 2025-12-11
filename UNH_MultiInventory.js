@@ -14,8 +14,15 @@ var Imported = Imported || {};
  *
  * @param InitInv
  * @text Starting Inventories
- * @desc Create starting inventories for the groups
+ * @desc Instantiate starting inventories for the groups
  * @type struct<Inventory>[]
+ *
+ * @param StartInv
+ * @text First Group's Inventory
+ * @desc Load starting inventory for the first group
+ * @type number
+ * @default -1
+ * @min -1
  *
  * @command StoreInventory
  * @text Store Inventory
@@ -139,6 +146,7 @@ var Imported = Imported || {};
 const UNH_MultiInventory = {};
 UNH_MultiInventory.pluginName = 'UNH_MultiInventory';
 UNH_MultiInventory.parameters = PluginManager.parameters(UNH_MultiInventory.pluginName);
+UNH_MultiInventory.StartInv = Number(UNH_MultiInventory.parameters['InitInv'] || -1)
 UNH_MultiInventory.InitInv = JSON.parse(UNH_MultiInventory.parameters['InitInv'] || []).map(function(entry) {
   return JSON.parse(entry);
 });
@@ -165,7 +173,7 @@ PluginManager.registerCommand(UNH_MultiInventory.pluginName, "ResetInventory", f
 
 UNH_MultiInventory.Party_initAllItems = Game_Party.prototype.initAllItems;
 Game_Party.prototype.initAllItems = function(id) {
-  if (id === undefined) id = 0;
+  if (id === undefined) id = UNH_MultiInventory.StartInv;
   UNH_MultiInventory.Party_initAllItems.call(this);
   if (id >= 0) {
     this.loadInventory(id);

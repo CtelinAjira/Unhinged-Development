@@ -52,12 +52,12 @@ Game_BattlerBase.prototype.getBleed = function(stateId) {
   if (!this._bleedStacks[stateId]) {
     if (this.isStateAffected(stateId)) {
       this._bleedStacks[stateId] = undefined;
-      if (Imported.VisuMZ_1_SkillsStatesCore) this.clearStateDisplay(stateId);
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) this.clearStateDisplay(stateId);
       this.removeState(stateId);
     }
     return 0;
   }
-  if (Imported.VisuMZ_1_SkillsStatesCore) this.setStateDisplay(stateId, Math.round(this._bleedStacks[stateId]));
+  if (UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) this.setStateDisplay(stateId, Math.round(this._bleedStacks[stateId]));
   return Math.round(this._bleedStacks[stateId]);
 };
 
@@ -70,25 +70,25 @@ Game_BattlerBase.prototype.setBleed = function(stateId, value) {
   if (!value) {
     this._bleedStacks[stateId] = undefined;
     if (this.isStateAffected(stateId)) {
-      if (Imported.VisuMZ_1_SkillsStatesCore) this.clearStateDisplay(stateId);
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) this.clearStateDisplay(stateId);
       this.removeState(stateId);
     }
   } else if (typeof value !== 'number') {
     this._bleedStacks[stateId] = undefined;
     if (this.isStateAffected(stateId)) {
-      if (Imported.VisuMZ_1_SkillsStatesCore) this.clearStateDisplay(stateId);
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) this.clearStateDisplay(stateId);
       this.removeState(stateId);
     }
   } else if (isNaN(value)) {
     this._bleedStacks[stateId] = undefined;
     if (this.isStateAffected(stateId)) {
-      if (Imported.VisuMZ_1_SkillsStatesCore) this.clearStateDisplay(stateId);
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) this.clearStateDisplay(stateId);
       this.removeState(stateId);
     }
   } else if (value <= 0) {
     this._bleedStacks[stateId] = undefined;
     if (this.isStateAffected(stateId)) {
-      if (Imported.VisuMZ_1_SkillsStatesCore) this.clearStateDisplay(stateId);
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) this.clearStateDisplay(stateId);
       this.removeState(stateId);
     }
   } else {
@@ -96,7 +96,7 @@ Game_BattlerBase.prototype.setBleed = function(stateId, value) {
     if (!this.isStateAffected(stateId)) this.addState(stateId);
     const roundVal = Math.round(value);
     this._bleedStacks[stateId] = roundVal;
-    if (Imported.VisuMZ_1_SkillsStatesCore) this.setStateDisplay(stateId, roundVal);
+    if (UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) this.setStateDisplay(stateId, roundVal);
   }
 };
 
@@ -131,26 +131,12 @@ Game_Action.prototype.applyBleed = function(value, target, affUser) {
   affUser = !!affUser;
   const item = this.item();
   const user = this.subject();
-  let isSkillIgnoreBleed;
-  if (!!item) {
-    if (!!item.meta) {
-      isSkillIgnoreBleed = !!item.meta['Ignore Bleed']
-    } else {
-      isSkillIgnoreBleed = false;
-    }
-  } else {
-    isSkillIgnoreBleed = false;
-  }
-  const isUserIgnoreBleed = user.traitObjects().some(function(obj) {
-    if (!obj) return false;
-    if (!obj.meta) return false;
-    return !!obj.meta['Ignore Bleed as User'];
-  });
-  const isTargetIgnoreBleed = target.traitObjects().some(function(obj) {
-    if (!obj) return false;
-    if (!obj.meta) return false;
-    return !!obj.meta['Ignore Bleed as Target'];
-  });
+  let isSkillIgnoreBleed = UNH_MiscFunc.isSkillTagged(this, target, 'Ignore Bleed');
+  let isSkillDefyBleed = UNH_MiscFunc.isSkillTagged(this, target, 'Defy Bleed');
+  const isUserIgnoreBleed = UNH_MiscFunc.isUserTagged(this, target, 'Ignore Bleed as User');
+  const isTargetIgnoreBleed = UNH_MiscFunc.isUserTagged(this, target, 'Ignore Bleed as Target');
+  const isUserDefyBleed = UNH_MiscFunc.isUserTagged(this, target, 'Defy Bleed as User');
+  const isTargetDefyBleed = UNH_MiscFunc.isUserTagged(this, target, 'Defy Bleed as Target');
   if (isSkillIgnoreBleed || isUserIgnoreBleed || isTargetIgnoreBleed) return value;
   let bleedStates;
   if (affUser) {
@@ -171,7 +157,7 @@ Game_Action.prototype.applyBleed = function(value, target, affUser) {
     }
     if (curBleed <= 0) continue;
     const bleedLoss = Math.min(value, curBleed);
-    value -= bleedLoss;
+    if (!isSkillDefyBleed && !isUserDefyBleed && !isTargetDefyBleed) value -= bleedLoss;
     if (affUser) {
       user.addBleed(stateId, -bleedLoss);
     } else {

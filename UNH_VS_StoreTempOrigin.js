@@ -58,7 +58,16 @@ Imported.UNH_StoreTempOrigin = true;
 const UNH_StoreTempOrigin = {};
 UNH_StoreTempOrigin.pluginName = 'UNH_StoreTempOrigin';
 
-if (!Imported.UNH_MiscFunc) {
+UNH_StoreTempOrigin.hasPlugin = function(name) {
+  return $plugins.some(function(plug) {
+    if (!plug) return false;
+    if (!plug.name) return false;
+    if (!plug.status) return false;
+    return plug.name === name;
+  });
+};
+
+if (!UNH_StoreTempOrigin.hasPlugin('UNH_MiscFunc')) {
   Game_Actor.prototype.object = function() {
     return $dataActors[this._actorId];
   };

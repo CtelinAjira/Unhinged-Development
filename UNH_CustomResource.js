@@ -88,12 +88,15 @@
 const UNH_CustomResource = {};
 UNH_CustomResource.pluginName = 'UNH_CustomResource';
 UNH_CustomResource.parameters = PluginManager.parameters(UNH_CustomResource.pluginName);
-UNH_CustomResource.CustGauge = JSON.parse(UNH_CustomResource.parameters['CustGauge'] || '{}');
+UNH_CustomResource.CustGauge = JSON.parse(UNH_CustomResource.parameters['CustGauge'] || '[]');
+for (let i = 0; i < UNH_CustomResource.CustGauge.length; i++) {
+  UNH_CustomResource.CustGauge[i] = JSON.parse(UNH_CustomResource.CustGauge[i] || '{}');
+}
 
-UNH_MiscFunc.Boot_onDatabaseLoaded = Scene_Boot.prototype.onDatabaseLoaded;
+UNH_CustomResource.Boot_onDatabaseLoaded = Scene_Boot.prototype.onDatabaseLoaded;
 Scene_Boot.prototype.onDatabaseLoaded = function () {
-  UNH_MiscFunc.Boot_onDatabaseLoaded.call(this);
-  UNH_MiscFunc.makeCustomResources();
+  UNH_CustomResource.Boot_onDatabaseLoaded.call(this);
+  UNH_CustomResource.makeCustomResources();
 };
 
 UNH_CustomResource.makeCustomResources = function() {

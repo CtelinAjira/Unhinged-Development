@@ -48,10 +48,16 @@ Imported.UNH_SummonLevels = true;
  *   summoner
  * <unhSummonerLevel:X>
  * - Use for Enemies
- * - Gives enemies a level X (JS) for the purposes of summoning
+ * - Gives enemies a level X (JS: Number) for the purposes of summoning
  *   - user: the enemy being given a level
  * - Do not use if also using UNH_MiscFunc.js
  * - Do not use if also using VisuMZ_3_EnemyLevels.js
+ * <unhSummonId:X>
+ * - Use for Skills/Items
+ * - Marks an action to specifically use actor X (JS: Database ID) as the summon
+ *   - action: the marked action
+ *   - item: the action's database entry
+ *   - user: the action's actual user
  */
 //=============================================================================
 
@@ -60,10 +66,20 @@ UNH_SummonLevels.pluginName = 'UNH_SummonLevels';
 UNH_SummonLevels.parameters = PluginManager.parameters(UNH_SummonLevels.pluginName);
 UNH_SummonLevels.DefaultLevel = Number(UNH_SummonLevels.parameters['DefaultLevel'] || 0);
 
+UNH_SummonLevels.hasPlugin = function(name) {
+  return $plugins.some(function(plug) {
+    if (!plug) return false;
+    if (!plug.name) return false;
+    if (!plug.status) return false;
+    return plug.name === name;
+  });
+};
+
 Game_BattlerBase.prototype.summons = function() {
   return $gameActors.data().filter(function(actor) {
     if (!actor) return false;
     if (actor === this) return false;
+    if ($gameParty.members().includes(actor)) return false;
     if (!actor.actor()) return false;
     if (!actor.actor().meta) return false;
     if (!!eval(actor.actor().meta.unhSummon)) {
@@ -79,6 +95,7 @@ Game_Actor.prototype.summons = function() {
   for (const actor of $gameActors.data()) {
     if (!actor) continue;
     if (actor === this) continue;
+    if ($gameParty.members().includes(actor)) continue;
     if (!actor.actor()) continue;
     if (summons.includes(actor)) continue;
     if (!actor.actor().meta) continue;
@@ -103,6 +120,7 @@ Game_Enemy.prototype.summons = function() {
   for (const actor of $gameActors.data()) {
     if (!actor) continue;
     if (actor === this) continue;
+    if ($gameParty.members().includes(actor)) continue;
     if (!actor.actor()) continue;
     if (summons.includes(actor)) continue;
     if (!actor.actor().meta) continue;
@@ -123,32 +141,58 @@ Game_Enemy.prototype.summons = function() {
 
 UNH_SummonLevels.BattleManager_startAction = BattleManager.startAction;
 BattleManager.startAction = function() {
-  const subject = this._subject;
-  subject.unhSummonCalcLevel();
+  const action = this._action;
+  action.unhSummonCalcLevel();
   UNH_SummonLevels.BattleManager_startAction.call(this);
 };
 
-Game_BattlerBase.prototype.unhSummonCalcLevel = function(actorId) {
-  const summons = this.summons();
+Game_Action.prototype.unhSummonCalcLevel = function(actorId) {
+  const action = this;
+  const item = this.item();
+  const user = this.subject();
+  let meta = null;
+  let metaData = '0';
+  let defSmnId = 0;
+  if (!!item) {
+    meta = item.meta;
+    if (!!meta) {
+      if (!!meta['unhSummonId']) {
+        metaData = meta['unhSummonId'];
+        if (isNaN(metaData)) {
+          const evalData = eval(metaData);
+          if (isNaN(evalData)) {
+            defSmnId = 0;
+          } else {
+            defSmnId = Number(evalData);
+          }
+        } else {
+          defSmnId = Number(metaData);
+        }
+      }
+    }
+  }
+  const summons = user.summons();
   const actors = $gameActors.data();
-  if (typeof actorId !== 'number') actorId = 0;
-  if (isNaN(actorId)) actorId = 0;
-  if (actorId < 0) actorId = 0;
-  if (actorId >= actors.length) actorId = 0;
-  const maxLevel = this.isActor() ? this.maxLevel() : ((!!Imported.VisuMZ_3_EnemyLevels) ? this.maxLevel() : 99);
-  const level = this.unhLevel(maxLevel);
+  if (actorId === undefined) actorId = defSmnId;
+  if (typeof actorId !== 'number') actorId = defSmnId;
+  if (isNaN(actorId)) actorId = defSmnId;
+  if (actorId < 0) actorId = defSmnId;
+  if (actorId >= actors.length) actorId = defSmnId;
+  const temp = ((UNH_SummonLevels.hasPlugin('VisuMZ_3_EnemyLevels')) ? (user.maxLevel()) : (99));
+  const maxLevel = ((user.isActor()) ? (user.maxLevel()) : (temp));
+  const level = user.unhLevel(maxLevel);
   if (actorId > 0) {
     const summon = $gameActors.actor(actorId);
     if (summons.includes(summon)) summon.changeExp(summon.expForLevel(level), false);
   } else {
-    for (const summon of this.summons()) {
+    for (const summon of user.summons()) {
       if (summon.level === level) continue;
       summon.changeExp(summon.expForLevel(level), false);
     }
   }
 };
 
-if (!Imported.VisuMZ_3_EnemyLevels && !Imported.UNH_MiscFunc) {
+if (!UNH_SummonLevels.hasPlugin('VisuMZ_3_EnemyLevels') && !UNH_SummonLevels.hasPlugin('UNH_MiscFunc')) {
   Object.defineProperty(Game_Enemy.prototype, "level", {
     get: function () {
       return this.getLevel();
@@ -170,6 +214,10 @@ if (!Imported.VisuMZ_3_EnemyLevels && !Imported.UNH_MiscFunc) {
     const level = meta.unhSummonerLevel;
     if (!level) return defaultLevel;
     if (typeof level === 'number') {
+      if (isNaN(level)) return UNH_SummonLevels.DefaultLevel;
+	  return Math.min(Math.max(Number(level), 1), max);
+    }
+    if (/^\d+$/.test(level)) {
       if (isNaN(level)) return UNH_SummonLevels.DefaultLevel;
 	  return Math.min(Math.max(Number(level), 1), max);
     }

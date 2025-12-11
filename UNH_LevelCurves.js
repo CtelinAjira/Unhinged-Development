@@ -36,6 +36,7 @@ UNH_LevelCurves.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
   if (!UNH_LevelCurves.DataManager_isDatabaseLoaded.call(this)) return false;
   if (!UNH_LevelCurves._isLoaded) {
+    this.processExpNotetags($dataActors);
     this.processExpNotetags($dataClasses);
     UNH_LevelCurves._isLoaded = true;
   }

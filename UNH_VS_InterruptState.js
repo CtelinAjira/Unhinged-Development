@@ -45,7 +45,6 @@ Game_Battler.prototype.atbInterrupt = function (interrupt) {
 
 UNH_InterruptState.Battler_addState = Game_Battler.prototype.addState;
 Game_Battler.prototype.addState = function(stateId) {
-  UNH_InterruptState.Battler_addState.call(this, stateId);
   if (BattleManager.isATB()) {
     const state = $dataStates[stateId];
     if (!!state) {
@@ -56,6 +55,7 @@ Game_Battler.prototype.addState = function(stateId) {
       }
     }
   }
+  UNH_InterruptState.Battler_addState.call(this, stateId);
 };
 
 UNH_InterruptState.Battler_startTpbCasting = Game_Battler.prototype.startTpbCasting;

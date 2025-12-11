@@ -109,7 +109,7 @@ Game_Battler.prototype.addState = function(stateId) {
       turns += Math.round(Number($dataStates[stateId].meta['Enchant Weapon']));
 	}
     this.unhSetEnchantTurns(stateId, turns);
-    if (!!Imported.VisuMZ_1_SkillsStatesCore) {
+    if (Imported.VisuMZ_1_SkillsStatesCore) {
       this.setStateDisplay(stateId, this.unhGetEnchantTurns(stateId));
     }
   }

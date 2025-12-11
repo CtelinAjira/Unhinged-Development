@@ -38,23 +38,21 @@ UNH_AltRecoverAll.pluginName = 'UNH_AltRecoverAll';
 UNH_AltRecoverAll.parameters = PluginManager.parameters(UNH_AltRecoverAll.pluginName);
 UNH_AltRecoverAll.RecoverBeforeCode = String(UNH_AltRecoverAll.parameters['RecoverBeforeCode'] || '');
 UNH_AltRecoverAll.RecoverAfterCode = String(UNH_AltRecoverAll.parameters['RecoverAfterCode'] || '');
+if (!UNH_AltRecoverAll.RecoverBeforeCode) {
+  UNH_AltRecoverAll.RecoverBeforeFunc = function() {};
+} else {
+  UNH_AltRecoverAll.RecoverBeforeFunc = new Function('target', 'try { ' + UNH_AltRecoverAll.RecoverBeforeCode + ' } catch (e) { console.log(e); }');
+}
+if (!UNH_AltRecoverAll.RecoverAfterCode) {
+  UNH_AltRecoverAll.RecoverAfterFunc = function() {};
+} else {
+  UNH_AltRecoverAll.RecoverAfterFunc = new Function('target', 'try { ' + UNH_AltRecoverAll.RecoverAfterCode + ' } catch (e) { console.log(e); }');
+}
 
 UNH_AltRecoverAll.BattlerBase_recoverAll = Game_BattlerBase.prototype.recoverAll;
 Game_BattlerBase.prototype.recoverAll = function() {
   const target = this;
-  if (!!UNH_AltRecoverAll.RecoverBeforeCode) {
-    try {
-      eval(UNH_AltRecoverAll.RecoverBeforeCode);
-    } catch (e) {
-      console.log(e);
-    }
-  }
+  UNH_AltRecoverAll.RecoverBeforeFunc(target);
   UNH_AltRecoverAll.BattlerBase_recoverAll.call(this);
-  if (!!UNH_AltRecoverAll.RecoverAfterCode) {
-    try {
-      eval(UNH_AltRecoverAll.RecoverAfterCode);
-    } catch (e) {
-      console.log(e);
-    }
-  }
+  UNH_AltRecoverAll.RecoverAfterFunc(target);
 };

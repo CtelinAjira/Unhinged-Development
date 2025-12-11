@@ -30,7 +30,7 @@ UNH_CustParams.pluginName = 'UNH_CustParams';
 UNH_CustParams.parameters = PluginManager.parameters(UNH_CustParams.pluginName);
 UNH_CustParams.LevelScale = Number(UNH_CustParams.parameters['LevelScale'] || 10);
 
-if (!Imported.VisuMZ_1_SkillsStatesCore) {
+if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) {
   DataManager.getSkillTypes = function(skill) {
     if (!skill.stypeId) return [];
     return [skill.stypeId];
@@ -58,8 +58,8 @@ Object.defineProperties(Game_Actor.prototype, {
       const note2 = 'Floor Damage Rate';
       const user = this;
       const battler = this.enemy();
-      const curClass = ((Imported.UNH_VS_EnemyWeapons) ? (this.currentClass()) : (null));
-      const equips = ((Imported.UNH_VS_EnemyWeapons) ? (this.equips()) : ([]));
+      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       const states = this.states();
       let buffer = 1;
       for (const state of states) {
@@ -128,7 +128,7 @@ Object.defineProperties(Game_Actor.prototype, {
         if (state.meta[note] === undefined) continue;
         return eval(state.meta[note]);
       }
-      if (Imported.VisuMZ_1_BattleCore) {
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
         const weapon = this.equips()[this._activeWeaponSlot || 0];
         if (DataManager.isWeapon(weapon)) {
           if (!!weapon.meta) {
@@ -229,7 +229,7 @@ Object.defineProperties(Game_Actor.prototype, {
         if (!state.meta[note]) continue;
         buffer += eval(state.meta[note]);
       }
-      if (Imported.VisuMZ_1_BattleCore) {
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
         weapon = weapons[this._activeWeaponSlot || 0];
         if (!!weapon) {
           if (!weapon.meta) {
@@ -268,7 +268,7 @@ Object.defineProperties(Game_Actor.prototype, {
         if (!state.meta[note]) continue;
         buffer += eval(state.meta[note]);
       }
-      if (Imported.VisuMZ_1_BattleCore) {
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
         weapon = weapons[this._activeWeaponSlot || 0];
         if (!!weapon) {
           if (!weapon.meta) {
@@ -426,6 +426,40 @@ Object.defineProperties(Game_Actor.prototype, {
   }, physDmgPlus: {
     get: function() {
       const note = 'Physical Damage';
+      const user = this;
+      const battler = this.object();
+      const curClass = this.currentClass();
+      const states = this.states();
+      const equips = this.equips();
+      let dmg = 0;
+      const isDoublehand = user.unhIsDoublehand();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta[note]) continue;
+        dmg += eval(equip.meta[note]);
+      }
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (!state.meta[note]) continue;
+        dmg += eval(state.meta[note]);
+      }
+      if (!!curClass.meta) {
+        if (!!curClass.meta[note]) {
+          dmg += eval(curClass.meta[note]);
+        }
+      }
+      if (!!battler.meta) {
+        if (!!battler.meta[note]) {
+          dmg += eval(battler.meta[note]);
+        }
+      }
+      return dmg;
+    }, configurable: true
+  }, tekDmgPlus: {
+    get: function() {
+      const note = 'Techno Damage';
       const user = this;
       const battler = this.object();
       const curClass = this.currentClass();
@@ -611,8 +645,8 @@ Object.defineProperties(Game_Enemy.prototype, {
       const note2 = 'Floor Damage Rate';
       const user = this;
       const battler = this.enemy();
-      const curClass = ((Imported.UNH_VS_EnemyWeapons) ? (this.currentClass()) : (null));
-      const equips = ((Imported.UNH_VS_EnemyWeapons) ? (this.equips()) : ([]));
+      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       const states = this.states();
       let buffer = 1;
       for (const state of states) {
@@ -772,7 +806,7 @@ Object.defineProperties(Game_Enemy.prototype, {
         if (!state.meta[note]) continue;
         buffer += eval(state.meta[note]);
       }
-      if (Imported.VisuMZ_1_BattleCore) {
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
         weapon = weapons[this._activeWeaponSlot || 0];
         if (!!weapon) {
           if (!weapon.meta) {
@@ -811,7 +845,7 @@ Object.defineProperties(Game_Enemy.prototype, {
         if (!state.meta[note]) continue;
         buffer += eval(state.meta[note]);
       }
-      if (Imported.VisuMZ_1_BattleCore) {
+      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
         weapon = weapons[this._activeWeaponSlot || 0];
         if (!!weapon) {
           if (!weapon.meta) {
@@ -950,7 +984,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const note = 'Speed Boost';
       const user = this;
       const states = this.states();
-      const equips = ((Imported.UNH_VS_EnemyWeapons) ? (this.equips()) : ([]));
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       let buffer = 0;
       for (const state of states) {
         if (!state) continue;
@@ -958,7 +992,7 @@ Object.defineProperties(Game_Enemy.prototype, {
         if (!state.meta[note]) continue;
         buffer += eval(state.meta[note]);
       }
-      if (Imported.UNH_VS_EnemyWeapons) {
+      if (UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
         for (const equip of equips) {
           if (!equip) continue;
           if (!equip.meta) continue;
@@ -971,6 +1005,40 @@ Object.defineProperties(Game_Enemy.prototype, {
   }, physDmgPlus: {
     get: function() {
       const note = 'Physical Damage';
+      const user = this;
+      const battler = this.object();
+      const curClass = this.currentClass();
+      const states = this.states();
+      const equips = this.equips();
+      let dmg = 0;
+      const isDoublehand = user.unhIsDoublehand();
+      for (const equip of equips) {
+        if (!equip) continue;
+        if (!equip.meta) continue;
+        if (!equip.meta[note]) continue;
+        dmg += eval(equip.meta[note]);
+      }
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (!state.meta[note]) continue;
+        dmg += eval(state.meta[note]);
+      }
+      if (!!curClass.meta) {
+        if (!!curClass.meta[note]) {
+          dmg += eval(curClass.meta[note]);
+        }
+      }
+      if (!!battler.meta) {
+        if (!!battler.meta[note]) {
+          dmg += eval(battler.meta[note]);
+        }
+      }
+      return dmg;
+    }, configurable: true
+  }, tekDmgPlus: {
+    get: function() {
+      const note = 'Techno Damage';
       const user = this;
       const battler = this.object();
       const curClass = this.currentClass();
@@ -1142,7 +1210,7 @@ Object.defineProperties(Game_Enemy.prototype, {
 });
 
 UNH_CustParams.weaponSkill = function(user, wtypeId) {
-  if (!Imported.UNH_SkillLevels) return 0;
+  if (!UNH_MiscFunc.hasPlugin('UNH_SkillLevels')) return 0;
   const wtypes = $dataSystem.weaponTypes;
   let note = "Unarmed Master";
   if (wtypeId > 0 && wtypeId < wtypes.length) note = wtypes[wtypeId] + " Master";
@@ -2063,7 +2131,7 @@ Game_Action.prototype.isWeapon = function(target) {
 
 Game_Action.prototype.wpnPow = function(target) {
   const user = this.subject();
-  if (!Imported.VisuMZ_1_BattleCore) return ((this.wPow(target, 0) + this.wPow(target, 1)));
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) return ((this.wPow(target, 0) + this.wPow(target, 1)));
   const weaponSlot = user._activeWeaponSlot || 0;
   const dblWpn = user.unhDblWpn(weaponSlot) ? 0.5 : 1;
   return (this.wPow(target, Math.max(Math.min(weaponSlot, 1), 0)) * dblWpn);
@@ -2072,7 +2140,7 @@ Game_Action.prototype.wpnPow = function(target) {
 Game_Action.prototype.wpnMag = function(target) {
   if (!this.isWeapon(target)) return false;
   const user = this.subject();
-  if (!Imported.VisuMZ_1_BattleCore) return (this.wMag(target, 0) || this.wMag(target, 1));
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) return (this.wMag(target, 0) || this.wMag(target, 1));
   const weaponSlot = user._activeWeaponSlot || 0;
   return this.wMag(target, weaponSlot);
 };
@@ -2527,28 +2595,28 @@ Game_Action.prototype.checkMagFeint = function(target, handDex) {
 
 Game_Action.prototype.physBreak = function(target) {
   if (!action.isPhysical()) return false;
-  if (!Imported.VisuMZ_1_BattleCore) return (this.checkPhysBreak(target, 0) || this.checkPhysBreak(target, 1));
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) return (this.checkPhysBreak(target, 0) || this.checkPhysBreak(target, 1));
   if (!!user._activeWeaponSlot) return this.checkPhysBreak(target, 1);
   return this.checkPhysBreak(target, 0);
 };
 
 Game_Action.prototype.magBreak = function(target) {
   if (!action.isMagical()) return false;
-  if (!Imported.VisuMZ_1_BattleCore) return (this.checkMagBreak(target, 0) || this.checkMagBreak(target, 1));
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) return (this.checkMagBreak(target, 0) || this.checkMagBreak(target, 1));
   if (!!user._activeWeaponSlot) return this.checkMagBreak(target, 1);
   return this.checkMagBreak(target, 0);
 };
 
 Game_Action.prototype.physFeint = function(target) {
   if (!action.isPhysical()) return false;
-  if (!Imported.VisuMZ_1_BattleCore) return (this.checkPhysFeint(target, 0) || this.checkPhysFeint(target, 1));
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) return (this.checkPhysFeint(target, 0) || this.checkPhysFeint(target, 1));
   if (!!user._activeWeaponSlot) return this.checkPhysFeint(target, 1);
   return this.checkPhysFeint(target, 0);
 };
 
 Game_Action.prototype.magFeint = function(target) {
   if (!action.isMagical()) return false;
-  if (!Imported.VisuMZ_1_BattleCore) return (this.checkMagFeint(target, 0) || this.checkMagFeint(target, 1));
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) return (this.checkMagFeint(target, 0) || this.checkMagFeint(target, 1));
   if (!!user._activeWeaponSlot) return this.checkMagFeint(target, 1);
   return this.checkMagFeint(target, 0);
 };
@@ -2630,7 +2698,7 @@ Game_Action.prototype.advCrit = function(target) {
 };
 
 Game_Action.prototype.orcCount = function(target, orcType) {
-  if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_ElementStatusCore')) return 0;
   const user = this.subject();
   const orcTypes = ['green', 'red', 'black', 'purple', 'white', 'blue', 'yellow'];
   if (!orcType) {
@@ -2657,7 +2725,7 @@ Game_Action.prototype.orcCount = function(target, orcType) {
 };
 
 Game_Battler.prototype.orcCount = function(orcType, incFoes) {
-  if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_ElementStatusCore')) return 0;
   const user = this;
   const orcTypes = ['green', 'red', 'black', 'purple', 'white', 'blue', 'yellow'];
   if (!orcType) {
@@ -2686,7 +2754,7 @@ Game_Battler.prototype.orcCount = function(orcType, incFoes) {
 };
 
 Game_Action.prototype.gobCount = function(target) {
-  if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_ElementStatusCore')) return 0;
   const user = this.subject();
   let gobCount = 0;
   for (const member of user.friendUnit().aliveMembers()) {
@@ -2699,7 +2767,7 @@ Game_Action.prototype.gobCount = function(target) {
 };
 
 Game_Battler.prototype.gobCount = function(incFoes) {
-  if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_ElementStatusCore')) return 0;
   const user = this;
   let gobCount = 0;
   for (const member of user.friendUnit().aliveMembers()) {
@@ -2714,7 +2782,7 @@ Game_Battler.prototype.gobCount = function(incFoes) {
 };
 
 Game_Action.prototype.gnomeAct = function(target) {
-  if (!Imported.VisuMZ_1_ElementStatusCore) return 0;
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_ElementStatusCore')) return 0;
   const user = this.subject();
   const random = Math.randomInt(300);
   if (user.hasTraitSet('gnome') && target.hasTraitSet('gnome')) {
@@ -2729,20 +2797,39 @@ Game_Action.prototype.gnomeAct = function(target) {
   return 0;
 };
 
+Game_Battler.prototype.unhIsFlashStep = function() {
+  const user = this;
+  const note = 'unhFlashStep';
+  for (const obj of user.traitObjects()) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    return !!eval(obj.meta[note]);
+  }
+  return false;
+};
+
+Game_Action.prototype.unhIsFlashStep = function(target) {
+  const action = this;
+  const user = this.subject();
+  const note = 'unhFlashStep';
+  const item = action.item();
+  if (!!item) {
+    if (!!item.meta) {
+      if (!!item.meta[note]) {
+        return !!eval(item.meta[note]);
+      }
+    }
+  }
+  return user.unhIsFlashStep();
+};
+
 Game_Battler.prototype.unhIsRanged = function(curWpn) {
   const user = this;
   const note = 'unhRanged';
   const states = user.states();
   const isDoublehand = user.unhIsDoublehand();
   let isRanged = false;
-  if (!!item) {
-    if (!!item.meta) {
-      if (!!item.meta[note]) {
-        isRanged = eval(item.meta[note]);
-        if (!!isRanged) return true;
-      }
-    }
-  }
   for (const state of states) {
     if (!state) continue;
     if (!state.meta) continue;

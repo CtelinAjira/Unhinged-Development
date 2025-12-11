@@ -32,6 +32,8 @@ UNH_VS_NonTriggerStates.pluginName = 'UNH_VS_NonTriggerStates';
 
 UNH_VS_NonTriggerStates.Battler_registerGridNodeTrigger = Game_Battler.prototype.registerGridNodeTrigger;
 Game_Battler.prototype.registerGridNodeTrigger = function (triggerSkill) {
+  const skill = triggerSkill;
+  const user = this;
   const isTriggerproof = this.traitObjects().some(function(obj) {
     if (!obj) return false;
     if (!obj.meta) return false;

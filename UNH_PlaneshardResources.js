@@ -19,30 +19,6 @@ Imported.UNH_PlaneshardResources = true;
  * @desc New resources to track
  * @type struct<Resources>[]
  *
- * @param MaxFp
- * @text Maximum FP
- * @desc JS code to calculate maximum FP
- * @type note
- * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
- *
- * @param MaxEp
- * @text Maximum EP
- * @desc JS code to calculate maximum EP
- * @type note
- * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
- *
- * @param MaxPp
- * @text Maximum PP
- * @desc JS code to calculate maximum PP
- * @type note
- * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
- *
- * @param MaxQp
- * @text Maximum QP
- * @desc JS code to calculate maximum QP
- * @type note
- * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
- *
  * @help
  */
 /*~struct~Resources:
@@ -58,7 +34,15 @@ Imported.UNH_PlaneshardResources = true;
  * @type note
  * @desc Code to calculate maximum value
  * Default: 100
- * @default "const user = arguments[0]; // Game_Battler.prototype\nconst prop = arguments[1]; // string\nconst prop2 = arguments[2]; // string\n\nreturn (100);"
+ * @default "const user = arguments[0]; // Game_Battler.prototype\n\nreturn (100);"
+ *
+ * @param IsEncPwr
+ * @text Restore Timing
+ * @type boolean
+ * @desc Which timing to fully restore on
+ * @on Start of Battle
+ * @off On Recover All
+ * @default false
  *
  */
 //=============================================================================
@@ -69,24 +53,25 @@ UNH_PlaneshardResources.parameters = PluginManager.parameters(UNH_PlaneshardReso
 UNH_PlaneshardResources.NewParams = JSON.parse(UNH_PlaneshardResources.parameters['NewParams'] || '{}');
 
 UNH_PlaneshardResources.NewParamKeys = UNH_PlaneshardResources.NewParams.keys();
-for (const key in UNH_PlaneshardResources.NewParams) {
+for (const key in UNH_PlaneshardResources.NewParamKeys) {
   UNH_PlaneshardResources.NewParams[key] = JSON.parse(UNH_PlaneshardResources.NewParams[key] || '{}');
 }
 
+const UNH_PlaneshardResources.NewResources = {};
 for (const param of UNH_PlaneshardResources.NewParams) {
   param.Name = param.Name.trim();
   const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
   const lowerParam = param.Name.toLowerCase();
   if (!param.MaxCalcJS) {
-    UNH_PlaneshardResources['Max' + funcParam] = new Function('return 100;');
+    UNH_PlaneshardResources.NewResources['Max' + funcParam] = new Function('return 100;');
   } else {
-    UNH_PlaneshardResources['Max' + funcParam] = new Function(param.MaxCalcJS);
+    UNH_PlaneshardResources.NewResources['Max' + funcParam] = new Function(param.MaxCalcJS);
   }
   
   Game_BattlerBase.prototype['max' + funcParam] = function() {
     try {
       if (!param.MaxCalcJS) throw new Error('No Code to Run');
-      const result = UNH_PlaneshardResources['Max' + funcParam](this, 'Null' + funcParam, param.Name.toUpperCase() + ' Plus');
+      const result = UNH_PlaneshardResources.NewResources['Max' + funcParam](this);
       if (result === undefined) throw new Error('No Return Value');
       if (typeof result !== 'number') throw new Error('Non-Numeric Value');
       if (isNaN(result)) throw new Error('Not a Number');
@@ -105,7 +90,7 @@ for (const param of UNH_PlaneshardResources.NewParams) {
   };
 
   Game_BattlerBase.prototype['set' + funcParam] = function() {
-    this['_' + lowerParam] = Math.min(Math.max(value, 0), this['max' + funcParam]());
+    this['_' + lowerParam] = value;
     this.refresh();
   };
 
@@ -129,6 +114,16 @@ for (const param of UNH_PlaneshardResources.NewParams) {
   });
 }
 
+UNH_PlaneshardResources.BattlerBase_refresh = Game_BattlerBase.prototype.refresh;
+Game_BattlerBase.prototype.refresh = function() {
+  UNH_PlaneshardResources.BattlerBase_refresh.call(this);
+  for (const param of UNH_PlaneshardResources.NewParams) {
+    const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
+    const lowerParam = param.Name.toLowerCase();
+    this['_' + lowerParam] = Math.max(0, Math.min(this['_' + lowerParam], this['max' + funcParam]()));
+  }
+};
+
 UNH_PlaneshardResources.BattlerBase_initMembers = Game_BattlerBase.prototype.initMembers;
 Game_BattlerBase.prototype.initMembers = function() {
   for (const param of UNH_PlaneshardResources.NewParams) {
@@ -144,6 +139,22 @@ Game_BattlerBase.prototype.recoverAll = function() {
     const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
     const lowerParam = param.Name.toLowerCase();
     this['_' + lowerParam] = this['max' + funcParam]();
+  }
+};
+
+UNH_PlaneshardResources.BattlerBase_onBattleStart = Game_Battler.prototype.onBattleStart;
+Game_Battler.prototype.onBattleStart = function(advantageous) {
+  UNH_PlaneshardResources.BattlerBase_onBattleStart.call(this, advantageous);
+  const encPwr = UNH_PlaneshardResources.NewParams.filter(function(param) {
+    if (!param) return false;
+    return !!param.IsEncPwr;
+  });
+  if (encPwr.length > 0) {
+    for (const param of encPwr) {
+      const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
+      const lowerParam = param.Name.toLowerCase();
+      this['_' + lowerParam] = this['max' + funcParam]();
+    }
   }
 };
 

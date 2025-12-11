@@ -97,13 +97,17 @@ var Imported = Imported || {};
  * - Forces all enemy attacks to target the battler afflicted with this state
  * <unhHide>
  * - Use for States
- * - Forces all enemy attacks AWAY from the battler afflicted with this state
- * - Does nothing to player attacks
- * <unhEject>
+ * - Forces all attacks AWAY from the battler afflicted with this state
+ * - Player attacks will not even recognize afflicted battler as a valid target
+ * <unhHide:X>
  * - Use for States
- * - Forces all enemy attacks AWAY from the battler afflicted with this state
- * - Forces all player attacks to not even recognize the battler afflicted with 
- *   this state as a valid target
+ * - As <unhHide>, but with boolean condition X (JS Eval)
+ *   - Variables: action, item, user, target
+ * <unhFilter:X>
+ * - Use for Skills
+ * - Forces this skill to NOT target battlers that satisfy X (JS Eval)
+ *   - X should evaluate to a boolean
+ *   - Variables: action, item, user, target
  * <unhProvoke>
  * - Use for States
  * - Forces all the afflicted battler's attacks to target the state's source
@@ -152,7 +156,7 @@ var Imported = Imported || {};
  * 
  * action.makeTargets()
  * action.itemTargetCandidates()
- * - now checks <unhHide> and <unhEject> notetags
+ * - now checks <unhHide> notetag
  */
 //=============================================================================
 
@@ -168,70 +172,93 @@ UNH_AggroLevels.isTaunt = !!UNH_AggroLevels.parameters['isTaunt'];
 UNH_AggroLevels.isVoke = !!UNH_AggroLevels.parameters['isVoke'];
 UNH_AggroLevels.autoCalc = !!UNH_AggroLevels.parameters['autoCalc'];
 
-UNH_AggroLevels.Action_randomTargets = Game_Action.prototype.randomTargets;
-Game_Action.prototype.randomTargets = function(unit) {
-  if (this.isForRandom()) {
-    const targets = [];
-    const aliveMem = unit.aliveMembers();
-    for (let i = 0; i < this.numTargets(); i++) {
-      targets.push(aliveMem[Math.randomInt(aliveMem.length)]);
-    }
-    return targets;
-  } else {
-    UNH_AggroLevels.Action_randomTargets.call(this, unit);
+UNH_AggroLevels.isSkillTagged = function(action, target, note) {
+  if (!action) return false;
+  if (!target) return false;
+  const user = action.subject();
+  if (!user) return false;
+  const item = action.item();
+  if (!item) return false;
+  if (!item.meta) return false;
+  if (!item.meta[note]) return false;
+  if (item.meta[note] === true) return true;
+  return !!eval(item.meta[note]);
+};
+
+UNH_AggroLevels.isTargetTagged = function(action, target, note) {
+  if (!action) return false;
+  if (!target) return false;
+  const user = action.subject();
+  if (!user) return false;
+  const item = action.item();
+  if (!item) return false;
+  return target.states().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (!obj.meta[note]) return false;
+    if (obj.meta[note] === true) return true;
+    return !!eval(obj.meta[note]);
+  });
+};
+
+Game_Action.prototype.randomTargets = function (unit) {
+  const targets = [];
+  for (let i = 0; i < this.numTargets(); i++) {
+    targets.push(unit.trueRandomTarget(this));
   }
+  return targets;
+};
+
+Game_Unit.prototype.trueRandomTarget = function (action) {
+  const aliveMembers = this.aliveMembers();
+  const filtered = aliveMembers.filter(function(target) {
+    if (!target) return false;
+    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
+    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    return true;
+  });
+  if (filtered.length < aliveMembers.length) {
+    return filtered[Math.randomInt(filtered.length)];
+  }
+  return aliveMembers[Math.randomInt(aliveMembers.length)];
 };
 
 UNH_AggroLevels.Action_itemTargetCandidates = Game_Action.prototype.itemTargetCandidates;
 Game_Action.prototype.itemTargetCandidates = function() {
   const action = this;
-  const item = this.item();
-  const user = this.subject();
   const origTargets = UNH_AggroLevels.Action_itemTargetCandidates.call(this);
-  const filterTargets = origTargets.filter(function(target) {
+  return origTargets.filter(function(target) {
     if (!target) return false;
-    const hasHideStates = target.states().some(function(obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      if (!obj.meta['unhEject']) return false;
-      if (obj.meta['unhEject'] === true) return true;
-      return !!eval(obj.meta['unhEject']);
-    });
-    return !hasHideStates;
+    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
+    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    return true;
   });
-  if (user.isActor()) return filterTargets;
-  const enemyTargets = filterTargets.filter(function(target) {
-    if (!target) return false;
-    const hasHideStates = target.states().some(function(obj) {
-      if (!obj) return false;
-      if (!obj.meta) return false;
-      if (!obj.meta['unhHide']) return false;
-      if (obj.meta['unhHide'] === true) return true;
-      return !!eval(obj.meta['unhHide']);
-    });
-    return !hasHideStates;
-  });
-  return enemyTargets;
 };
 
 UNH_AggroLevels.Action_makeTargets = Game_Action.prototype.makeTargets;
 Game_Action.prototype.makeTargets = function() {
   const baseTargets = UNH_AggroLevels.Action_makeTargets.call(this);
-  return baseTargets;
+  return baseTargets.filter(function(target) {
+    if (!target) return false;
+    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
+    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    return true;
+  });
 };
 
 UNH_AggroLevels.Action_decideRandomTarget = Game_Action.prototype.decideRandomTarget;
 Game_Action.prototype.decideRandomTarget = function() {
-  if (this.isForRandom()) {
+  const action = this;
+  if (action.isForRandom()) {
     let tgGroup;
-    if (this.isForDeadFriend()) {
-      tgGroup = this.friendsUnit().deadMembers();
-    } else if (this.isForFriend()) {
-      tgGroup = this.friendsUnit().aliveMembers();
+    let target;
+    if (action.isForDeadFriend()) {
+      target = action.friendsUnit().randomDeadTarget(this);
+    } else if (action.isForFriend()) {
+      target = action.friendsUnit().randomTarget(this);
     } else {
-      tgGroup = this.opponentsUnit().aliveMembers();
+      target = action.opponentsUnit().randomTarget(this);
     }
-    const target = tgGroup[Math.randomInt(tgGroup.length)];
     if (target) {
       this._targetIndex = target.index();
     } else {
@@ -239,6 +266,71 @@ Game_Action.prototype.decideRandomTarget = function() {
     }
   } else {
     UNH_AggroLevels.Action_decideRandomTarget.call(this);
+  }
+};
+
+UNH_AggroLevels.Action_randomTarget = Game_Action.prototype.randomTarget;
+Game_Unit.prototype.randomTarget = function(action) {
+  if (Imported.VisuMZ_3_BattleAI && AIManager.hasForcedTargets()) {
+    if (AIManager.hasForcedTargets()) {
+      this._applyAIForcedTargetFilters = true;
+    }
+  }
+  const origTg = UNH_AggroLevels.Action_randomTarget.call(this);
+  if (!action) return origTg;
+  const aliveMembers = this.aliveMembers();
+  const filterMembers = aliveMembers.filter(function(target) {
+    if (!target) return false;
+    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
+    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    return true;
+  });
+  let tgGroup;
+  if (filterMembers.length < aliveMembers.length) {
+    tgGroup = filterMembers;
+  } else {
+    tgGroup = aliveMembers;
+  }
+  let target = null;
+  if (this.isForRandom()) {
+    target = tgGroup[Math.randomInt(tgGroup.length)];
+  } else {
+    let tgrRand = Math.random() * this.tgrSum();
+    for (const member of tgGroup) {
+      tgrRand -= member.tgr;
+      if (tgrRand <= 0 && !target) {
+        target = member;
+      }
+    }
+  }
+  if (Imported.VisuMZ_3_BattleAI) this._applyAIForcedTargetFilters = false;
+  return target;
+};
+
+UNH_AggroLevels.Action_randomDeadTarget = Game_Action.prototype.randomDeadTarget;
+Game_Unit.prototype.randomDeadTarget = function(action) {
+  const origTg = UNH_AggroLevels.Action_randomDeadTarget.call(this);
+  if (!action) return origTg;
+  const deadMembers = this.deadMembers();
+  const filterMembers = members.filter(function(target) {
+    if (!target) return false;
+    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
+    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    return true;
+  });
+  const isFilter = (filterMembers.length < deadMembers.length);
+  const isAnyone = (members.length > 0);
+  if (!isFilter && !isAnyone) return origTg;
+  let members;
+  if (isFilter) {
+    members = filterMembers;
+  } else {
+    members = deadMembers;
+  }
+  if (isAnyone) {
+    return members[Math.randomInt(members.length)];
+  } else {
+    return null;
   }
 };
 
@@ -384,37 +476,10 @@ Game_Unit.prototype.unhMaxAggro = function() {
 Game_BattlerBase.prototype.unhAggroPlus = function(target) {
   const user = this;
   let aggroPlus = 0;
-  for (const state of this.states()) {
-    if (!state.meta) continue;
-    if (!state.meta.unhAggroPlus) continue;
-    aggroPlus += eval(state.meta.unhAggroPlus);
-  }
-  return aggroPlus;
-};
-
-Game_Enemy.prototype.unhAggroPlus = function(target) {
-  const user = this;
-  let aggroPlus = Game_BattlerBase.prototype.unhAggroPlus.call(this, target);
-  if (!!this.enemy().meta) {
-    if (!!this.enemy().meta.unhAggroPlus) {
-      aggroPlus += eval(this.enemy().meta.unhAggroPlus);
-    }
-  }
-  return aggroPlus;
-};
-
-Game_Actor.prototype.unhAggroPlus = function(target) {
-  const user = this;
-  let aggroPlus = Game_BattlerBase.prototype.unhAggroPlus.call(this, target);
-  if (!!this.actor().meta) {
-    if (!!this.actor().meta.unhAggroPlus) {
-      aggroPlus += eval(this.actor().meta.unhAggroPlus);
-    }
-  }
-  for (const equip of this.equips()) {
-    if (!equip.meta) continue;
-    if (!equip.meta.unhAggroPlus) continue;
-    aggroPlus += eval(equip.meta.unhAggroPlus);
+  for (const obj of this.traitObjects()) {
+    if (!obj.meta) continue;
+    if (!obj.meta.unhAggroPlus) continue;
+    aggroPlus += eval(obj.meta.unhAggroPlus);
   }
   return aggroPlus;
 };
@@ -434,37 +499,10 @@ Game_Action.prototype.unhAggroPlus = function(target) {
 Game_BattlerBase.prototype.unhAggroRate = function(target) {
   const user = this;
   let aggroRate = 1;
-  for (const state of this.states()) {
-    if (!state.meta) continue;
-    if (!state.meta.unhAggroRate) continue;
-    aggroRate *= eval(state.meta.unhAggroRate);
-  }
-  return aggroRate;
-};
-
-Game_Enemy.prototype.unhAggroRate = function(target) {
-  const user = this;
-  let aggroRate = Game_BattlerBase.prototype.unhAggroRate.call(this, target);
-  if (!!this.enemy().meta) {
-    if (!!this.enemy().meta.unhAggroRate) {
-      aggroRate *= eval(this.enemy().meta.unhAggroRate);
-    }
-  }
-  return aggroRate;
-};
-
-Game_Actor.prototype.unhAggroRate = function(target) {
-  const user = this;
-  let aggroRate = Game_BattlerBase.prototype.unhAggroRate.call(this, target);
-  if (!!this.actor().meta) {
-    if (!!this.actor().meta.unhAggroRate) {
-      aggroRate *= eval(this.actor().meta.unhAggroRate);
-    }
-  }
-  for (const equip of this.equips()) {
-    if (!equip.meta) continue;
-    if (!equip.meta.unhAggroRate) continue;
-    aggroRate *= eval(equip.meta.unhAggroRate);
+  for (const obj of this.traitObjects()) {
+    if (!obj.meta) continue;
+    if (!obj.meta.unhAggroRate) continue;
+    aggroRate *= eval(obj.meta.unhAggroRate);
   }
   return aggroRate;
 };
@@ -484,37 +522,10 @@ Game_Action.prototype.unhAggroRate = function(target) {
 Game_BattlerBase.prototype.unhAggroFlat = function(target) {
   const user = this;
   let aggroFlat = 0;
-  for (const state of this.states()) {
-    if (!state.meta) continue;
-    if (!state.meta.unhAggroFlat) continue;
-    aggroFlat += eval(state.meta.unhAggroFlat);
-  }
-  return aggroFlat;
-};
-
-Game_Enemy.prototype.unhAggroFlat = function(target) {
-  const user = this;
-  let aggroFlat = Game_BattlerBase.prototype.unhAggroFlat.call(this, target);
-  if (!!this.enemy().meta) {
-    if (!!this.enemy().meta.unhAggroFlat) {
-      aggroFlat += eval(this.enemy().meta.unhAggroFlat);
-    }
-  }
-  return aggroFlat;
-};
-
-Game_Actor.prototype.unhAggroFlat = function(target) {
-  const user = this;
-  let aggroFlat = Game_BattlerBase.prototype.unhAggroFlat.call(this, target);
-  if (!!this.actor().meta) {
-    if (!!this.actor().meta.unhAggroFlat) {
-      aggroFlat += eval(this.actor().meta.unhAggroFlat);
-    }
-  }
-  for (const equip of this.equips()) {
-    if (!equip.meta) continue;
-    if (!equip.meta.unhAggroFlat) continue;
-    aggroFlat += eval(equip.meta.unhAggroFlat);
+  for (const obj of this.traitObjects()) {
+    if (!obj.meta) continue;
+    if (!obj.meta.unhAggroFlat) continue;
+    aggroFlat += eval(obj.meta.unhAggroFlat);
   }
   return aggroFlat;
 };
@@ -537,7 +548,7 @@ Game_BattlerBase.prototype.unhSetAggro = function(value) {
   this._unhAggroBase = Math.max(Math.round(value), 0);
 };
 
-Game_BattlerBase.prototype.unhAddAggro = function(target, value, ignoreRates) {
+UNH_AggroLevels.Func_AddAggro = function(user, target, value, ignoreRates) {
   if (value === undefined) value = 0;
   if (typeof value !== 'number') value = 0;
   if (!ignoreRates) {
@@ -546,36 +557,32 @@ Game_BattlerBase.prototype.unhAddAggro = function(target, value, ignoreRates) {
     value += this.unhAggroFlat(target);
   }
   value = Math.round(value);
-  this.unhSetAggro(value + this.unhAggroBase());
+  this.unhSetAggro(value + user.unhAggroBase());
+};
+
+Game_BattlerBase.prototype.unhAddAggro = function(target, value, ignoreRates) {
+  UNH_AggroLevels.Func_AddAggro.call(this, this, target, value, ignoreRates);
 };
 
 Game_Action.prototype.unhAddAggro = function(target, value, ignoreRates) {
-  if (value === undefined) value = 0;
-  if (typeof value !== 'number') value = 0;
-  if (!ignoreRates) {
-    value += this.unhAggroPlus(target);
-    value *= this.unhAggroRate(target);
-    value += this.unhAggroFlat(target);
-  }
-  value = Math.round(value);
-  this.subject().unhSetAggro(value + this.subject().unhAggroBase());
+  UNH_AggroLevels.Func_AddAggro.call(this, this.subject(), target, value, ignoreRates);
 };
 
 Game_BattlerBase.prototype.unhHpMult = function() {
   const user = this;
-  //try {
+  try {
     return eval(UNH_AggroLevels.HPMult);
-  //} catch(e) {
-  //  return 100;
-  //}
+  } catch(e) {
+    return 1;
+  }
 };
 
 Game_BattlerBase.prototype.unhMpMult = function() {
-  //try {
+  try {
     return eval(UNH_AggroLevels.MPMult);
-  //} catch(e) {
-  //  return 100;
-  //}
+  } catch(e) {
+    return 1;
+  }
 };
 
 Game_BattlerBase.prototype.unhAggroMult = function() {

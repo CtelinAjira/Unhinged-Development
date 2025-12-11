@@ -24,6 +24,13 @@ const UNH_AltLukEff = {};
 UNH_AltLukEff.pluginName = 'UNH_AltLukEff';
 UNH_AltLukEff.parameters = PluginManager.parameters(UNH_AltLukEff.pluginName);
 UNH_AltLukEff.LukEffect = String(UNH_AltLukEff.parameters['LukEffect'] || '');
+if (!UNH_AltLukEff.LukEffect) {
+  UNH_AltLukEff.LukEval = function() {
+    return 1;
+  };
+} else {
+  UNH_AltLukEff.LukEval = new Function('action', 'user', 'target', '' + UNH_AltLukEff.LukEffect);
+}
 
 UNH_AltLukEff.Action_lukEffectRate = Game_Action.prototype.lukEffectRate;
 Game_Action.prototype.lukEffectRate = function(target) {
@@ -33,8 +40,5 @@ Game_Action.prototype.lukEffectRate = function(target) {
   if (!UNH_AltLukEff.LukEffect.includes('return ') {
     return UNH_AltLukEff.Action_lukEffectRate.call(this);
   }
-  const action = this;
-  const user = this.subject();
-  const lukEval = new Function('action', 'user', 'target', '' + UNH_AltLukEff.LukEffect);
-  return Math.max(lukEval(this, this.subject(), target), 0);
+  return Math.max(UNH_AltLukEff.LukEval(this, this.subject(), target), 0);
 };

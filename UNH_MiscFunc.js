@@ -53,11 +53,27 @@ Imported.UNH_MiscFunc = true;
  * battler.friendsUnitNotUser();
  * - Returns the party's members, minus the battler themself
  *
+ * $gameParty.checkStat(X, Y);
+ * $gameTroop.checkStat(X, Y);
+ * - Returns a function of the party's values in param X
+ *   - 0 ≤ X ≤ 7
+ *   - if Y > 0, return the party's highest value
+ *   - if Y < 0, return the party's lowest value
+ *   - if Y = 0, return the party's average value
+ *
  * $gameParty.highestStat(X);
  * $gameTroop.highestStat(X);
  * $gameParty.highest___();
  * $gameTroop.highest___();
  * - Returns the party's highest stat
+ *   - 0 ≤ X ≤ 7
+ *   - replace ___ with Mhp/Mmp/Atk/Def/Mat/Mdf/Agi/Luk as applicable
+ *
+ * $gameParty.averageStat(X);
+ * $gameTroop.averageStat(X);
+ * $gameParty.average___();
+ * $gameTroop.average___();
+ * - Returns the party's average in a stat
  *   - 0 ≤ X ≤ 7
  *   - replace ___ with Mhp/Mmp/Atk/Def/Mat/Mdf/Agi/Luk as applicable
  *
@@ -78,6 +94,15 @@ UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || 
 UNH_MiscFunc.ActionStartCode = String(UNH_MiscFunc.parameters['ActionStart'] || "");
 UNH_MiscFunc.ActionStart = new Function('action', 'user', 'targets', 'try {\n' + UNH_MiscFunc.ActionStartCode + '\n} catch (e) {\nreturn;\n}');
 
+UNH_MiscFunc.hasPlugin = function(name) {
+  return $plugins.some(function(plug) {
+    if (!plug) return false;
+    if (!plug.name) return false;
+    if (!plug.status) return false;
+    return plug.name === name;
+  });
+};
+
 UNH_MiscFunc.knuthShuffle = function(arr) {
   let rand, temp, i;
   for (i = arr.length - 1; i > 0; i--) {
@@ -90,14 +115,38 @@ UNH_MiscFunc.knuthShuffle = function(arr) {
 };
 
 Game_Variables.prototype.addValue = function(variableId, value) {
-  this.setValue(variableId, this.value(variableId) + value);
+  const oldVal = this.value(variableId)
+  if (Array.isArray(oldVal)) {
+    if (Array.isArray(value)) {
+      this.setValue(variableId, oldVal.concat(value));
+    } else {
+      this.setValue(variableId, oldVal.concat([value]));
+    }
+  } else {
+    this.setValue(variableId, oldVal + value);
+  }
 };
 
 Game_Variables.prototype.subValue = function(variableId, value) {
-  this.setValue(variableId, this.value(variableId) - value);
+  const oldVal = this.value(variableId)
+  if (Array.isArray(oldVal)) {
+    if (Array.isArray(value)) {
+      this.setValue(variableId, oldVal.filter(function(val) {
+        if (value.includes(val)) return false;
+        return true;
+      }));
+    } else {
+      this.setValue(variableId, oldVal.filter(function(val) {
+        if (val === value) return false;
+        return true;
+      }));
+    }
+  } else {
+    this.setValue(variableId, oldVal - value);
+  }
 };
 
-if (!Imported.VisuMZ_3_EnemyLevels) {
+if (!UNH_MiscFunc.hasPlugin('VisuMZ_3_EnemyLevels')) {
   Object.defineProperty(Game_Enemy.prototype, "level", {
     get: function () {
       return this.getLevel();
@@ -122,6 +171,10 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
       if (isNaN(level)) return defaultLevel;
 	  return Math.min(Math.max(Number(level), 1), max);
     }
+    if (/^\d+$/.test(level)) {
+      if (isNaN(level)) return defaultLevel;
+	  return Math.min(Math.max(Number(level), 1), max);
+    }
     try {
       const dummy = eval(level);
       if (dummy === undefined) return defaultLevel;
@@ -135,9 +188,10 @@ if (!Imported.VisuMZ_3_EnemyLevels) {
   };
 }
 
-if (!Imported.VisuMZ_1_BattleCore) {
+if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
   Game_BattlerBase.prototype.battler = function () {
-    if (!SceneManager.isSceneBattle()) return null;
+    if (!this._scene) return null;
+    if (this._scene.constructor !== Scene_Battle) return null;
     if (!SceneManager._scene._spriteset) return null;
     return SceneManager._scene._spriteset.findTargetSprite(this);
   };
@@ -176,12 +230,191 @@ BattleManager.startAction = function() {
   }
 };
 
+UNH_MiscFunc.isSkillTagged = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  if (!item) return false;
+  if (!item.meta) return false;
+  if (!item.meta[note]) return false;
+  return !!eval(item.meta[note]);
+};
+
+UNH_MiscFunc.isUserTagged = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return user.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (!obj.meta[note]) return false;
+    return !!eval(obj.meta[note]);
+  });
+};
+
+UNH_MiscFunc.isTargetTagged = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return target.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (!obj.meta[note]) return false;
+    return !!eval(obj.meta[note]);
+  });
+};
+
+UNH_MiscFunc.isStateTagged = function(user, note) {
+  if (user.currentAction()) {
+    const action = user.currentAction();
+    const item = action.item();
+    if (!!item) {
+      if (!!item.meta) {
+        if (!!item.meta[note]) {
+          if (!!eval(obj.meta[note])) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return user.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.meta) return false;
+    if (!obj.meta[note]) return false;
+    return !!eval(obj.meta[note]);
+  });
+};
+
+UNH_MiscFunc.skillTagCt = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  if (!item) return 0;
+  if (!item.meta) return 0;
+  if (!item.meta[note]) return 0;
+  const num = eval(item.meta[note]);
+  if (isNaN(num)) return 0;
+  return Number(num);
+};
+
+UNH_MiscFunc.userTagCt = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return r + Number(num);
+  }, 0);
+};
+
+UNH_MiscFunc.targetTagCt = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return target.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return r + Number(num);
+  }, 0);
+};
+
+UNH_MiscFunc.stateTagCt = function(user, note) {
+  let base = 0;
+  if (user.currentAction()) {
+    const action = user.currentAction();
+    const item = action.item();
+    if (!!item) {
+      if (!!item.meta) {
+        if (!!item.meta[note]) {
+          const numbase = eval(item.meta[note]);
+          if (!isNaN(numbase)) {
+            base = Number(numbase);
+          }
+        }
+      }
+    }
+  }
+  return user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return r + Number(num);
+  }, base);
+};
+
+UNH_MiscFunc.skillTagRate = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  if (!item) return 1;
+  if (!item.meta) return 1;
+  if (!item.meta[note]) return 1;
+  const num = eval(item.meta[note]);
+  if (isNaN(num)) return 1;
+  return Number(num);
+};
+
+UNH_MiscFunc.userTagRate = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return r * Number(num);
+  }, 1);
+};
+
+UNH_MiscFunc.targetTagRate = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return target.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return r * Number(num);
+  }, 1);
+};
+
+UNH_MiscFunc.stateTagRate = function(user, note) {
+  let base = 1;
+  if (user.currentAction()) {
+    const action = user.currentAction();
+    const item = action.item();
+    if (!!item) {
+      if (!!item.meta) {
+        if (!!item.meta[note]) {
+          const numbase = eval(item.meta[note]);
+          if (!isNaN(numbase)) {
+            base = Number(numbase);
+          }
+        }
+      }
+    }
+  }
+  return user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return r * Number(num);
+  }, base);
+};
+
 UNH_MiscFunc.Action_isMagicSkill = Game_Action.prototype.isMagicSkill;
 Game_Action.prototype.isMagicSkill = function() {
-  if (UNH_MiscFunc.Action_isMagicSkill.call(this)) return true;
-  const item = this.item();
-  if (!item.meta) return false;
-  return !!item.meta['UNH Chant'];
+  if (UNH_MiscFunc.isStateTagged(this.subject(), 'Sign Language')) return false;
+  if (UNH_MiscFunc.isStateTagged(this.subject(), 'Silent Casting')) return false;
+  if (UNH_MiscFunc.isSkillTagged(this, this.subject(), 'UNH Chant')) return true;
+  return UNH_MiscFunc.Action_isMagicSkill.call(this);
 };
 
 Game_BattlerBase.prototype.object = function() {
@@ -236,97 +469,144 @@ Game_Enemy.prototype.currentClass = function() {
   return $dataClasses[Number(this.enemy().meta['Unh Enemy Class'])];
 };
 
-UNH_VS_EnemyWeapons.Enemy_traitObjects = Game_Enemy.prototype.traitObjects;
+UNH_MiscFunc.Enemy_traitObjects = Game_Enemy.prototype.traitObjects;
 Game_Enemy.prototype.traitObjects = function() {
-  const objects = UNH_VS_EnemyWeapons.Enemy_traitObjects.call(this);
+  const objects = UNH_MiscFunc.Enemy_traitObjects.call(this);
   if (this.currentClass()) objects.push(this.currentClass());
   return objects;
 };
 
-Game_Unit.prototype.highestStat = function(paramId) {
+Game_Unit.prototype.checkStat = function(paramId, highOrLow) {
+  if (highOrLow === undefined) highOrLow = 0;
+  if (typeof highOrLow !== 'number') highOrLow = 0;
+  if (isNaN(highOrLow)) highOrLow = 0;
   if (typeof paramId === 'string') {
     const statStr = ['mhp','mmp','atk','def','mat','mdf','agi','luk'];
     paramId = statStr.indexOf(paramId.toLowerCase());
   }
   if (paramId < 0) return 0;
   if (paramId > 7) return 0;
-  return this.members().reduce(function(r, member) {
-    return Math.max(r, member.param(paramId));
-  }, this.paramMin());
+  if (highOrLow > 0) {
+    return this.members().reduce(function(r, member) {
+      return Math.max(r, member.param(paramId));
+    }, this.paramMin());
+  } else if (highOrLow < 0) {
+    return this.members().reduce(function(r, member) {
+      return Math.min(r, member.param(paramId));
+    }, this.paramMax());
+  } else {
+    const length = this.members().length;
+    const param = this.members().reduce(function(r, member) {
+      return r + member.param(paramId);
+    }, 0);
+    return (param / length);
+  }
+};
+
+Game_Unit.prototype.highestStat = function(paramId) {
+  return this.checkStat(paramId, 1);
+};
+
+Game_Unit.prototype.averageStat = function(paramId) {
+  return this.checkStat(paramId, 0);
 };
 
 Game_Unit.prototype.lowestStat = function(paramId) {
-  if (typeof paramId === 'string') {
-    const statStr = ['mhp','mmp','atk','def','mat','mdf','agi','luk'];
-    paramId = statStr.indexOf(paramId.toLowerCase());
-  }
-  if (paramId < 0) return 0;
-  if (paramId > 7) return 0;
-  return this.members().reduce(function(r, member) {
-    return Math.min(r, member.param(paramId));
-  }, this.paramMax());
+  return this.checkStat(paramId, -1);
 };
 
 Game_Unit.prototype.highestMhp = function() {
-  return this.highestStat(0);
+  return this.checkStat(0, 1);
+};
+
+Game_Unit.prototype.averageMhp = function() {
+  return this.checkStat(0, 0);
 };
 
 Game_Unit.prototype.lowestMhp = function() {
-  return this.lowestStat(0);
+  return this.checkStat(0, -1);
 };
 
 Game_Unit.prototype.highestMmp = function() {
-  return this.highestStat(1);
+  return this.checkStat(1, 1);
+};
+
+Game_Unit.prototype.averageMmp = function() {
+  return this.checkStat(1, 0);
 };
 
 Game_Unit.prototype.lowestMmp = function() {
-  return this.lowestStat(1);
+  return this.checkStat(1, -1);
 };
 
 Game_Unit.prototype.highestAtk = function() {
-  return this.highestStat(2);
+  return this.checkStat(2, 1);
+};
+
+Game_Unit.prototype.averageAtk = function() {
+  return this.checkStat(2, 0);
 };
 
 Game_Unit.prototype.lowestAtk = function() {
-  return this.lowestStat(2);
+  return this.checkStat(2, -1);
 };
 
 Game_Unit.prototype.highestDef = function() {
-  return this.highestStat(3);
+  return this.checkStat(3, 1);
+};
+
+Game_Unit.prototype.averageDef = function() {
+  return this.checkStat(3, 0);
 };
 
 Game_Unit.prototype.lowestDef = function() {
-  return this.lowestStat(3);
+  return this.checkStat(3, -1);
 };
 
 Game_Unit.prototype.highestMat = function() {
-  return this.highestStat(4);
+  return this.checkStat(4, 1);
+};
+
+Game_Unit.prototype.averageMat = function() {
+  return this.checkStat(4, 0);
 };
 
 Game_Unit.prototype.lowestMat = function() {
-  return this.lowestStat(4);
+  return this.checkStat(4, -1);
 };
 
 Game_Unit.prototype.highestMdf = function() {
-  return this.highestStat(5);
+  return this.checkStat(5, 1);
+};
+
+Game_Unit.prototype.averageMdf = function() {
+  return this.checkStat(5, 0);
 };
 
 Game_Unit.prototype.lowestMdf = function() {
-  return this.lowestStat(5);
+  return this.checkStat(5, -1);
 };
 
 Game_Unit.prototype.highestAgi = function() {
-  return this.highestStat(6);
+  return this.checkStat(6, 1);
+};
+
+Game_Unit.prototype.averageAgi = function() {
+  return this.checkStat(6, 0);
 };
 
 Game_Unit.prototype.lowestAgi = function() {
-  return this.lowestStat(6);
+  return this.checkStat(6, -1);
 };
 
 Game_Unit.prototype.highestLuk = function() {
-  return this.highestStat(7);
+  return this.checkStat(7, 1);
+};
+
+Game_Unit.prototype.averageLuk = function() {
+  return this.checkStat(7, 0);
 };
 
 Game_Unit.prototype.lowestLuk = function() {
-  return this.lowestStat(7);
+  return this.checkStat(7, -1);
 };

@@ -35,8 +35,8 @@ Object.defineProperties(Game_BattlerBase.prototype, {
 });
 
 Game_BattlerBase.prototype.tempStates = function(note) {
-  if (!Imported.UNH_PlaneshardResources) return [];
-  if (!Imported.VisuMZ_1_SkillsStatesCore) return [];
+  if (!UNH_MiscFunc.hasPlugin('UNH_PlaneshardResources')) return [];
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) return [];
   return this.states().filter(function(state) {
     if (!state) return false;
     if (!state.meta) return false;
@@ -50,6 +50,7 @@ Game_BattlerBase.prototype.getTemp = function(states) {
   if (states.length <= 0) return 0;
   return states.reduce(function(r, state) {
     if (!state) return r;
+    if (!this.getStateDisplay(state.id)) return r;
     if (isNaN(this.getStateDisplay(state.id))) return r;
     return r + Number(this.getStateDisplay(state.id));
   });
@@ -68,6 +69,7 @@ Game_BattlerBase.prototype.applyTemp = function(value, array) {
   let temp;
   for (const state of states) {
     if (!state) continue;
+    if (!this.getStateDisplay(state.id)) continue;
     if (isNaN(this.getStateDisplay(state.id))) continue;
     stateDisp = Number(this.getStateDisplay(state.id));
     temp = Math.min(value, stateDisp);
@@ -82,7 +84,7 @@ Game_BattlerBase.prototype.applyTemp = function(value, array) {
 };
 
 Game_BattlerBase.prototype.tempHpStates = function() {
-  if (!Imported.VisuMZ_3_AntiDmgBarriers) return [];
+  if (!UNH_MiscFunc.hasPlugin('VisuMZ_3_AntiDmgBarriers')) return [];
   return this.getAntiDamageBarrierStates().filter(function(state) {
     const match = state.note.match(VisuMZ.AntiDmgBarriers.RegExp.AbsorbBarrier)
     if (!match) return false;
@@ -107,13 +109,13 @@ Game_BattlerBase.prototype.applyTempMp = function(value) {
   return this.applyTemp(value, this.tempMpStates());
 };
 
-if (!!Imported.UNH_PlaneshardResources) {
+if (UNH_MiscFunc.hasPlugin('UNH_PlaneshardResources')) {
   for (const param of UNH_PlaneshardResources.NewParams) {
     const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
     const paramName = 'temp' + funcParam;
     const statesName = 'temp' + funcParam + 'States';
     const applyName = 'applyTemp' + funcParam;
-    const tempName = 'Temporary ' + param.Name.toUpperCase(;
+    const tempName = 'Temporary ' + param.Name.toUpperCase();
     Object.defineProperty(Game_BattlerBase.prototype, paramName, {
       get: function() {
         return this[paramName]();

@@ -45,7 +45,50 @@ Imported.UNH_StatePlus = true;
 const UNH_StatePlus = {};
 UNH_StatePlus.pluginName = 'UNH_StatePlus';
 
+Game_BattlerBase.prototype.unhClearStateEff = function(type) {
+  if (type === undefined) {
+    this._unhCache = {};
+  } else {
+    if (this._unhCache === undefined) this._unhCache = {};
+    if ((typeof type === 'number') || (typeof type === 'string')) {
+      this._unhCache[type] = {};
+    }
+  }
+};
+
+Game_BattlerBase.prototype.unhInitStateEff = function(type) {
+  if (this._unhCache === undefined) this.unhClearStateEff();
+  if (this._unhCache[type] === undefined) this.unhClearStateEff(type);
+};
+
+Game_BattlerBase.prototype.unhHasStateEff = function(type, stateId) {
+  this.unhInitStateEff(type);
+  const eff = this._unhCache[type][stateId] || 0;
+  if (typeof eff !== 'number') return false;
+  if (isNaN(eff)) return false;
+  return (eff !== 0);
+};
+
+Game_BattlerBase.prototype.unhGetStateEff = function(type, stateId) {
+  this.unhInitStateEff(type);
+  if (!this.unhHasStateEff(type, stateId)) return 0;
+  return this._unhCache[type][stateId];
+};
+
+Game_BattlerBase.prototype.unhSetStateEff = function(type, stateId, value) {
+  this.unhInitStateEff(type);
+  if (value === undefined) {
+    this._unhCache[type][stateId] = 0;
+  } else if (isNaN(value)) {
+    this._unhCache[type][stateId] = 0;
+  } else {
+    this._unhCache[type][stateId] = Number(value);
+  }
+};
+
 Game_BattlerBase.prototype.unhStatePlus = function(stateId) {
+  const type = '_statePlus';
+  if (this.unhHasStateEff(type, stateId)) return this.unhGetStateEff(type, stateId);
   const metaStr = 'Unh State ' + stateId + ' Plus';
   const metaStr2 = 'Unh State All Plus';
   let stateMeta;
@@ -71,10 +114,13 @@ Game_BattlerBase.prototype.unhStatePlus = function(stateId) {
       return r;
     }
   }, 0);
-  return oneState + allState;
+  this.unhSetStateEff(type, stateId, oneState + allState);
+  return this.unhGetStateEff(type, stateId);
 };
 
 Game_BattlerBase.prototype.unhStateRate = function(stateId) {
+  const type = '_stateRate';
+  if (this.unhHasStateEff(type, stateId)) return this.unhGetStateEff(type, stateId);
   const metaStr = 'Unh State ' + stateId + ' Rate';
   const metaStr2 = 'Unh State All Rate';
   let stateMeta;
@@ -100,10 +146,13 @@ Game_BattlerBase.prototype.unhStateRate = function(stateId) {
       return r;
     }
   }, 1);
-  return oneState + allState;
+  this.unhSetStateEff(type, stateId, oneState * allState);
+  return this.unhGetStateEff(type, stateId);
 };
 
 Game_BattlerBase.prototype.unhStateFlat = function(stateId) {
+  const type = '_stateFlat';
+  if (this.unhHasStateEff(type, stateId)) return this.unhGetStateEff(type, stateId);
   const metaStr = 'Unh State ' + stateId + ' Flat';
   const metaStr2 = 'Unh State All Flat';
   let stateMeta;
@@ -129,7 +178,14 @@ Game_BattlerBase.prototype.unhStateFlat = function(stateId) {
       return r;
     }
   }, 0);
-  return oneState + allState;
+  this.unhSetStateEff(type, stateId, oneState + allState);
+  return this.unhGetStateEff(type, stateId);
+};
+
+UNH_StatePlus.BattlerBase_refresh = Game_BattlerBase.prototype.refresh;
+Game_BattlerBase.prototype.refresh = function() {
+  UNH_StatePlus.BattlerBase_refresh.call(this);
+  this.unhClearStateEff();
 };
 
 UNH_StatePlus.BattlerBase_stateRate = Game_BattlerBase.prototype.stateRate;

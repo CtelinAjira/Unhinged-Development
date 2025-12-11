@@ -4,6 +4,7 @@
 //=============================================================================
 
 var Imported = Imported || {};
+var Ramza = Ramza || {};
 Imported.UNH_VS_EnemyWeapons = true;
 
 //=============================================================================
@@ -159,8 +160,38 @@ Game_Enemy.prototype.unhIsDualWield = function() {
   if (!object) return false;
   const meta = object.meta;
   if (!meta) return false;
+  if (!meta['Dual Wield']) return false;
   return !!eval(meta['Dual Wield']);
 };
+
+Game_Enemy.prototype.isDualWield = function() {
+  if (Game_BattlerBase.prototype.isDualWield.call(this)) {
+    return true;
+  } else {
+    return this.unhIsDualWield()
+  }
+};
+
+if (!!Ramza.DW) {
+  Game_Actor.prototype.unhStartsDualWield = function() {
+    const user = this;
+    const object = this.actor();
+    if (!object) return false;
+    const meta = object.meta;
+    if (!meta) return false;
+    if (!meta['Starts as Dual Wield']) return false;
+    return !!eval(meta['Starts as Dual Wield']);
+  };
+
+UNH_VS_EnemyWeapons.Actor_equipSlots = Game_Actor.prototype.equipSlots;
+  Game_Actor.prototype.equipSlots = function() {
+    const slots = UNH_VS_EnemyWeapons.Actor_equipSlots.call(this);
+    if (slots.length >= 2 && this.unhStartsDualWield()) {
+      slots[1] = 1;
+    }
+    return slots;
+  };
+}
 
 Game_BattlerBase.prototype.isDisarmed = function() {
   return this.states().some(function(state) {
@@ -183,6 +214,33 @@ Game_Enemy.prototype.getMatchingInitEquip = function (equips, equipType) {
   return null;
 };
 
+Game_Actor.prototype.convertInitEquipsToItems = function (equips) {
+  const retEquips = [];
+  for (let i = 0; i < equips.length; i++) {
+    const equip = equips[i];
+    if (equip <= 0) {
+      continue;
+    }
+    const equipType = $dataSystem.equipTypes[i + 1];
+    if (equipType === $dataSystem.equipTypes[1] || i === 1 && this.isDualWield()) {
+      retEquips.push($dataWeapons[equip]);
+    } else {
+      if (BattleManager.isBattleTest()) {
+        const testArmor = $dataArmors[equip];
+        if (testArmor && testArmor.etypeId === i + 1) {
+          retEquips.push(testArmor);
+        }
+      } else {
+        const armor = $dataArmors[equip];
+        if (armor && armor.etypeId === i + 1) {
+          retEquips.push(armor);
+        }
+      }
+    }
+  }
+  return retEquips;
+};
+
 Game_Enemy.prototype.equipSlots = function () {
   const slots = VisuMZ.ItemsEquipsCore.deepCopy(this._forcedSlots || this.enemy().equipSlots);
   if (slots.length >= 2 && this.isDualWield()) {
@@ -191,24 +249,43 @@ Game_Enemy.prototype.equipSlots = function () {
   return slots;
 };
 
+UNH_VS_EnemyWeapons.Actor_initEquips = Game_Actor.prototype.initEquips;
+Game_Actor.prototype.initEquips = function(equips) {
+  const slots = this.equipSlots();
+  const maxSlots = slots.length;
+  let slotName;
+  DataManager.extractMetadata(this.actor());
+  for (let h = 0; h < maxSlots; h++) {
+    if (equips[h] > 0) continue;
+    slotName = 'Slot ' + (h + 1);
+    if (!this.actor().meta) continue;
+    if (!this.actor().meta[slotName]) continue;
+    if (isNaN(this.actor().meta[slotName])) continue;
+    equips[h] = Number(eval(this.actor().meta[slotName]));
+  }
+  UNH_VS_EnemyWeapons.Actor_initEquips.call(this, equips);
+};
+
 Game_Enemy.prototype.initEquips = function() {
   const slots = this.equipSlots();
   const maxSlots = slots.length;
   this._equips = [];
   let slotName;
-  const equips = [];
+  const numEquips = [];
+  DataManager.extractMetadata(this.enemy());
   for (let h = 0; h < maxSlots; h++) {
-    slotName = 'Slot ' + h;
+    slotName = 'Slot ' + (h + 1);
     if (!this.enemy().meta) {
-      equips[h] = 0;
+      numEquips[h] = 0;
     } else if (!this.enemy().meta[slotName]) {
-      equips[h] = 0;
+      numEquips[h] = 0;
     } else if (isNaN(this.enemy().meta[slotName])) {
-      equips[h] = 0;
+      numEquips[h] = 0;
     } else {
-      equips[h] = Number(eval(this.enemy().meta[slotName]));
+      numEquips[h] = Number(eval(this.enemy().meta[slotName]));
     }
   }
+  const equips = this.convertInitEquipsToItems(numEquips);
   for (let i = 0; i < maxSlots; i++) {
     this._equips[i] = new Game_Item();
   }

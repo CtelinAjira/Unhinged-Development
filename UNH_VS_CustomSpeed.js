@@ -35,6 +35,12 @@ Game_Action.prototype.applyGlobalBattleSystemATBEffects = function () {
   if (!UNH_VS_CustomSpeed.AfterAtbMod) {
     UNH_VS_CustomSpeed.Action_applyGlobalBattleSystemATBEffects.call(this);
   } else {
+    if (!this.item()) {
+      return;
+    }
+    if (!BattleManager.isATB()) {
+      return;
+    }
     UNH_VS_CustomSpeed.AfterAtbFunc.call(this);
   }
 };

@@ -113,11 +113,15 @@ Imported.UNH_SkillLevels = true;
  * - Sets the initial level to Y (integer) for skill X (database ID)
  * <Max Level: Y>
  * - Use for Skills
- * - Sets the maximum level for the skill (JavaScript)
+ * - Sets the maximum level for the skill (JS Eval)
+ *   - user: the actor/enemy leveling the skill
+ *   - skill: the skill being referenced
  * <EXP to Level: Y>
  * - Use for Skills
- * - Sets the skill experience needed to level it up (JavaScript)
- *   - level: the target level
+ * - Sets the skill experience needed to level it up (JS Eval)
+ *   - user: the actor/enemy leveling the skill
+ *   - skill: the skill being referenced
+ *   - level: the target skill level
  * 
  * ============================================================================
  * New Functions
@@ -196,19 +200,19 @@ DataManager.processUnhSkillLevelNotetags = function(group) {
   for (let n = 1; n < group.length; n++) {
     const obj = group[n];
     const notedata = obj.note.split(/[\r\n]+/);
-    obj.levels = [];
+    obj.unhSkillLevels = [];
     for (let i = 0; i < notedata.length; i++) {
       const line = notedata[i];
       if (line.match(/<SKILL (\d+) INITIAL LEVEL:[ ](\d+)>/i)) {
         const skillId = Number(RegExp.$1);
         const skillLv = Number(RegExp.$2);
         const initSkill = {skillId:skillId, skillLv:skillLv};
-        obj.levels.push(initSkill);
+        obj.unhSkillLevels.push(initSkill);
       } else if (line.match(/<SKILL (\d+) INITIAL LEVEL:[ ](.+)>/i)) {
         const skillId = Number(RegExp.$1);
         const skillLv = String(RegExp.$2);
         const initSkill = {skillId:skillId, skillLv:skillLv};
-        obj.levels.push(initSkill);
+        obj.unhSkillLevels.push(initSkill);
       }
     }
   }
@@ -347,7 +351,8 @@ Game_BattlerBase.prototype.unhMaxSkillLevel = function(index) {
   if (typeof index !== 'number') return eval(UNH_SkillLevels.MaxLevel);
   index = index % $dataSkills.length;
   if (index === 0) return eval(UNH_SkillLevels.MaxLevel);
-  const lvlCap = $dataSkills[index].lvlCap;
+  const skill = $dataSkills[index];
+  const lvlCap = skill.lvlCap;
   return eval(lvlCap);
 };
 
@@ -359,8 +364,9 @@ Game_BattlerBase.prototype.unhExpToLevel = function(index, level) {
   index = index % $dataSkills.length;
   level = Math.max(level, 1);
   if (index === 0) return Math.round(eval(UNH_SkillLevels.ExpToLevel));
+  const skill = $dataSkills[index];
   const lvlCap = this.unhMaxSkillLevel(index);
-  const expCap = $dataSkills[index].expCap;
+  const expCap = skill.expCap;
   return Math.round(eval(expCap));
 };
 
@@ -374,7 +380,7 @@ Game_BattlerBase.prototype.unhInitSkillLevels = function() {
 Game_Enemy.prototype.unhInitSkillLevels = function() {
   const isInit = Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
   if (!isInit) {
-    for (const r of this.enemy().levels) {
+    for (const r of this.enemy().unhSkillLevels) {
       if (typeof r.skillLv === 'number') {
         if (!isNaN(r.skillLv)) {
           this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};
@@ -393,7 +399,7 @@ Game_Enemy.prototype.unhInitSkillLevels = function() {
 Game_Actor.prototype.unhInitSkillLevels = function() {
   const isInit = Game_BattlerBase.prototype.unhInitSkillLevels.call(this);
   if (!isInit) {
-    for (const r of this.actor().levels) {
+    for (const r of this.actor().unhSkillLevels) {
       if (typeof r.skillLv === 'number') {
         if (!isNaN(r.skillLv)) {
           this._unhSkillLevel[r.skillId] = {level:r.skillLv, exp:0};

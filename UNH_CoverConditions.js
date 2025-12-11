@@ -50,6 +50,20 @@
  * <Cover Condition: Certain>
  * - Use for States
  * - Affected battler can only cover against the selected hit type
+ *
+ * <No Cover>
+ * - Use for Skills/Items
+ * - Tagged skill bypasses the substitute flag outright
+ *
+ * <No Cover as User>
+ * - Use for States
+ * - Tagged state causes afflicted's attacks to bypass the substitute flag as 
+ *   though tagged with <No Cover>
+ *
+ * <No Cover as Target>
+ * - Use for States
+ * - Tagged state causes attacks against afflicted to bypass the substitute 
+ *   flag as though tagged with <No Cover>
  */
 //=============================================================================
 
@@ -57,16 +71,61 @@ const UNH_CoverConditions = {};
 UNH_CoverConditions.pluginName = 'UNH_CoverConditions';
 UNH_CoverConditions.parameters = PluginManager.parameters(UNH_CoverConditions.pluginName);
 UNH_CoverConditions.CheckSub = String(UNH_CoverConditions.parameters['CheckSub'] || '');
+UNH_CoverConditions.CheckSubFunc = new Function('action', 'target', 'return ' + UNH_CoverConditions.CheckSub);
 
 UNH_CoverConditions.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
   if (!UNH_CoverConditions.DataManager_isDatabaseLoaded.call(this)) return false;
 
   if (!UNH_CoverConditions._loaded) {
+    this.processUnhCoverBypassNotetags1($dataSkills);
+    this.processUnhCoverBypassNotetags1($dataItems);
+    this.processUnhCoverBypassNotetags2($dataStates);
     this.processUnhCoverNotetags($dataStates);
     UNH_CoverConditions._loaded = true;
   }
   return true;
+};
+
+DataManager.processUnhCoverBypassNotetags1 = function(group) {
+  for (let n = 1; n < group.length; n++) {
+    const obj = group[n];
+    const notedata = obj.note.split(/[\r\n]+/);
+
+    obj.unhNoCover = false;
+
+    for (let i = 0; i < notedata.length; i++) {
+      const line = notedata[i];
+      if (line.match(/<(?:NO COVER)>/i)) {
+        obj.unhNoCover = true;
+      } else if (line.match(/<(?:NO COVER):[ ](*.)>/i)) {
+        obj.unhNoCover = String(RegExp.$1);
+      }
+    }
+  }
+};
+
+DataManager.processUnhCoverBypassNotetags2 = function(group) {
+  for (let n = 1; n < group.length; n++) {
+    const obj = group[n];
+    const notedata = obj.note.split(/[\r\n]+/);
+
+    obj.unhNoCover = false;
+
+    for (let i = 0; i < notedata.length; i++) {
+      const line = notedata[i];
+      if (line.match(/<(?:NO COVER AS USER)>/i)) {
+        obj.unhNoCoverUser = true;
+      } else if (line.match(/<(?:NO COVER AS USER):[ ](*.)>/i)) {
+        obj.unhNoCoverUser = String(RegExp.$1);
+      }
+      if (line.match(/<(?:NO COVER AS TARGET)>/i)) {
+        obj.unhNoCoverTarget = true;
+      } else if (line.match(/<(?:NO COVER AS TARGET):[ ](*.)>/i)) {
+        obj.unhNoCoverTarget = String(RegExp.$1);
+      }
+    }
+  }
 };
 
 DataManager.processUnhCoverNotetags = function(group) {
@@ -182,6 +241,9 @@ Game_Battler.prototype.coverAtHpPercent = function(stateId, target) {
 };
 
 UNH_CoverConditions.runChecks = function(action, target) {
+  if (!action) return false;
+  if (!target) return false;
+  const item = action.item();
   const party = target.friendsUnit().members();
   let stateId;
   for (const member of party) {
@@ -201,7 +263,7 @@ UNH_CoverConditions.runChecks = function(action, target) {
       if (action.isForRandom() && !member.coverRandomTarget(stateId)) {
         continue;
       }
-      if (!member.coverSkillType(stateId).includes(action.item().hitType)) {
+      if (!member.coverSkillType(stateId).includes(item.hitType)) {
         continue;
 	  }
       member._unhCheckSub = true;
@@ -213,14 +275,29 @@ UNH_CoverConditions.runChecks = function(action, target) {
 
 UNH_CoverConditions.checkSubstitute = BattleManager.checkSubstitute;
 BattleManager.checkSubstitute = function(target) {
+  if (!target) return false;
   const action = this._action;
+  if (!action) return false;
+  if (!!eval(action.item().unhNoCover)) return false;
   const user = action.subject();
   if (user.isActor() === target.isActor()) return false;
+  const isUserBypassCover = user.traitObjects().some(function(obj) {
+    if (!obj.unhNoCoverUser) return false;
+    if (typeof obj.unhNoCoverUser === 'boolean') return !!obj.unhNoCoverUser;
+    return !!eval(obj.unhNoCoverUser);
+  });
+  if (isUserBypassCover) return false;
+  const isTargetBypassCover = target.traitObjects().some(function(obj) {
+    if (!obj.unhNoCoverTarget) return false;
+    if (typeof obj.unhNoCoverTarget === 'boolean') return !!obj.unhNoCoverTarget;
+    return !!eval(obj.unhNoCoverTarget);
+  });
+  if (isTargetBypassCover) return false;
   if (UNH_CoverConditions.runChecks(action, target)) return true;
   const baseCover = UNH_CoverConditions.checkSubstitute.call(this, target);
   if (!UNH_CoverConditions.CheckSub) return baseCover;
   try {
-    const checkSub = eval(UNH_CoverConditions.CheckSub);
+    const checkSub = UNH_CoverConditions.CheckSubFunc(action, target);
     return checkSub;
   } catch (e) {
     return baseCover;
