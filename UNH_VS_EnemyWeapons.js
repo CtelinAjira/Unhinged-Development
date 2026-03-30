@@ -51,6 +51,15 @@ Imported.UNH_VS_EnemyWeapons = true;
 const UNH_VS_EnemyWeapons = {};
 UNH_VS_EnemyWeapons.pluginName = 'UNH_VS_EnemyWeapons';
 
+UNH_VS_EnemyWeapons.hasPlugin = function(name) {
+  return $plugins.some(function(plug) {
+    if (!plug) return false;
+    if (!plug.name) return false;
+    if (!plug.status) return false;
+    return plug.name === name;
+  });
+};
+
 PluginManager.registerCommand("VisuMZ_1_BattleCore", "ActSeq_Weapon_ClearActiveWeapon", params => {
   if (!SceneManager.isSceneBattle()) {
     return;
@@ -184,8 +193,9 @@ if (!!Ramza.DW) {
   };
 
 UNH_VS_EnemyWeapons.Actor_equipSlots = Game_Actor.prototype.equipSlots;
-  Game_Actor.prototype.equipSlots = function() {
+  Game_Actor.prototype.equipSlots = function(init) {
     const slots = UNH_VS_EnemyWeapons.Actor_equipSlots.call(this);
+	if (!init) return slots;
     if (slots.length >= 2 && this.unhStartsDualWield()) {
       slots[1] = 1;
     }
@@ -214,7 +224,7 @@ Game_Enemy.prototype.getMatchingInitEquip = function (equips, equipType) {
   return null;
 };
 
-Game_Actor.prototype.convertInitEquipsToItems = function (equips) {
+Game_Enemy.prototype.convertInitEquipsToItems = function (equips) {
   const retEquips = [];
   for (let i = 0; i < equips.length; i++) {
     const equip = equips[i];
@@ -251,7 +261,7 @@ Game_Enemy.prototype.equipSlots = function () {
 
 UNH_VS_EnemyWeapons.Actor_initEquips = Game_Actor.prototype.initEquips;
 Game_Actor.prototype.initEquips = function(equips) {
-  const slots = this.equipSlots();
+  const slots = this.equipSlots(true);
   const maxSlots = slots.length;
   let slotName;
   DataManager.extractMetadata(this.actor());

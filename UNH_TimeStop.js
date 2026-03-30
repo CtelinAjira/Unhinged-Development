@@ -32,7 +32,8 @@ UNH_TimeStop.pluginName = 'UNH_TimeStop';
 UNH_TimeStop.markedStates = function(state) {
   if (!state) return false;
   if (!state.meta) return false;
-  return !!state.meta['Time Stop'];
+  if (!state.meta['Time Stop']) return false;
+  return !!eval(state.meta['Time Stop']);
 };
 
 Game_BattlerBase.prototype.stateTurnUpdate = function(stateId) {

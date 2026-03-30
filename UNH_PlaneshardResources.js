@@ -44,6 +44,14 @@ Imported.UNH_PlaneshardResources = true;
  * @off On Recover All
  * @default false
  *
+ * @param IsRecAll
+ * @text Can Recover
+ * @type boolean
+ * @desc Does this resource obey recoverAll?
+ * @on Yes
+ * @off No
+ * @default true
+ *
  */
 //=============================================================================
 
@@ -136,6 +144,7 @@ UNH_PlaneshardResources.BattlerBase_recoverAll = Game_BattlerBase.prototype.reco
 Game_BattlerBase.prototype.recoverAll = function() {
   UNH_PlaneshardResources.BattlerBase_recoverAll.call(this);
   for (const param of UNH_PlaneshardResources.NewParams) {
+    if (param.IsRecAll) continue;
     const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
     const lowerParam = param.Name.toLowerCase();
     this['_' + lowerParam] = this['max' + funcParam]();
@@ -151,6 +160,7 @@ Game_Battler.prototype.onBattleStart = function(advantageous) {
   });
   if (encPwr.length > 0) {
     for (const param of encPwr) {
+      if (param.IsRecAll) continue;
       const funcParam = param.Name.charAt(0).toUpperCase() + param.Name.slice(1).toLowerCase();
       const lowerParam = param.Name.toLowerCase();
       this['_' + lowerParam] = this['max' + funcParam]();

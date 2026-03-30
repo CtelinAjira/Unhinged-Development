@@ -57,9 +57,9 @@ Object.defineProperties(Game_Actor.prototype, {
       const note1 = 'Floor Damage Plus';
       const note2 = 'Floor Damage Rate';
       const user = this;
-      const battler = this.enemy();
-      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
+      const battler = this.actor();
+      const curClass = this.currentClass();
+      const equips = this.equips();
       const states = this.states();
       let buffer = 1;
       for (const state of states) {
@@ -230,11 +230,14 @@ Object.defineProperties(Game_Actor.prototype, {
         buffer += eval(state.meta[note]);
       }
       if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        weapon = weapons[this._activeWeaponSlot || 0];
-        if (!!weapon) {
-          if (!weapon.meta) {
-            if (!weapon.meta[note]) {
-              buffer += eval(weapon.meta[note]);
+        if (weapons.length > 0) {
+          const wpnDex = (this._activeWeaponSlot || 0)
+          const weapon = weapons[wpnDex];
+          if (!!weapon) {
+            if (!!weapon.meta) {
+              if (!!weapon.meta[note]) {
+                buffer += eval(weapon.meta[note]);
+              }
             }
           }
         }
@@ -269,11 +272,14 @@ Object.defineProperties(Game_Actor.prototype, {
         buffer += eval(state.meta[note]);
       }
       if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        weapon = weapons[this._activeWeaponSlot || 0];
-        if (!!weapon) {
-          if (!weapon.meta) {
-            if (!weapon.meta[note]) {
-              buffer += eval(weapon.meta[note]);
+        if (weapons.length > 0) {
+          const wpnDex = (this._activeWeaponSlot || 0)
+          const weapon = weapons[wpnDex];
+          if (!!weapon) {
+            if (!!weapon.meta) {
+              if (!!weapon.meta[note]) {
+                buffer += eval(weapon.meta[note]);
+              }
             }
           }
         }
@@ -704,8 +710,8 @@ Object.defineProperties(Game_Enemy.prototype, {
       const note = 'Key Stat';
       const user = this;
       const battler = this.object();
-      const curClass = this.currentClass();
-      const equips = this.equips();
+      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       const weapons = this.weapons();
       const armors = this.armors();
       const states = this.states();
@@ -743,7 +749,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const user = this;
       const battler = this.object();
       const states = this.states();
-      const armors = this.armors();
+      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
       let buffer = 0;
       for (const state of states) {
         if (!state) continue;
@@ -770,7 +776,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const user = this;
       const battler = this.object();
       const states = this.states();
-      const armors = this.armors();
+      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
       let buffer = 0;
       for (const state of states) {
         if (!state) continue;
@@ -797,7 +803,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const user = this;
       const battler = this.object();
       const states = this.states();
-      const weapons = this.weapons();
+      const weapons = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.weapons()) : ([]));
       let buffer = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const state of states) {
@@ -807,11 +813,14 @@ Object.defineProperties(Game_Enemy.prototype, {
         buffer += eval(state.meta[note]);
       }
       if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        weapon = weapons[this._activeWeaponSlot || 0];
-        if (!!weapon) {
-          if (!weapon.meta) {
-            if (!weapon.meta[note]) {
-              buffer += eval(weapon.meta[note]);
+        if (weapons.length > 0) {
+          const wpnDex = (this._activeWeaponSlot || 0)
+          const weapon = weapons[wpnDex];
+          if (!!weapon) {
+            if (!!weapon.meta) {
+              if (!!weapon.meta[note]) {
+                buffer += eval(weapon.meta[note]);
+              }
             }
           }
         }
@@ -836,7 +845,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const user = this;
       const battler = this.object();
       const states = this.states();
-      const weapons = this.weapons();
+      const weapons = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.weapons()) : ([]));
       let buffer = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const state of states) {
@@ -846,11 +855,14 @@ Object.defineProperties(Game_Enemy.prototype, {
         buffer += eval(state.meta[note]);
       }
       if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        weapon = weapons[this._activeWeaponSlot || 0];
-        if (!!weapon) {
-          if (!weapon.meta) {
-            if (!weapon.meta[note]) {
-              buffer += eval(weapon.meta[note]);
+        if (weapons.length > 0) {
+          const wpnDex = (this._activeWeaponSlot || 0)
+          const weapon = weapons[wpnDex];
+          if (!!weapon) {
+            if (!!weapon.meta) {
+              if (!!weapon.meta[note]) {
+                buffer += eval(weapon.meta[note]);
+              }
             }
           }
         }
@@ -875,7 +887,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const user = this;
       const battler = this.object();
       const states = this.states();
-      const armors = this.armors();
+      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
       let buffer = 0;
       for (const state of states) {
         if (!state) continue;
@@ -902,7 +914,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const user = this;
       const battler = this.object();
       const states = this.states();
-      const armors = this.armors();
+      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
       let buffer = 0;
       for (const state of states) {
         if (!state) continue;
@@ -1009,7 +1021,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const battler = this.object();
       const curClass = this.currentClass();
       const states = this.states();
-      const equips = this.equips();
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       let dmg = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const equip of equips) {
@@ -1043,7 +1055,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const battler = this.object();
       const curClass = this.currentClass();
       const states = this.states();
-      const equips = this.equips();
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       let dmg = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const equip of equips) {
@@ -1077,7 +1089,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const battler = this.object();
       const curClass = this.currentClass();
       const states = this.states();
-      const equips = this.equips();
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       let dmg = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const equip of equips) {
@@ -1111,7 +1123,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const battler = this.object();
       const curClass = this.currentClass();
       const states = this.states();
-      const equips = this.equips();
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       let dmg = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const equip of equips) {
@@ -1145,7 +1157,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const battler = this.object();
       const curClass = this.currentClass();
       const states = this.states();
-      const equips = this.equips();
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       let dmg = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const equip of equips) {
@@ -1179,7 +1191,7 @@ Object.defineProperties(Game_Enemy.prototype, {
       const battler = this.object();
       const curClass = this.currentClass();
       const states = this.states();
-      const equips = this.equips();
+      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       let dmg = 0;
       const isDoublehand = user.unhIsDoublehand();
       for (const equip of equips) {
@@ -1505,7 +1517,8 @@ Game_BattlerBase.prototype.nullifyTpGain = function() {
   const tpGain = this.traitObjects().some(function(obj) {
    if (!obj) return false;
    if (!obj.meta) return false;
-   return !!obj.meta[note];
+   if (!obj.meta[note]) return false;
+   return !!eval(obj.meta[note]);
   });
   return tpGain;
 };
@@ -1513,37 +1526,14 @@ Game_BattlerBase.prototype.nullifyTpGain = function() {
 Game_BattlerBase.prototype.tpHpDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage by HP';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 1;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain *= eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain *= eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain *= eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain *= eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
+    tpGain *= eval(obj.meta[note]);
   }
   return tpGain;
 };
@@ -1551,37 +1541,14 @@ Game_BattlerBase.prototype.tpHpDmgMult = function() {
 Game_BattlerBase.prototype.tpMpDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage by MP';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 1;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain *= eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain *= eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain *= eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain *= eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
+    tpGain *= eval(obj.meta[note]);
   }
   return tpGain;
 };
@@ -1589,37 +1556,14 @@ Game_BattlerBase.prototype.tpMpDmgMult = function() {
 Game_BattlerBase.prototype.tpTakeDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage In';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 1;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain *= eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain *= eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain *= eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain *= eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
+    tpGain *= eval(obj.meta[note]);
   }
   return tpGain;
 };
@@ -1627,37 +1571,14 @@ Game_BattlerBase.prototype.tpTakeDmgMult = function() {
 Game_BattlerBase.prototype.tpDealDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage Out';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 1;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain *= eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain *= eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain *= eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain *= eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
+    tpGain *= eval(obj.meta[note]);
   }
   return tpGain;
 };
@@ -1665,37 +1586,14 @@ Game_BattlerBase.prototype.tpDealDmgMult = function() {
 Game_BattlerBase.prototype.tpGainRegen = function() {
   const user = this;
   const note = 'Unh TP Regen';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -1703,37 +1601,14 @@ Game_BattlerBase.prototype.tpGainRegen = function() {
 Game_BattlerBase.prototype.tpGainDeadMembers = function() {
   const user = this;
   const note = 'Unh TP Per Dead Ally';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   if (this.isActor()) {
     return Math.round(tpGain * $gameParty.deadMembers().length);
@@ -1745,37 +1620,14 @@ Game_BattlerBase.prototype.tpGainDeadMembers = function() {
 Game_BattlerBase.prototype.tpGainEvade = function() {
   const user = this;
   const note = 'Unh TP Evasion';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -1783,37 +1635,14 @@ Game_BattlerBase.prototype.tpGainEvade = function() {
 Game_BattlerBase.prototype.tpGainSolo = function() {
   const user = this;
   const note = 'Unh TP Last Standing';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -1831,37 +1660,14 @@ Game_Enemy.prototype.tpGainSolo = function() {
 Game_BattlerBase.prototype.tpGainAllyDeath = function() {
   const user = this;
   const note = 'Unh TP Ally Death';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -1869,37 +1675,14 @@ Game_BattlerBase.prototype.tpGainAllyDeath = function() {
 Game_BattlerBase.prototype.tpGainEnemyDeath = function() {
   const user = this;
   const note = 'Unh TP Enemy Death';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -1914,10 +1697,7 @@ Game_BattlerBase.prototype.tpGainSkill = function() {
   const item = action.item();
   if (item.tpCost !== 0) return 0;
   const note = 'Unh TP Skill';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
   if (!!item) {
@@ -1927,31 +1707,11 @@ Game_BattlerBase.prototype.tpGainSkill = function() {
       }
     }
   }
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -1964,37 +1724,14 @@ Game_BattlerBase.prototype.tpGainAttack = function() {
   const item = action.item();
   if (item.tpCost !== 0) return 0;
   const note = 'Unh TP Attack';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -2007,37 +1744,14 @@ Game_BattlerBase.prototype.tpGainGuard = function() {
   const item = action.item();
   if (item.tpCost !== 0) return 0;
   const note = 'Unh TP Guard';
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let tpGain = 0;
-  for (const equip of equips) {
-    if (!equip) continue;
-    if (!equip.meta) continue;
-    if (!equip.meta[note]) continue;
-    tpGain += eval(equip.meta[note]);
-  }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    tpGain += eval(state.meta[note]);
-  }
-  if (!!object) {
-    if (!!object.meta) {
-      if (!!object.meta[note]) {
-        tpGain += eval(object.meta[note]);
-      }
-    }
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        tpGain += eval(curClass.meta[note]);
-      }
-    }
+  for (const obj of objects) {
+    if (!obj) continue;
+    if (!obj.meta) continue;
+    if (!obj.meta[note]) continue;
+    tpGain += eval(obj.meta[note]);
   }
   return Math.round(tpGain);
 };
@@ -2054,39 +1768,16 @@ Game_BattlerBase.prototype.tpGainSkillType = function() {
   let tpGain = this.tpGainSkill();
   const stypes = DataManager.getSkillTypes(item);
   if (stypes.length <= 0) return tpGain;
-  const states = this.states();
-  const equips = this.equips();
-  const object = this.object();
-  const curClass = this.currentClass();
+  const objects = this.traitObjects();
   const max = this.maxTp();
   let note;
   for (const stypeId of stypes) {
     note = 'Unh TP %1 Skill Type'.format(stypeId);
-    for (const equip of equips) {
-      if (!equip) continue;
-      if (!equip.meta) continue;
-      if (!equip.meta[note]) continue;
-      tpGain += eval(equip.meta[note]);
-    }
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (!state.meta[note]) continue;
-      tpGain += eval(state.meta[note]);
-    }
-    if (!!object) {
-      if (!!object.meta) {
-        if (!!object.meta[note]) {
-          tpGain += eval(object.meta[note]);
-        }
-      }
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          tpGain += eval(curClass.meta[note]);
-        }
-      }
+    for (const obj of objects) {
+      if (!obj) continue;
+      if (!obj.meta) continue;
+      if (!obj.meta[note]) continue;
+      tpGain += eval(obj.meta[note]);
     }
   }
   return Math.round(tpGain);
