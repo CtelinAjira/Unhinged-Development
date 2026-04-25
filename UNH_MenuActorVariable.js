@@ -26,7 +26,7 @@ UNH_MenuActorVariable.VariableId = Number(UNH_MenuActorVariable.parameters['Vari
 
 UNH_MenuActorVariable.Party_menuActor = Game_Party.prototype.menuActor;
 Game_Party.prototype.menuActor = function() {
-  let actor = UNH_MenuActorVariable.Party_menuActor.call(this);
+  const actor = UNH_MenuActorVariable.Party_menuActor.call(this);
   if ($gameVariables.value(UNH_MenuActorVariable.VariableId) !== actor.actorId()) $gameVariables.setValue(UNH_MenuActorVariable.VariableId, actor.actorId());
   return actor;
 };
@@ -45,6 +45,7 @@ Window_ActorCommand.prototype.setup = function(actor) {
 
 UNH_MenuActorVariable.ActorCommand_actor = Window_ActorCommand.prototype.actor;
 Window_ActorCommand.prototype.actor = function() {
+  const actor = UNH_MenuActorVariable.ActorCommand_actor.call(this);
   if ($gameVariables.value(UNH_MenuActorVariable.VariableId) !== actor.actorId()) $gameVariables.setValue(UNH_MenuActorVariable.VariableId, actor.actorId());
-  return Window_ActorCommand.prototype.actor.call(this);
+  return actor;
 };

@@ -51,8 +51,11 @@ if (!UNH_AltRecoverAll.RecoverAfterCode) {
 
 UNH_AltRecoverAll.BattlerBase_recoverAll = Game_BattlerBase.prototype.recoverAll;
 Game_BattlerBase.prototype.recoverAll = function() {
-  const target = this;
-  UNH_AltRecoverAll.RecoverBeforeFunc(target);
+  if (!!UNH_AltRecoverAll.RecoverBeforeCode) {
+    UNH_AltRecoverAll.RecoverBeforeFunc(this);
+  }
   UNH_AltRecoverAll.BattlerBase_recoverAll.call(this);
-  UNH_AltRecoverAll.RecoverAfterFunc(target);
+  if (!!UNH_AltRecoverAll.RecoverAfterCode) {
+    UNH_AltRecoverAll.RecoverAfterFunc(this);
+  }
 };

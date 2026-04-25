@@ -160,6 +160,33 @@ Object.defineProperties(Game_Actor.prototype, {
       }
       return 0;
     }, configurable: true
+  }, kPlus: {
+    get: function() {
+      const note = 'Key Plus';
+      const user = this;
+      const battler = this.object();
+      const curClass = this.currentClass();
+      const states = this.states();
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (state.meta[note] === undefined) continue;
+        return eval(state.meta[note]);
+      }
+      if (!!curClass) {
+        if (!!curClass.meta) {
+          if (curClass.meta[note] !== undefined) {
+            return eval(curClass.meta[note]);
+          }
+        }
+      }
+      if (!!battler.meta) {
+        if (battler.meta[note] !== undefined) {
+          return eval(battler.meta[note]);
+        }
+      }
+      return 0;
+    }, configurable: true
   }, pArm: {
     get: function() {
       const note = 'Physical Armor';
@@ -728,6 +755,33 @@ Object.defineProperties(Game_Enemy.prototype, {
             return eval(weapon.meta[note]);
           }
         }
+      }
+      if (!!curClass) {
+        if (!!curClass.meta) {
+          if (curClass.meta[note] !== undefined) {
+            return eval(curClass.meta[note]);
+          }
+        }
+      }
+      if (!!battler.meta) {
+        if (battler.meta[note] !== undefined) {
+          return eval(battler.meta[note]);
+        }
+      }
+      return 0;
+    }, configurable: true
+  }, kPlus: {
+    get: function() {
+      const note = 'Key Plus';
+      const user = this;
+      const battler = this.object();
+      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
+      const states = this.states();
+      for (const state of states) {
+        if (!state) continue;
+        if (!state.meta) continue;
+        if (state.meta[note] === undefined) continue;
+        return eval(state.meta[note]);
       }
       if (!!curClass) {
         if (!!curClass.meta) {
@@ -1369,7 +1423,7 @@ Game_Action.prototype.wPow = function(target, handDex) {
   if (!!item) {
     if (!!item.meta) {
       if (item.meta[note] !== undefined) {
-        if (!!eval(item.meta[note])) return true;
+        if (!!eval(item.meta[note])) return Number(eval(item.meta[note]));
       }
     }
   }
@@ -1466,12 +1520,16 @@ Game_BattlerBase.prototype.lgtArmCheck = function() {
     return !!eval(state.meta[note]);
   });
   if (stateArmor) return true;
-  return this.armors().some(function(armor) {
-    if (!armor) return false;
-    if (!armor.meta) return false;
-    if (!armor.meta[note]) return false;
-    return !!eval(armor.meta[note]);
-  });
+  if (this.isActor() || UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
+    return this.armors().some(function(armor) {
+      if (!armor) return false;
+      if (!armor.meta) return false;
+      if (!armor.meta[note]) return false;
+      return !!eval(armor.meta[note]);
+    });
+  } else {
+    return false;
+  }
 };
 
 Game_BattlerBase.prototype.medArmCheck = function() {
@@ -1484,12 +1542,16 @@ Game_BattlerBase.prototype.medArmCheck = function() {
     return !!eval(state.meta[note]);
   });
   if (stateArmor) return true;
-  return this.armors().some(function(armor) {
-    if (!armor) return false;
-    if (!armor.meta) return false;
-    if (!armor.meta[note]) return false;
-    return !!eval(armor.meta[note]);
-  });
+  if (this.isActor() || UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
+    return this.armors().some(function(armor) {
+      if (!armor) return false;
+      if (!armor.meta) return false;
+      if (!armor.meta[note]) return false;
+      return !!eval(armor.meta[note]);
+    });
+  } else {
+    return false;
+  }
 };
 
 Game_BattlerBase.prototype.hvyArmCheck = function() {
@@ -1502,12 +1564,16 @@ Game_BattlerBase.prototype.hvyArmCheck = function() {
     return !!eval(state.meta[note]);
   });
   if (stateArmor) return true;
-  return this.armors().some(function(armor) {
-    if (!armor) return false;
-    if (!armor.meta) return false;
-    if (!armor.meta[note]) return false;
-    return !!eval(armor.meta[note]);
-  });
+  if (this.isActor() || UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
+    return this.armors().some(function(armor) {
+      if (!armor) return false;
+      if (!armor.meta) return false;
+      if (!armor.meta[note]) return false;
+      return !!eval(armor.meta[note]);
+    });
+  } else {
+    return false;
+  }
 };
 
 Game_BattlerBase.prototype.nullifyTpGain = function() {
@@ -1817,7 +1883,7 @@ Game_BattlerBase.prototype.unhIsSkyward = function() {
 };
 
 Game_Action.prototype.isWeapon = function(target) {
-  return this.item().damage.formula.includes('this.wpnPow()');
+  return this.item().damage.formula.includes('this.wpnPow(b)');
 };
 
 Game_Action.prototype.wpnPow = function(target) {
@@ -1956,7 +2022,7 @@ Game_Action.prototype.physParry = function(target) {
   const states = target.states();
   const weapons = target.weapons();
   const isDoublehand = target.unhIsDoublehand();
-  let wpnPry = [];
+  const wpnPry = [];
   for (const weapon of weapons) {
     if (!weapon) continue;
     if (!weapon.meta) continue;
@@ -1970,13 +2036,7 @@ Game_Action.prototype.physParry = function(target) {
     wpnPry.push(eval(state.meta[note]));
   }
   if (wpnPry.length < 0) return false;
-  let parry = 0;
-  let parries = [];
-  for (let i = 0; i < wpnPry.length; i++) {
-    parries.push(wpnPry[i]);
-  }
-  for (let i = 0; i < parries.length; i++) {
-    parry = parries[i];
+  for (let parry of wpnPry) {
     for (const state of states) {
       if (!state) continue;
       if (!state.meta) continue;
@@ -1996,7 +2056,6 @@ Game_Action.prototype.physParry = function(target) {
       }
     }
     if (isDoublehand) parry = parry * 1.5;
-    wpnPry[i] = parry;
   }
   return wpnPry.some(function(pry) {
     const random = Math.randomInt(10000);
@@ -2018,7 +2077,7 @@ Game_Action.prototype.magParry = function(target) {
   const states = target.states();
   const weapons = target.weapons();
   const isDoublehand = target.unhIsDoublehand();
-  let wpnPry = [];
+  const wpnPry = [];
   for (const weapon of weapons) {
     if (!weapon) continue;
     if (!weapon.meta) continue;
@@ -2032,13 +2091,7 @@ Game_Action.prototype.magParry = function(target) {
     wpnPry.push(eval(state.meta[note]));
   }
   if (wpnPry.length < 0) return false;
-  let parry = 0;
-  let parries = [];
-  for (let i = 0; i < wpnPry.length; i++) {
-    parries.push(wpnPry[i]);
-  }
-  for (let i = 0; i < parries.length; i++) {
-    parry = parries[i];
+  for (let parry of wpnPry) {
     for (const state of states) {
       if (!state) continue;
       if (!state.meta) continue;
@@ -2058,7 +2111,6 @@ Game_Action.prototype.magParry = function(target) {
       }
     }
     if (isDoublehand) parry = parry * 1.5;
-    wpnPry[i] = parry;
   }
   return wpnPry.some(function(pry) {
     const random = Math.randomInt(10000);
@@ -2170,14 +2222,15 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
 };
 
 Game_Action.prototype.checkNoFeint = function(target) {
-  const note = 'No Parry';
-  const objects = this.traitObjects();
-  return objects.some(function(obj) {
-    if (!obj) return false;
-    if (!obj.meta) return false;
-    if (obj.meta[note] === undefined) return false;
-    return eval(obj.meta[note]);
-  });
+  const action = this;
+  if (!action) return false;
+  const item = this.item();
+  if (!item) return false;
+  if (!item.meta) return false;
+  const user = this.subject();
+  const note = 'No Feint';
+  if (obj.meta[note] === undefined) return false;
+  return !!eval(obj.meta[note]);
 };
 
 Game_Action.prototype.checkPhysFeint = function(target, handDex) {

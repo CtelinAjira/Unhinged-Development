@@ -177,7 +177,7 @@ Game_Enemy.prototype.isDualWield = function() {
   if (Game_BattlerBase.prototype.isDualWield.call(this)) {
     return true;
   } else {
-    return this.unhIsDualWield()
+    return this.unhIsDualWield();
   }
 };
 
@@ -357,7 +357,7 @@ Game_Enemy.prototype.isWtypeEquipped = function(wtypeId) {
 };
 
 UNH_VS_EnemyWeapons.Actor_hasNoWeapons = Game_Actor.prototype.hasNoWeapons;
-Game_Enemy.prototype.hasNoWeapons = function() {
+Game_Actor.prototype.hasNoWeapons = function() {
   if (this.isDisarmed()) return true;
   return UNH_VS_EnemyWeapons.Actor_hasNoWeapons.call(this);
 };

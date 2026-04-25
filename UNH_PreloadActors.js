@@ -128,6 +128,7 @@ const UNH_PreloadActors = {};
 UNH_PreloadActors.pluginName = 'UNH_PreloadActors';
 UNH_PreloadActors.parameters = PluginManager.parameters(UNH_PreloadActors.pluginName);
 UNH_PreloadActors.PostInit = String(UNH_PreloadActors.parameters['PostInit'] || "");
+UNH_PreloadActors.PostInitFunc = new Function('actor', 'actorId', UNH_PreloadActors.PostInit);
 
 PluginManager.registerCommand(UNH_PreloadActors.pluginName, "Add_With_Scaling", params => {
   if (!params.ActorId) {
@@ -229,11 +230,12 @@ UNH_PreloadActors.runPostInit = function(actorId) {
   if (UNH_PreloadActors.codeParse(UNH_PreloadActors.PostInit).length <= 0) return;
   if (!$gameActors._data[actorId]) $gameActors._data[id] = new Game_Actor(id);
   const actor = $gameActors._data[actorId];
-  const postInit = new Function('actor', 'actorId', UNH_PreloadActors.PostInit);
-  try {
-    postInit(actor, actorId);
-  } catch (e) {
-    return;
+  if (!!UNH_PreloadActors.PostInit) {
+    try {
+      UNH_PreloadActors.PostInitFunc(actor, actorId);
+    } catch (e) {
+      return;
+    }
   }
 };
 
