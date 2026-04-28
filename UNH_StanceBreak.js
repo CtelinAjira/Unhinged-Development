@@ -187,7 +187,7 @@ DataManager.processStanceDmgNotetags = function(group) {
         obj.poiseDmgFlat = String(RegExp.$1);
       }
       if (line.match(note4)) {
-        obj.poiseBrkStateId = String(RegExp.$1);
+        obj.poiseBrkStateId = Number(RegExp.$1);
       }
     }
   }
@@ -216,21 +216,25 @@ DataManager.processStanceRestoreNotetags = function(group) {
 
 Game_BattlerBase.prototype.getPoise = function() {
   if (this._poise === undefined) this._poise = this.maxPoise();
-  if (typeof this._poise !== 'number') this._poise = this.maxPoise();
-  if (isNaN(this._poise)) this._poise = this.maxPoise();
   if (this._poise > this.maxPoise()) this._poise = this.maxPoise();
   return this._poise;
 };
 
 Game_BattlerBase.prototype.setPoise = function(value, stateId, insured) {
   if (this._poise === undefined) this._poise = this.maxPoise();
-  if (typeof this._poise !== 'number') this._poise = this.maxPoise();
-  if (isNaN(this._poise)) this._poise = this.maxPoise();
-  if (this._poise > this.maxPoise()) this._poise = this.maxPoise();
-  if (value === undefined) return;
-  if (typeof value !== 'number') return;
-  if (isNaN(value)) return;
-  this._poise = value;
+  if (value === undefined) {
+    if (this._poise > this.maxPoise()) this._poise = this.maxPoise();
+    return;
+  }
+  if (typeof value !== 'number') {
+    if (this._poise > this.maxPoise()) this._poise = this.maxPoise();
+    return;
+  }
+  if (isNaN(value)) {
+    if (this._poise > this.maxPoise()) this._poise = this.maxPoise();
+    return;
+  }
+  this._poise = Math.min(value, this.maxPoise());
   if (!!insured) return;
   if (this._poise <= 0) this.breakPoise(stateId);
 };
@@ -240,19 +244,16 @@ Game_Action.prototype.poiseBreakStateId = function() {
 };
 
 Game_BattlerBase.prototype.breakPoise = function(breakState) {
-  if (!breakState) breakState = UNH_StanceBreak.StanceBreakState;
-  if (typeof breakState !== 'number') breakState = UNH_StanceBreak.StanceBreakState;
-  if (isNaN(breakState)) breakState = UNH_StanceBreak.StanceBreakState;
-  this.setPoise(this.maxPoise(), true);
+  if (!breakState) breakState = UNH_StanceBreak.StanceBreakState || 0;
+  if (typeof breakState !== 'number') breakState = UNH_StanceBreak.StanceBreakState || 0;
+  if (isNaN(breakState)) breakState = UNH_StanceBreak.StanceBreakState || 0;
+  this._poise = this.maxPoise();
   if (!!$dataStates[breakState]) {
     this.addState(breakState);
   }
 };
 
 Game_Action.prototype.breakPoise = function(target) {
-  const action = this;
-  const item = this.item();
-  const user = this.subject();
   const breakState = this.poiseBreakStateId();
   target.breakPoise(breakState);
 };
@@ -347,11 +348,11 @@ Game_Action.prototype.poiseDmgPlus = function(target, value) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  const plus = Number(eval(item.poiseDmgPlus || "0")) + this.traitObjects().reduce(function(r, obj) {
+  const plus = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgPlus) return r;
     return r + Number(eval(obj.poiseDmgPlus || "0"));
-  }, 0);
+  }, Number(eval(item.poiseDmgPlus || "0")));
   return value + plus;
 };
 
@@ -359,11 +360,11 @@ Game_Action.prototype.poiseDmgRate = function(target, value) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  const rate = Number(eval(item.poiseDmgRate || "1")) * this.traitObjects().reduce(function(r, obj) {
+  const rate = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgRate) return r;
     return r * Number(eval(obj.poiseDmgRate || "1"));
-  }, 1);
+  }, Number(eval(item.poiseDmgRate || "1")));
   return value * rate;
 };
 
@@ -371,11 +372,11 @@ Game_Action.prototype.poiseDmgFlat = function(target, value) {
   const action = this;
   const item = this.item();
   const user = this.subject();
-  const flat = Number(eval(item.poiseDmgFlat || "0")) + this.traitObjects().reduce(function(r, obj) {
+  const flat = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgFlat) return r;
     return r + Number(eval(obj.poiseDmgFlat || "0"));
-  }, 0);
+  }, Number(eval(item.poiseDmgFlat || "0")));
   return value + flat;
 };
 
@@ -410,7 +411,7 @@ Game_Action.prototype.apply = function(target) {
   UNH_StanceBreak.Action_apply.call(this);
   if (target.result().isHit()) {
     const poiseDamage = this.makePoiseDamage(target);
-    if (poiseDamage > 0) target.addPoise(-poiseDamage, this.poiseBreakStateId(), !poiseDamage);
+    if (poiseDamage > 0) target.addPoise(-poiseDamage, this.poiseBreakStateId(), ((!poiseDamage) || (!!this.item().poiseRestore)));
   }
   if (this.item().poiseRestore) {
     target.setPoise(target.maxPoise(), this.poiseBreakStateId(), true);

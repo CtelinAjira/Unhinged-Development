@@ -101,7 +101,7 @@ UNH_FriendLevel.pluginName = 'UNH_FriendLevel';
 UNH_FriendLevel.parameters = PluginManager.parameters(UNH_FriendLevel.pluginName);
 UNH_FriendLevel.MaxFriendshipLevel = Number(UNH_FriendLevel.parameters['MaxFriendshipLevel'] || 0);
 UNH_FriendLevel.FETN_RetVal = String(UNH_FriendLevel.parameters['FriendshipExpToNext'] || "5 + curLv");
-UNH_FriendLevel.FETN_Code = "  if (curLv < 0) {\n    return 0;\n  } else {  \n  let retVal = (" + UNH_FriendLevel.FETN_RetVal + ");\n  retVal *= (curLv + 1);\n  return retVal;\n  }";
+UNH_FriendLevel.FETN_Code = "  if (curLv < 0) {\n    return 0;\n  } else {  \n  let retVal = eval(" + UNH_FriendLevel.FETN_RetVal + ");\n  retVal *= (curLv + 1);\n  return retVal;\n  }";
 UNH_FriendLevel.FriendshipExpToNext = new Function("actor", "curLv", "try {\n" + UNH_FriendLevel.FETN_Code + "\n} catch (e) {\n  return 0;\n}");
 
 PluginManager.registerCommand(UNH_FriendLevel.pluginName, "ModifyFriendshipExp", function(args) {

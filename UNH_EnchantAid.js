@@ -95,7 +95,7 @@ UNH_EnchantAid.Battler_addState = Game_Battler.prototype.addState;
 Game_Battler.prototype.addState = function(stateId) {
   const user = this;
   UNH_EnchantAid.Battler_addState.call(this, stateId);
-  if (this.unhIsEnchant()) {
+  if (this.unhIsEnchant(stateId)) {
     if (this._enSpellTurns === undefined) {
       this._enSpellTurns = [];
       for (const ele of $gameSystem.elements) {
@@ -103,10 +103,11 @@ Game_Battler.prototype.addState = function(stateId) {
       }
     }
     let turns = this.unhGetEnchantTurns(stateId);
+	const newTurn = Number(eval($dataStates[stateId].meta['Enchant Weapon']));
     if (this.unhIsOrichalcum()) {
-      turns += Math.round(Number($dataStates[stateId].meta['Enchant Weapon']) + Number($dataStates[stateId].meta['Enchant Weapon']));
+      turns += Math.round(newTurn * 2);
     } else {
-      turns += Math.round(Number($dataStates[stateId].meta['Enchant Weapon']));
+      turns += Math.round(newTurn);
 	}
     this.unhSetEnchantTurns(stateId, turns);
     if (Imported.VisuMZ_1_SkillsStatesCore) {
