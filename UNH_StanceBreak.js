@@ -43,6 +43,7 @@ var Imported = Imported || {};
  * - Manipulate the battler's Stance HP (X is a JS Eval)
  *   - Total_Stance_HP = (((Base + Plus) * Rate) + Flat)
  * Variables:
+ *   - value: the stance HP before this modifier
  *   - user: the battler gaining the benefits
  * 
  * <Stance Damage Plus: X>
@@ -52,6 +53,7 @@ var Imported = Imported || {};
  * - Manipulate the action's Stance Damage (X is a JS Eval)
  *   - Total_Stance_DMG = (((Base + Plus) * Rate) + Flat)
  * Variables:
+ *   - value: the stance damage before this modifier
  *   - action: the action being taken
  *   - user: the battler taking the action
  *   - target: the target of the action
@@ -60,7 +62,7 @@ var Imported = Imported || {};
  * - Use for Actors/Classes/Weapons/Armors/Enemies/States
  * - Reduce incoming Stance Damage by X (JS Eval)
  * Variables:
- *   - value: the stance damage before modifiers
+ *   - value: the stance damage before this modifier
  *   - action: the action being taken
  *   - user: the battler taking the action
  *   - target: the target of the action
@@ -104,6 +106,8 @@ if (!UNH_StanceBreak.StanceHpCode) {
   UNH_StanceBreak.StanceDmgBase = new Function('action', 'user', 'target', UNH_StanceBreak.StanceDmgCode);
 }
 
+UNH_StanceBreak.StanceFunctions = {};
+
 UNH_StanceBreak.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
   if (!UNH_StanceBreak.DataManager_isDatabaseLoaded.call(this)) return false;
@@ -127,6 +131,29 @@ DataManager.isDatabaseLoaded = function() {
 };
 
 DataManager.processStanceHpNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Actor';
+      break;
+    case $dataClasses:
+      groupKey = 'Class';
+      break;
+    case $dataWeapons:
+      groupKey = 'Weapon';
+      break;
+    case $dataArmors:
+      groupKey = 'Armor';
+      break;
+    case $dataStates:
+      groupKey = 'State';
+      break;
+    case $dataEnemies:
+      groupKey = 'Enemy';
+      break;
+  }
+  UNH_StanceBreak.StanceFunctions[groupKey] = {};
+  let codeArr, codeLen, codePre, codeRet, codeStr;
   const note1 = /<(?:STANCE HP PLUS):[ ](.*)>/i;
   const note2 = /<(?:STANCE HP RATE):[ ](.*)>/i;
   const note3 = /<(?:STANCE HP FLAT):[ ](.*)>/i;
@@ -136,24 +163,69 @@ DataManager.processStanceHpNotetags = function(group) {
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
     notedata = obj.note.split(/[\r\n]+/);
+    UNH_StanceBreak.StanceFunctions[groupKey][obj.id] = {};
     obj.poisePlus = "0";
     obj.poiseRate = "1";
     obj.poiseFlat = "0";
     obj.poiseDmgDefn = "0";
     obj.poiseDmgRetn = false;
+	obj.groupKey = groupKey;
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
       if (line.match(note1)) {
         obj.poisePlus = String(RegExp.$1);
+        codeArr = obj.poisePlus.split(';');
+        codeLen = codeArr.length;
+        codePre = codeArr.slice(0, -1).join(';\n');
+        codeRet = codeArr[codeLen - 1];
+        if (codePre.length > 0) {
+          codeStr = codePre + ';\n';
+        } else {
+          codeStr = '';
+        }
+        codeStr += 'return ((value || 0) + (' + codeRet + '));';
+        UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poisePlus'] = new Function('user', 'value', codeStr);
       }
       if (line.match(note2)) {
         obj.poiseRate = String(RegExp.$1);
+        codeArr = obj.poiseRate.split(';');
+        codeLen = codeArr.length;
+        codePre = codeArr.slice(0, -1).join(';\n');
+        codeRet = codeArr[codeLen - 1];
+        if (codePre.length > 0) {
+          codeStr = codePre + ';\n';
+        } else {
+          codeStr = '';
+        }
+        codeStr += 'return ((value || 0) + (' + codeRet + '));';
+        UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseRate'] = new Function('user', 'value', codeStr);
       }
       if (line.match(note3)) {
         obj.poiseFlat = String(RegExp.$1);
+        codeArr = obj.poiseFlat.split(';');
+        codeLen = codeArr.length;
+        codePre = codeArr.slice(0, -1).join(';\n');
+        codeRet = codeArr[codeLen - 1];
+        if (codePre.length > 0) {
+          codeStr = codePre + ';\n';
+        } else {
+          codeStr = '';
+        }
+        codeStr += 'return ((value || 0) + (' + codeRet + '));';
+        UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseFlat'] = new Function('user', 'value', codeStr);
       }
       if (line.match(note4)) {
         obj.poiseDmgDefn = String(RegExp.$1);
+        codeArr = obj.poiseDmgDefn.split(';');
+        codeLen = codeArr.length;
+        codePre = codeArr.slice(0, -1).join(';\n');
+        codeRet = codeArr[codeLen - 1];
+        codeStr = 'const user = action.subject();\nconst item = action.item();\n';
+        if (codePre.length > 0) {
+          codeStr = codePre + ';\n';
+        }
+        codeStr += 'return ((value || 0) + (' + codeRet + '));';
+        UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgDefn'] = new Function('value', 'action', 'target', codeStr);
       }
       if (line.match(note5)) {
         obj.poiseDmgRetn = true;
@@ -167,24 +239,66 @@ DataManager.processStanceDmgNotetags = function(group) {
   const note2 = /<(?:STANCE DAMAGE RATE):[ ](.*)>/i;
   const note3 = /<(?:STANCE DAMAGE FLAT):[ ](.*)>/i;
   const note4 = /<(?:STANCE BREAK STATE):[ ](\d+)>/i;
-  let obj, notedata, line;
+  let groupKey = '';
+  switch (group) {
+    case $dataSkills:
+      groupKey = 'Skill';
+      break;
+    case $dataItems:
+      groupKey = 'Item';
+      break;
+  }
+  UNH_StanceBreak.StanceFunctions[groupKey] = {};
+  let codeArr, codeLen, codePre, codeRet, codeStr, obj, notedata, line;
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
+    obj.groupKey = groupKey;
     obj.poiseDmgPlus = "0";
     obj.poiseDmgRate = "1";
     obj.poiseDmgFlat = "0";
     obj.poiseBrkStateId = UNH_StanceBreak.StanceBreakState || 0;
     notedata = obj.note.split(/[\r\n]+/);
+    UNH_StanceBreak.StanceFunctions[groupKey][obj.id] = {};
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
       if (line.match(note1)) {
         obj.poiseDmgPlus = String(RegExp.$1);
+        codeArr = obj.poiseDmgPlus.split(';');
+        codeLen = codeArr.length;
+        codePre = codeArr.slice(0, -1).join(';\n');
+        codeRet = codeArr[codeLen - 1];
+        codeStr = 'const user = action.subject();\nconst item = action.item();\n';
+        if (codePre.length > 0) {
+          codeStr = codePre + ';\n';
+        }
+        codeStr += 'return ((value || 0) + (' + codeRet + '));';
+        UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgPlus'] = new Function('value', 'action', 'target', codeStr);
       }
       if (line.match(note2)) {
         obj.poiseDmgRate = String(RegExp.$1);
+        codeArr = obj.poiseDmgRate.split(';');
+        codeLen = codeArr.length;
+        codePre = codeArr.slice(0, -1).join(';\n');
+        codeRet = codeArr[codeLen - 1];
+        codeStr = 'const user = action.subject();\nconst item = action.item();\n';
+        if (codePre.length > 0) {
+          codeStr = codePre + ';\n';
+        }
+        codeStr += 'return ((value || 0) + (' + codeRet + '));';
+        UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgRate'] = new Function('value', 'action', 'target', codeStr);
       }
       if (line.match(note3)) {
         obj.poiseDmgFlat = String(RegExp.$1);
+        codeArr = obj.poiseDmgFlat.split(';');
+        codeLen = codeArr.length;
+        codePre = codeArr.slice(0, -1).join(';\n');
+        codeRet = codeArr[codeLen - 1];
+        codeStr = 'const user = action.subject();\nconst item = action.item();\n';
+        if (codePre.length > 0) {
+          codeStr = codePre + ';\n';
+        }
+        codeStr += 'return ((value || 0) + (' + codeRet + '));';
+        UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgFlat'] = new Function('value', 'action', 'target', codeStr);
       }
       if (line.match(note4)) {
         obj.poiseBrkStateId = Number(RegExp.$1);
@@ -259,9 +373,7 @@ Game_Action.prototype.breakPoise = function(target) {
 };
 
 Game_Action.prototype.piercePoise = function() {
-  const user = this.subject();
-  if (!this.item().poisePierce) return false;
-  return !!eval(this.item().poisePierce);
+  return !!this.item().poisePierce;
 };
 
 Game_BattlerBase.prototype.addPoise = function(value, stateId, insured) {
@@ -292,7 +404,7 @@ Game_BattlerBase.prototype.poiseHpPlus = function(total) {
   const reduce = function(r, obj) {
     if (!obj) return r;
     if (!obj.poisePlus) return r;
-    return r + eval(obj.poisePlus);
+    return UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poisePlus'](this, r);
   };
   total = objects.reduce(reduce, total);
   total = states.reduce(reduce, total);
@@ -310,7 +422,7 @@ Game_BattlerBase.prototype.poiseHpRate = function(total) {
   const reduce = function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseRate) return r;
-    return r + eval(obj.poiseRate);
+    return UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseRate'](this, r);
   };
   total = objects.reduce(reduce, total);
   total = states.reduce(reduce, total);
@@ -328,7 +440,7 @@ Game_BattlerBase.prototype.poiseHpFlat = function(total) {
   const reduce = function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseFlat) return r;
-    return r + eval(obj.poiseFlat);
+    return UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseFlat'](this, r);
   };
   total = objects.reduce(reduce, total);
   total = states.reduce(reduce, total);
@@ -351,8 +463,8 @@ Game_Action.prototype.poiseDmgPlus = function(target, value) {
   const plus = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgPlus) return r;
-    return r + Number(eval(obj.poiseDmgPlus || "0"));
-  }, Number(eval(item.poiseDmgPlus || "0")));
+    return r + UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseDmgPlus'](r, this, target);
+  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgPlus'](r, this, target));
   return value + plus;
 };
 
@@ -363,8 +475,8 @@ Game_Action.prototype.poiseDmgRate = function(target, value) {
   const rate = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgRate) return r;
-    return r * Number(eval(obj.poiseDmgRate || "1"));
-  }, Number(eval(item.poiseDmgRate || "1")));
+    return r * UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseDmgRate'](r, this, target);
+  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgRate'](r, this, target));
   return value * rate;
 };
 
@@ -375,8 +487,8 @@ Game_Action.prototype.poiseDmgFlat = function(target, value) {
   const flat = this.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgFlat) return r;
-    return r + Number(eval(obj.poiseDmgFlat || "0"));
-  }, Number(eval(item.poiseDmgFlat || "0")));
+    return UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseDmgFlat'](r, this, target);
+  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgFlat'](r, this, target));
   return value + flat;
 };
 
@@ -387,18 +499,18 @@ Game_Action.prototype.poiseDmgDefn = function(target, value) {
   const defn = target.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
     if (!obj.poiseDmgDefn) return r;
-    return r + Number(eval(obj.poiseDmgDefn || "0"));
+    return UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseDmgDefn'](r, this, target);
   }, 0);
   return value - defn;
 };
 
-Game_Action.prototype.makePoiseDamage = function(target) {
+Game_Action.prototype.makePoiseDamage = function(target, ignoreDef) {
   const breakState = this.poiseBreakStateId();
   let value = UNH_StanceBreak.StanceDmgBase(this, this.subject(), target);
   value = this.poiseDmgPlus(target, value);
   value = this.poiseDmgRate(target, value);
   value = this.poiseDmgFlat(target, value);
-  value = this.poiseDmgDefn(target, value);
+  if (!ignoreDef) value = this.poiseDmgDefn(target, value);
   if (value <= 0) return 0;
   if ($dataStates[breakState] && !this.piercePoise()) {
     return Math.round(value * target.stateRate(breakState));
