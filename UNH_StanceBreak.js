@@ -222,7 +222,7 @@ DataManager.processStanceHpNotetags = function(group) {
         codeRet = codeArr[codeLen - 1];
         codeStr = 'const user = action.subject();\nconst item = action.item();\n';
         if (codePre.length > 0) {
-          codeStr = codePre + ';\n';
+          codeStr += codePre + ';\n';
         }
         codeStr += 'return ((value || 0) + (' + codeRet + '));';
         UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgDefn'] = new Function('value', 'action', 'target', codeStr);
@@ -269,7 +269,7 @@ DataManager.processStanceDmgNotetags = function(group) {
         codeRet = codeArr[codeLen - 1];
         codeStr = 'const user = action.subject();\nconst item = action.item();\n';
         if (codePre.length > 0) {
-          codeStr = codePre + ';\n';
+          codeStr += codePre + ';\n';
         }
         codeStr += 'return ((value || 0) + (' + codeRet + '));';
         UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgPlus'] = new Function('value', 'action', 'target', codeStr);
@@ -282,7 +282,7 @@ DataManager.processStanceDmgNotetags = function(group) {
         codeRet = codeArr[codeLen - 1];
         codeStr = 'const user = action.subject();\nconst item = action.item();\n';
         if (codePre.length > 0) {
-          codeStr = codePre + ';\n';
+          codeStr += codePre + ';\n';
         }
         codeStr += 'return ((value || 0) + (' + codeRet + '));';
         UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgRate'] = new Function('value', 'action', 'target', codeStr);
@@ -295,7 +295,7 @@ DataManager.processStanceDmgNotetags = function(group) {
         codeRet = codeArr[codeLen - 1];
         codeStr = 'const user = action.subject();\nconst item = action.item();\n';
         if (codePre.length > 0) {
-          codeStr = codePre + ';\n';
+          codeStr += codePre + ';\n';
         }
         codeStr += 'return ((value || 0) + (' + codeRet + '));';
         UNH_StanceBreak.StanceFunctions[groupKey][obj.id]['poiseDmgFlat'] = new Function('value', 'action', 'target', codeStr);
@@ -464,7 +464,7 @@ Game_Action.prototype.poiseDmgPlus = function(target, value) {
     if (!obj) return r;
     if (!obj.poiseDmgPlus) return r;
     return r + UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseDmgPlus'](r, this, target);
-  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgPlus'](r, this, target));
+  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgPlus'](0, this, target));
   return value + plus;
 };
 
@@ -476,7 +476,7 @@ Game_Action.prototype.poiseDmgRate = function(target, value) {
     if (!obj) return r;
     if (!obj.poiseDmgRate) return r;
     return r * UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseDmgRate'](r, this, target);
-  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgRate'](r, this, target));
+  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgRate'](1, this, target));
   return value * rate;
 };
 
@@ -488,7 +488,7 @@ Game_Action.prototype.poiseDmgFlat = function(target, value) {
     if (!obj) return r;
     if (!obj.poiseDmgFlat) return r;
     return UNH_StanceBreak.StanceFunctions[obj.groupKey][obj.id]['poiseDmgFlat'](r, this, target);
-  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgFlat'](r, this, target));
+  }, UNH_StanceBreak.StanceFunctions[item.groupKey][item.id]['poiseDmgFlat'](0, this, target));
   return value + flat;
 };
 

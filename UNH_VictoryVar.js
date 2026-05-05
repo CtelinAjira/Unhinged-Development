@@ -43,12 +43,7 @@ DataManager.processVarRewardsNotetags = function(group) {
       line = notedata[i];
       if (line.match(/<VARIABLE (\d+) REWARD: (\d+)>/i)) {
         varId = Number(RegExp.$1);
-        amt = 0;
-        try {
-          amt = Number(RegExp.$2);
-        } catch (e) {
-          amt = 0;
-        }
+        amt = Number(RegExp.$2);
         if (!obj.varRewards[varId]) {
           obj.varRewards[varId] = amt;
         } else {

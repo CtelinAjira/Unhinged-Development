@@ -37,6 +37,290 @@ if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) {
   };
 }
 
+UNH_CustParams.ConvertToBoolFunction = function(string) {
+  let code = '';
+  const noteStr = string;
+  const noteArr = noteStr.split(';');
+  const noteLen = noteArr.length;
+  const notePre = noteArr.slice(0, -1).join(';\n');
+  const noteRet = noteArr[noteLen - 1];
+  if (notePre.length > 0) {
+    code += notePre + ';\n';
+  }
+  code += 'return (' + noteRet + ');\n';
+  return code;
+};
+
+UNH_CustParams.BasicFunctions = {Actor:{}, Class:{}, Skill:{}, Item:{}, Weapon:{}, Armor:{}, State:{}, Enemy:{}};
+
+UNH_CustParams.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
+DataManager.isDatabaseLoaded = function() {
+  if (!UNH_CustParams.DataManager_isDatabaseLoaded.call(this)) return false;
+  if (!UNH_CustParams._isLoaded) {
+    DataManager.unhProcessSpeedNotetags($dataSkills);
+    DataManager.unhProcessSpeedNotetags($dataItems);
+    DataManager.unhProcessFloorNotetags($dataActors);
+    DataManager.unhProcessFloorNotetags($dataClasses);
+    DataManager.unhProcessFloorNotetags($dataWeapons);
+    DataManager.unhProcessFloorNotetags($dataArmors);
+    DataManager.unhProcessFloorNotetags($dataStates);
+    DataManager.unhProcessFloorNotetags($dataEnemies);
+    DataManager.unhProcessKeyStatNotetags($dataActors);
+    DataManager.unhProcessKeyStatNotetags($dataClasses);
+    DataManager.unhProcessKeyStatNotetags($dataWeapons);
+    DataManager.unhProcessKeyStatNotetags($dataStates);
+    DataManager.unhProcessKeyStatNotetags($dataEnemies);
+    DataManager.unhProcessDoublehandNotetags($dataStates);
+    UNH_CustParams._isLoaded = true;
+  }
+  return true;
+};
+
+DataManager.unhProcessSpeedNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Skill';
+      break;
+    case $dataClasses:
+      groupKey = 'Item';
+      break;
+  }
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
+  const note1 = /<(?:SPEED):(?:\s*)(\d+)>/i;
+  const note2 = /<(?:SPEED):(?:\s*)(.*)>/i;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_CustParams.BasicFunctions[groupKey][obj.id] = UNH_CustParams.BasicFunctions[groupKey][obj.id] || {};
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    code = 'if (!action) return 0;\nconst item = action.item();\nconst user = action.subject();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        code += 'speed += ' + String(RegExp.$1) + ';\n';
+      } else if (line.match(note2)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'speed += (' + noteRet + ');\n';
+      }
+    }
+    code += 'return speed;';
+    UNH_CustParams.BasicFunctions[groupKey][obj.id].unhBaseSpeed = new Function('action', 'speed', code);
+  }
+};
+
+DataManager.unhProcessFloorNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Actor';
+      break;
+    case $dataClasses:
+      groupKey = 'Class';
+      break;
+    case $dataWeapons:
+      groupKey = 'Weapon';
+      break;
+    case $dataArmors:
+      groupKey = 'Armor';
+      break;
+    case $dataStates:
+      groupKey = 'State';
+      break;
+    case $dataEnemies:
+      groupKey = 'Enemy';
+      break;
+  }
+  const note1 = /<(?:FLOOR DAMAGE PLUS):[ ](.*)>/i;
+  const note2 = /<(?:FLOOR DAMAGE RATE):[ ](.*)>/i;
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_CustParams.BasicFunctions[groupKey][obj.id] = UNH_CustParams.BasicFunctions[groupKey][obj.id] || {};
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    code = 'const battler = user.actor();\nconst curClass = user.currentClass() || null;\nconst equips = user.equips() || [];\nconst states = user.states();\nif (!buffer) buffer = 1;\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note2)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'buffer *= (' + noteRet + ');\n';
+      }
+    }
+    code += 'return buffer;';
+    UNH_CustParams.BasicFunctions[groupKey][obj.id].unhFloorDamagePlus = new Function('user', 'buffer', code);
+    code = 'const battler = user.actor();\nconst curClass = user.currentClass() || null;\nconst equips = user.equips() || [];\nconst states = user.states();\nif (!buffer) buffer = 0;\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'buffer += (' + noteRet + ');\n';
+      }
+    }
+    code += 'return buffer;';
+    UNH_CustParams.BasicFunctions[groupKey][obj.id].unhFloorDamageRate = new Function('user', 'buffer', code);
+  }
+};
+
+DataManager.unhProcessKeyStatNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Actor';
+      break;
+    case $dataClasses:
+      groupKey = 'Class';
+      break;
+    case $dataWeapons:
+      groupKey = 'Weapon';
+      break;
+    case $dataArmors:
+      groupKey = 'Armor';
+      break;
+    case $dataStates:
+      groupKey = 'State';
+      break;
+    case $dataEnemies:
+      groupKey = 'Enemy';
+      break;
+  }
+  const note1 = /<(?:KEY STAT):[ ](.*)>/i;
+  const note2 = /<(?:KEY STAT PLUS):[ ](.*)>/i;
+  const note3 = /<(?:KEY STAT RATE):[ ](.*)>/i;
+  const note4 = /<(?:KEY STAT FLAT):[ ](.*)>/i;
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_CustParams.BasicFunctions[groupKey][obj.id] = UNH_CustParams.BasicFunctions[groupKey][obj.id] || {};
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    code = 'const battler = user.actor();\nconst curClass = user.currentClass() || null;\nconst equips = user.equips() || [];\nconst weapons = user.weapons() || [];\nconst armors = user.armors() || [];\nconst states = user.states();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'return (' + noteRet + ');\n';
+      }
+    }
+    code += 'return 0;\n';
+    UNH_CustParams.BasicFunctions[groupKey][obj.id].unhKeyStatBase = new Function('user', code);
+    code = 'const battler = user.actor();\nconst curClass = user.currentClass() || null;\nconst equips = user.equips() || [];\nconst weapons = user.weapons() || [];\nconst armors = user.armors() || [];\nconst states = user.states();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note2)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'power += (' + noteRet + ');\n';
+      }
+    }
+    code += 'return power;';
+    UNH_CustParams.BasicFunctions[groupKey][obj.id].unhKeyStatPlus = new Function('user', 'power', code);
+    code = 'const battler = user.actor();\nconst curClass = user.currentClass() || null;\nconst equips = user.equips() || [];\nconst weapons = user.weapons() || [];\nconst armors = user.armors() || [];\nconst states = user.states();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note3)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'power *= (' + noteRet + ');\n';
+      }
+    }
+    code += 'return power;';
+    UNH_CustParams.BasicFunctions[groupKey][obj.id].unhKeyStatRate = new Function('user', 'power', code);
+    code = 'const battler = user.actor();\nconst curClass = user.currentClass() || null;\nconst equips = user.equips() || [];\nconst weapons = user.weapons() || [];\nconst armors = user.armors() || [];\nconst states = user.states();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note4)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'power += (' + noteRet + ');\n';
+      }
+    }
+    code += 'return power;';
+    UNH_CustParams.BasicFunctions[groupKey][obj.id].unhKeyStatFlat = new Function('user', 'power', code);
+  }
+};
+
+DataManager.unhProcessDoublehandNotetags = function(group) {
+  const note1 = /<(?:UNH DOUBLEHAND)>/i;
+  const note2 = /<(?:UNH DOUBLEHAND):[ ](.*)>/i;
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_CustParams.BasicFunctions.State[obj.id] = UNH_CustParams.BasicFunctions.State[obj.id] || {};
+    UNH_CustParams.BasicFunctions.State[obj.id].unhIsDoublehand = function() {
+      return false;
+    };
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = 'State';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        UNH_CustParams.BasicFunctions.State[obj.id].unhIsDoublehand = function() {
+          return true;
+        };
+      } else if (line.match(note2)) {
+        code = 'const battler = user.actor();\nconst curClass = user.currentClass() || null;\nconst equips = user.equips() || [];\nconst weapons = user.weapons() || [];\nconst armors = user.armors() || [];\nconst states = user.states();\n';
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'return (' + noteRet + ');\n';
+        UNH_CustParams.BasicFunctions.State[obj.id].unhIsDoublehand = new Function('user', code);
+      }
+    }
+  }
+};
+
 UNH_CustParams.levelScaling = function(level) {
   const scaling = UNH_CustParams.LevelScale - 1;
   return ((scaling + level) / (scaling + 1));
@@ -45,8 +329,7 @@ UNH_CustParams.levelScaling = function(level) {
 Object.defineProperties(Game_Actor.prototype, {
   lvScale: {
     get: function() {
-      const scaling = UNH_CustParams.LevelScale - 1;
-      return ((scaling + this.level) / (scaling + 1));
+      return UNH_CustParams.levelScaling(this.level);
     }, configurable: true
   }, armCheck: {
     get: function() {
@@ -54,67 +337,45 @@ Object.defineProperties(Game_Actor.prototype, {
     }, configurable: true
   }, floorDmg: {
     get: function() {
-      const note1 = 'Floor Damage Plus';
-      const note2 = 'Floor Damage Rate';
       const user = this;
       const battler = this.actor();
       const curClass = this.currentClass();
       const equips = this.equips();
       const states = this.states();
       let buffer = 1;
+      const funcLib = UNH_CustParams.BasicFunctions;
       for (const state of states) {
         if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note1] === undefined) continue;
-        buffer += eval(state.meta[note1]);
+        buffer = funcLib.State[state.id].unhFloorDamageRate(user, buffer);
       }
       for (const equip of equips) {
         if (!equip) continue;
-        if (!equip.meta) continue;
-        if (equip.meta[note1] === undefined) continue;
-        buffer += eval(equip.meta[note1]);
-      }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note1] !== undefined) {
-            buffer += eval(curClass.meta[note1]);
-          }
+        if (equip.isWeapon()) {
+          buffer = funcLib.Weapon[equip.id].unhFloorDamageRate(user, buffer);
+        } else if (equip.isArmor()) {
+          buffer = funcLib.Armor[equip.id].unhFloorDamageRate(user, buffer);
         }
       }
-      if (!!battler.meta) {
-        if (battler.meta[note1] !== undefined) {
-          buffer += eval(battler.meta[note1]);
-        }
-      }
+      buffer = funcLib.Class[curClass.id].unhFloorDamageRate(user, buffer);
+      buffer = funcLib.Actor[battler.id].unhFloorDamageRate(user, buffer);
       for (const state of states) {
         if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note2] === undefined) continue;
-        buffer *= eval(state.meta[note2]);
+        buffer = funcLib.State[state.id].unhFloorDamagePlus(user, buffer);
       }
       for (const equip of equips) {
         if (!equip) continue;
-        if (!equip.meta) continue;
-        if (equip.meta[note2] === undefined) continue;
-        buffer *= eval(equip.meta[note2]);
-      }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note2] !== undefined) {
-            buffer *= eval(curClass.meta[note2]);
-          }
+        if (equip.isWeapon()) {
+          buffer = funcLib.Weapon[equip.id].unhFloorDamagePlus(user, buffer);
+        } else if (equip.isArmor()) {
+          buffer = funcLib.Armor[equip.id].unhFloorDamagePlus(user, buffer);
         }
       }
-      if (!!battler.meta) {
-        if (battler.meta[note2] !== undefined) {
-          buffer *= eval(battler.meta[note2]);
-        }
-      }
+      buffer = funcLib.Class[curClass.id].unhFloorDamagePlus(user, buffer);
+      buffer = funcLib.Actor[battler.id].unhFloorDamagePlus(user, buffer);
       return buffer;
     }, configurable: true
   }, kPar: {
     get: function() {
-      const note = 'Key Stat';
       const user = this;
       const battler = this.object();
       const curClass = this.currentClass();
@@ -122,70 +383,41 @@ Object.defineProperties(Game_Actor.prototype, {
       const weapons = this.weapons();
       const armors = this.armors();
       const states = this.states();
+      let power = 0;
       for (const state of states) {
         if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note] === undefined) continue;
-        return eval(state.meta[note]);
+        power = funcLib.State[state.id].unhFloorDamageRate(user);
       }
-      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        const weapon = this.equips()[this._activeWeaponSlot || 0];
-        if (DataManager.isWeapon(weapon)) {
-          if (!!weapon.meta) {
-            if (weapon.meta[note] === undefined) {
-              return eval(weapon.meta[note]);
-            }
+      if (power <= 0) {
+        if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
+          const weapon = this.equips()[this._activeWeaponSlot || 0];
+          if (DataManager.isWeapon(weapon)) {
+            power = funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
           }
+        } else if (weapons.length > 0) {
+          const weaponSum = weapons.reduce(function(r, weapon) {
+            if (!weapon) return r;
+            return r + funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
+          }, 0);
+          power = (weaponSum / weapons.length);
         }
-      } else if (weapons.length > 0) {
-        const weaponSum = weapons.reduce(function(r, weapon) {
-          if (!weapon) return r;
-          if (!weapon.meta) return r;
-          if (weapon.meta[note] === undefined) return r;
-          return r + eval(weapon.meta[note]);
-        }, 0);
-        return (weaponSum / weapons.length);
-      }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note] !== undefined) {
-            return eval(curClass.meta[note]);
+        if (power <= 0) {
+          power = funcLib.Class[curClass.id].unhFloorDamageRate(user);
+          if (power <= 0) {
+            power = funcLib.Actor[battler.id].unhFloorDamageRate(user);
           }
         }
       }
-      if (!!battler.meta) {
-        if (battler.meta[note] !== undefined) {
-          return eval(battler.meta[note]);
-        }
-      }
-      return 0;
-    }, configurable: true
-  }, kPlus: {
-    get: function() {
-      const note = 'Key Plus';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note] === undefined) continue;
-        return eval(state.meta[note]);
-      }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note] !== undefined) {
-            return eval(curClass.meta[note]);
-          }
-        }
-      }
-      if (!!battler.meta) {
-        if (battler.meta[note] !== undefined) {
-          return eval(battler.meta[note]);
-        }
-      }
-      return 0;
+      power = user.traitObjects().reduce(function(r, object) {
+        return UNH_CustParams.BasicFunctions[object.groupKey][obj.id].unhKeyStatPlus(user, r);
+      }, power);
+      power = user.traitObjects().reduce(function(r, object) {
+        return UNH_CustParams.BasicFunctions[object.groupKey][obj.id].unhKeyStatRate(user, r);
+      }, power);
+      power = user.traitObjects().reduce(function(r, object) {
+        return UNH_CustParams.BasicFunctions[object.groupKey][obj.id].unhKeyStatFlat(user, r);
+      }, power);
+      return power;
     }, configurable: true
   }, pArm: {
     get: function() {
@@ -674,128 +906,93 @@ Object.defineProperties(Game_Enemy.prototype, {
     }, configurable: true
   }, floorDmg: {
     get: function() {
-      const note1 = 'Floor Damage Plus';
-      const note2 = 'Floor Damage Rate';
       const user = this;
       const battler = this.enemy();
-      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
+      const curClass = ((this.currentClass()) ? (this.currentClass()) : (null));
       const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       const states = this.states();
       let buffer = 1;
+      const funcLib = UNH_CustParams.BasicFunctions;
       for (const state of states) {
         if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note1] === undefined) continue;
-        buffer += eval(state.meta[note1]);
+        buffer = funcLib.State[state.id].unhFloorDamageRate(user, buffer);
       }
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (equip.meta[note1] === undefined) continue;
-        buffer += eval(equip.meta[note1]);
-      }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note1] !== undefined) {
-            buffer += eval(curClass.meta[note1]);
+      if (equips.length > 0) {
+        for (const equip of equips) {
+          if (!equip) continue;
+          if (equip.isWeapon()) {
+            buffer = funcLib.Weapon[equip.id].unhFloorDamageRate(user, buffer);
+          } else if (equip.isArmor()) {
+            buffer = funcLib.Armor[equip.id].unhFloorDamageRate(user, buffer);
           }
         }
       }
-      if (!!battler.meta) {
-        if (battler.meta[note1] !== undefined) {
-          buffer += eval(battler.meta[note1]);
-        }
-      }
+      if (!!curClass) buffer = funcLib.Class[curClass.id].unhFloorDamageRate(user, buffer);
+      buffer = funcLib.Enemy[battler.id].unhFloorDamageRate(user, buffer);
       for (const state of states) {
         if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note2] === undefined) continue;
-        buffer *= eval(state.meta[note2]);
+        buffer = funcLib.State[state.id].unhFloorDamagePlus(user, buffer);
       }
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (equip.meta[note2] === undefined) continue;
-        buffer *= eval(equip.meta[note2]);
-      }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note2] !== undefined) {
-            buffer *= eval(curClass.meta[note2]);
+      if (equips.length > 0) {
+        for (const equip of equips) {
+          if (!equip) continue;
+          if (equip.isWeapon()) {
+            buffer = funcLib.Weapon[equip.id].unhFloorDamagePlus(user, buffer);
+          } else if (equip.isArmor()) {
+            buffer = funcLib.Armor[equip.id].unhFloorDamagePlus(user, buffer);
           }
         }
       }
-      if (!!battler.meta) {
-        if (battler.meta[note2] !== undefined) {
-          buffer *= eval(battler.meta[note2]);
-        }
-      }
+      if (!!curClass) buffer = funcLib.Class[curClass.id].unhFloorDamagePlus(user, buffer);
+      buffer = funcLib.Enemy[battler.id].unhFloorDamagePlus(user, buffer);
       return buffer;
     }, configurable: true
   }, kPar: {
     get: function() {
-      const note = 'Key Stat';
       const user = this;
       const battler = this.object();
-      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
+      const curClass = ((this.currentClass()) ? (this.currentClass()) : (null));
       const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      const weapons = this.weapons();
-      const armors = this.armors();
+      const weapons = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.weapons()) : ([]));
+      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
       const states = this.states();
+      let power = 0;
       for (const state of states) {
         if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note] === undefined) continue;
-        return eval(state.meta[note]);
+        power = funcLib.State[state.id].unhFloorDamageRate(user);
       }
-      const weapon = this.equips()[this._activeWeaponSlot || 0];
-      if (DataManager.isWeapon(weapon)) {
-        if (!!weapon.meta) {
-          if (weapon.meta[note] === undefined) {
-            return eval(weapon.meta[note]);
+      if (power <= 0) {
+        if (weapons.length > 0) {
+          if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
+            const weapon = this.equips()[this._activeWeaponSlot || 0];
+            if (DataManager.isWeapon(weapon)) {
+              power = funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
+            }
+          } else if (weapons.length > 0) {
+            const weaponSum = weapons.reduce(function(r, weapon) {
+              if (!weapon) return r;
+              return r + funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
+            }, 0);
+            power = (weaponSum / weapons.length);
+          }
+        }
+        if (power <= 0) {
+          if (!!curClass) power = funcLib.Class[curClass.id].unhFloorDamageRate(user);
+          if (power <= 0) {
+            power = funcLib.Enemy[battler.id].unhFloorDamageRate(user);
           }
         }
       }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note] !== undefined) {
-            return eval(curClass.meta[note]);
-          }
-        }
-      }
-      if (!!battler.meta) {
-        if (battler.meta[note] !== undefined) {
-          return eval(battler.meta[note]);
-        }
-      }
-      return 0;
-    }, configurable: true
-  }, kPlus: {
-    get: function() {
-      const note = 'Key Plus';
-      const user = this;
-      const battler = this.object();
-      const curClass = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.currentClass()) : (null));
-      const states = this.states();
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (state.meta[note] === undefined) continue;
-        return eval(state.meta[note]);
-      }
-      if (!!curClass) {
-        if (!!curClass.meta) {
-          if (curClass.meta[note] !== undefined) {
-            return eval(curClass.meta[note]);
-          }
-        }
-      }
-      if (!!battler.meta) {
-        if (battler.meta[note] !== undefined) {
-          return eval(battler.meta[note]);
-        }
-      }
-      return 0;
+      power = user.traitObjects().reduce(function(r, object) {
+        return UNH_CustParams.BasicFunctions[object.groupKey][obj.id].unhKeyStatPlus(user, r);
+      }, power);
+      power = user.traitObjects().reduce(function(r, object) {
+        return UNH_CustParams.BasicFunctions[object.groupKey][obj.id].unhKeyStatRate(user, r);
+      }, power);
+      power = user.traitObjects().reduce(function(r, object) {
+        return UNH_CustParams.BasicFunctions[object.groupKey][obj.id].unhKeyStatFlat(user, r);
+      }, power);
+      return power;
     }, configurable: true
   }, pArm: {
     get: function() {
@@ -1291,10 +1488,12 @@ UNH_CustParams.weaponSkill = function(user, wtypeId) {
     if (!eval(state.meta[note])) continue;
     return user.unhSkillLevel(skillId);
   }
-  if (!!curClass.meta) {
-    if (!!curClass.meta[note]) {
-      if (!!eval(curClass.meta[note])) {
-        return user.unhSkillLevel(skillId);
+  if (!!curClass) {
+    if (!!curClass.meta) {
+      if (!!curClass.meta[note]) {
+        if (!!eval(curClass.meta[note])) {
+          return user.unhSkillLevel(skillId);
+        }
       }
     }
   }
@@ -1861,14 +2060,18 @@ Game_BattlerBase.prototype.unhProne = function() {
 };
 
 Game_BattlerBase.prototype.unhIsDoublehand = function() {
-  const user = this;
+  return this.states().some(function(state) {
+    if (!state) return false;
+    return UNH_CustParams.BasicFunctions.State[obj.id].unhIsDoublehand(this);
+  });
+  /*const user = this;
   const note = 'unhDoublehand';
   return this.states().some(function(state) {
     if (!state) return false;
     if (!state.meta) return false;
     if (!state.meta[note]) return false;
     return !!eval(state.meta[note]);
-  });
+  });*/
 };
 
 Game_BattlerBase.prototype.unhIsSkyward = function() {

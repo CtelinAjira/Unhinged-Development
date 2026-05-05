@@ -164,13 +164,127 @@ const UNH_AggroLevels = {};
 UNH_AggroLevels.pluginName = 'UNH_AggroLevels';
 UNH_AggroLevels.parameters = PluginManager.parameters(UNH_AggroLevels.pluginName);
 UNH_AggroLevels.BaseAggro = String(UNH_AggroLevels.parameters['BaseAggro'] || '0');
+UNH_AggroLevels.BaseAggroFunc = new Function('user', 'return ' + UNH_AggroLevels.BaseAggro);
 UNH_AggroLevels.HurtingAggro = String(UNH_AggroLevels.parameters['HurtingAggro'] || '0');
+UNH_AggroLevels.HurtingAggroFunc = new Function('user', 'return ' + UNH_AggroLevels.HurtingAggro);
 UNH_AggroLevels.HealingAggro = String(UNH_AggroLevels.parameters['HealingAggro'] || '0');
+UNH_AggroLevels.HealingAggroFunc = new Function('user', 'return ' + UNH_AggroLevels.HealingAggro);
 UNH_AggroLevels.HPMult = String(UNH_AggroLevels.parameters['HPMult'] || '0');
+UNH_AggroLevels.HPMultFunc = new Function('user', 'return ' + UNH_AggroLevels.HPMult);
 UNH_AggroLevels.MPMult = String(UNH_AggroLevels.parameters['MPMult'] || '0');
+UNH_AggroLevels.MPMultFunc = new Function('user', 'return ' + UNH_AggroLevels.MPMult);
 UNH_AggroLevels.isTaunt = !!UNH_AggroLevels.parameters['isTaunt'];
 UNH_AggroLevels.isVoke = !!UNH_AggroLevels.parameters['isVoke'];
 UNH_AggroLevels.autoCalc = !!UNH_AggroLevels.parameters['autoCalc'];
+
+UNH_AggroLevels.FilterFunctions = {Actor:{}, Class:{}, Skill:{}, Item:{}, Weapon:{}, Armor:{}, State:{}, Enemy:{}};
+
+UNH_AggroLevels.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
+DataManager.isDatabaseLoaded = function() {
+  if (!UNH_AggroLevels.DataManager_isDatabaseLoaded.call(this)) return false;
+  if (!UNH_AggroLevels._isLoaded) {
+    DataManager.unhProcessAggroFilterNotetags($dataSkills);
+    DataManager.unhProcessAggroFilterNotetags($dataItems);
+    DataManager.unhProcessAggroHideNotetags($dataActors);
+    DataManager.unhProcessAggroHideNotetags($dataClasses);
+    DataManager.unhProcessAggroHideNotetags($dataWeapons);
+    DataManager.unhProcessAggroHideNotetags($dataArmors);
+    DataManager.unhProcessAggroHideNotetags($dataStates);
+    DataManager.unhProcessAggroHideNotetags($dataEnemies);
+    UNH_AggroLevels._isLoaded = true;
+  }
+  return true;
+};
+
+DataManager.unhProcessAggroFilterNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Skill';
+      break;
+    case $dataClasses:
+      groupKey = 'Item';
+      break;
+  }
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
+  const note1 = /<(?:UNH FILTER)>/i;
+  const note2 = /<(?:UNH FILTER):[ ](.*)>/i;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_AggroLevels.FilterFunctions[groupKey][obj.id] = UNH_AggroLevels.FilterFunctions[groupKey][obj.id] || {};
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    code = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        code += 'return true;\n';
+      } else if (line.match(note2)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'return (' + noteRet + ');\n';
+      }
+    }
+    UNH_AggroLevels.FilterFunctions[groupKey][obj.id].unhFilter = new Function('action', 'target', code);
+  }
+};
+
+DataManager.unhProcessAggroHideNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Actor';
+      break;
+    case $dataClasses:
+      groupKey = 'Class';
+      break;
+    case $dataWeapons:
+      groupKey = 'Weapon';
+      break;
+    case $dataArmors:
+      groupKey = 'Armor';
+      break;
+    case $dataStates:
+      groupKey = 'State';
+      break;
+    case $dataEnemies:
+      groupKey = 'Enemy';
+      break;
+  }
+  const note1 = /<(?:UNH HIDE)>/i;
+  const note2 = /<(?:UNH HIDE):[ ](.*)>/i;
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_AggroLevels.FilterFunctions[groupKey][obj.id] = UNH_AggroLevels.FilterFunctions[groupKey][obj.id] || {};
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    code = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        code += 'return true;\n';
+      } else if (line.match(note2)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          code += notePre + ';\n';
+        }
+        code += 'return (' + noteRet + ');\n';
+      }
+    }
+    UNH_AggroLevels.FilterFunctions[groupKey][obj.id].unhHide = new Function('user', 'buffer', code);
+  }
+};
 
 UNH_AggroLevels.isSkillTagged = function(action, target, note) {
   if (!action) return false;
@@ -211,10 +325,16 @@ Game_Action.prototype.randomTargets = function (unit) {
 
 Game_Unit.prototype.trueRandomTarget = function (action) {
   const aliveMembers = this.aliveMembers();
+  const item = action.item();
+  let isHide = false;
   const filtered = aliveMembers.filter(function(target) {
     if (!target) return false;
-    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
-    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    if (UNH_AggroLevels.FilterFunctions[item.groupKey][item.id].unhFilter(action, target)) return false;
+    isHide = target.traitObjects().some(function(object) {
+      if (!object) return false;
+      return UNH_AggroLevels.FilterFunctions[object.groupKey][object.id].unhFilter(action, target);
+    });
+    if (isHide) return false;
     return true;
   });
   if (filtered.length < aliveMembers.length) {
@@ -227,10 +347,15 @@ UNH_AggroLevels.Action_itemTargetCandidates = Game_Action.prototype.itemTargetCa
 Game_Action.prototype.itemTargetCandidates = function() {
   const action = this;
   const origTargets = UNH_AggroLevels.Action_itemTargetCandidates.call(this);
+  let isHide = false;
   return origTargets.filter(function(target) {
     if (!target) return false;
-    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
-    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    if (UNH_AggroLevels.FilterFunctions[item.groupKey][item.id].unhFilter(action, target)) return false;
+    isHide = target.traitObjects().some(function(object) {
+      if (!object) return false;
+      return UNH_AggroLevels.FilterFunctions[object.groupKey][object.id].unhFilter(action, target);
+    });
+    if (isHide) return false;
     return true;
   });
 };
@@ -238,10 +363,15 @@ Game_Action.prototype.itemTargetCandidates = function() {
 UNH_AggroLevels.Action_makeTargets = Game_Action.prototype.makeTargets;
 Game_Action.prototype.makeTargets = function() {
   const baseTargets = UNH_AggroLevels.Action_makeTargets.call(this);
+  let isHide = false;
   return baseTargets.filter(function(target) {
     if (!target) return false;
-    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
-    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    if (UNH_AggroLevels.FilterFunctions[item.groupKey][item.id].unhFilter(action, target)) return false;
+    isHide = target.traitObjects().some(function(object) {
+      if (!object) return false;
+      return UNH_AggroLevels.FilterFunctions[object.groupKey][object.id].unhFilter(action, target);
+    });
+    if (isHide) return false;
     return true;
   });
 };
@@ -279,10 +409,15 @@ Game_Unit.prototype.randomTarget = function(action) {
   const origTg = UNH_AggroLevels.Action_randomTarget.call(this);
   if (!action) return origTg;
   const aliveMembers = this.aliveMembers();
+  let isHide = false;
   const filterMembers = aliveMembers.filter(function(target) {
     if (!target) return false;
-    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
-    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    if (UNH_AggroLevels.FilterFunctions[item.groupKey][item.id].unhFilter(action, target)) return false;
+    isHide = target.traitObjects().some(function(object) {
+      if (!object) return false;
+      return UNH_AggroLevels.FilterFunctions[object.groupKey][object.id].unhFilter(action, target);
+    });
+    if (isHide) return false;
     return true;
   });
   let tgGroup;
@@ -312,10 +447,15 @@ Game_Unit.prototype.randomDeadTarget = function(action) {
   const origTg = UNH_AggroLevels.Action_randomDeadTarget.call(this);
   if (!action) return origTg;
   const deadMembers = this.deadMembers();
+  let isHide = false;
   const filterMembers = members.filter(function(target) {
     if (!target) return false;
-    if (UNH_AggroLevels.isSkillTagged(action, target, 'unhFilter')) return false;
-    if (UNH_AggroLevels.isTargetTagged(action, target, 'unhHide')) return false;
+    if (UNH_AggroLevels.FilterFunctions[item.groupKey][item.id].unhFilter(action, target)) return false;
+    isHide = target.traitObjects().some(function(object) {
+      if (!object) return false;
+      return UNH_AggroLevels.FilterFunctions[object.groupKey][object.id].unhFilter(action, target);
+    });
+    if (isHide) return false;
     return true;
   });
   const isFilter = (filterMembers.length < deadMembers.length);
@@ -431,28 +571,15 @@ if (!!UNH_AggroLevels.isVoke) {
 }
 
 Game_BattlerBase.prototype.unhDefaultAggro = function() {
-  const user = this;
-  //try {
-    return eval(UNH_AggroLevels.BaseAggro);
-  //} catch(e) {
-  //  return 100;
-  //}
+  return UNH_AggroLevels.BaseAggroFunc(this);
 };
 
 Game_BattlerBase.prototype.unhDamageMult = function(value) {
   if (value < 0) {
-    //try {
-      return eval(UNH_AggroLevels.HealingAggro);
-    //} catch(e) {
-    //  return 100;
-    //}
+    return UNH_AggroLevels.HealingAggroFunc(this);
   }
   if (value > 0) {
-    //try {
-      return eval(UNH_AggroLevels.HurtingAggro);
-    //} catch(e) {
-    //  return 100;
-    //}
+    return UNH_AggroLevels.HurtingAggroFunc(this);
   }
   return 1;
 };
@@ -569,20 +696,11 @@ Game_Action.prototype.unhAddAggro = function(target, value, ignoreRates) {
 };
 
 Game_BattlerBase.prototype.unhHpMult = function() {
-  const user = this;
-  try {
-    return eval(UNH_AggroLevels.HPMult);
-  } catch(e) {
-    return 1;
-  }
+  return UNH_AggroLevels.HPMultFunc(this);
 };
 
 Game_BattlerBase.prototype.unhMpMult = function() {
-  try {
-    return eval(UNH_AggroLevels.MPMult);
-  } catch(e) {
-    return 1;
-  }
+  return UNH_AggroLevels.MPMultFunc(this);
 };
 
 Game_BattlerBase.prototype.unhAggroMult = function() {
