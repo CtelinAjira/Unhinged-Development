@@ -21,6 +21,12 @@ Imported.UNH_CustParams = true;
  * @type number
  * @default 10
  *
+ * @param WeaponSkills
+ * @text Weapon Skills
+ * @desc The skills checked for weapons
+ * @type string
+ * @default 0
+ *
  * @help
  */
 //=============================================================================
@@ -29,6 +35,7 @@ const UNH_CustParams = {};
 UNH_CustParams.pluginName = 'UNH_CustParams';
 UNH_CustParams.parameters = PluginManager.parameters(UNH_CustParams.pluginName);
 UNH_CustParams.LevelScale = Number(UNH_CustParams.parameters['LevelScale'] || 10);
+UNH_CustParams.WeaponSkills = new Function('user', 'wtypeId', 'return (' + String(UNH_CustParams.parameters['WeaponSkills'] || '0') + ');');
 
 if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_SkillsStatesCore')) {
   DataManager.getSkillTypes = function(skill) {
@@ -51,7 +58,27 @@ UNH_CustParams.ConvertToBoolFunction = function(string) {
   return code;
 };
 
-UNH_CustParams.BasicFunctions = {Actor:{}, Class:{}, Skill:{}, Item:{}, Weapon:{}, Armor:{}, State:{}, Enemy:{}};
+UNH_CustParams.BasicFunctions = {
+  Actor:{},
+  Class:{},
+  Skill:{},
+  Item:{},
+  Weapon:{},
+  Armor:{},
+  State:{},
+  Enemy:{}
+};
+
+UNH_CustParams.ArmorFunctions = {
+  Actor:{},
+  Class:{},
+  Skill:{},
+  Item:{},
+  Weapon:{},
+  Armor:{},
+  State:{},
+  Enemy:{}
+};
 
 UNH_CustParams.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
@@ -79,10 +106,10 @@ DataManager.isDatabaseLoaded = function() {
 DataManager.unhProcessSpeedNotetags = function(group) {
   let groupKey = '';
   switch (group) {
-    case $dataActors:
+    case $dataSkills:
       groupKey = 'Skill';
       break;
-    case $dataClasses:
+    case $dataItems:
       groupKey = 'Item';
       break;
   }
@@ -384,27 +411,28 @@ Object.defineProperties(Game_Actor.prototype, {
       const armors = this.armors();
       const states = this.states();
       let power = 0;
+      const funcLib = UNH_CustParams.BasicFunctions;
       for (const state of states) {
         if (!state) continue;
-        power = funcLib.State[state.id].unhFloorDamageRate(user);
+        power = funcLib.State[state.id].unhKeyStatBase(user);
       }
       if (power <= 0) {
         if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
           const weapon = this.equips()[this._activeWeaponSlot || 0];
           if (DataManager.isWeapon(weapon)) {
-            power = funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
+            power = funcLib.Weapon[weapon.id].unhKeyStatBase(user);
           }
         } else if (weapons.length > 0) {
           const weaponSum = weapons.reduce(function(r, weapon) {
             if (!weapon) return r;
-            return r + funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
+            return r + funcLib.Weapon[weapon.id].unhKeyStatBase(user);
           }, 0);
           power = (weaponSum / weapons.length);
         }
         if (power <= 0) {
-          power = funcLib.Class[curClass.id].unhFloorDamageRate(user);
+          power = funcLib.Class[curClass.id].unhKeyStatBase(user);
           if (power <= 0) {
-            power = funcLib.Actor[battler.id].unhFloorDamageRate(user);
+            power = funcLib.Actor[battler.id].unhKeyStatBase(user);
           }
         }
       }
@@ -422,475 +450,87 @@ Object.defineProperties(Game_Actor.prototype, {
   }, pArm: {
     get: function() {
       const note = 'Physical Armor';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = this.armors();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mArm: {
     get: function() {
       const note = 'Magical Armor';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = this.armors();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pBrk: {
     get: function() {
       const note = 'Physical Drop';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const weapons = this.weapons();
-      let buffer = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        if (weapons.length > 0) {
-          const wpnDex = (this._activeWeaponSlot || 0)
-          const weapon = weapons[wpnDex];
-          if (!!weapon) {
-            if (!!weapon.meta) {
-              if (!!weapon.meta[note]) {
-                buffer += eval(weapon.meta[note]);
-              }
-            }
-          }
-        }
-      } else {
-        for (const weapon of weapons) {
-          if (!weapon) continue;
-          if (!weapon.meta) continue;
-          if (!weapon.meta[note]) continue;
-          buffer += eval(weapon.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mBrk: {
     get: function() {
       const note = 'Magical Drop';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const weapons = this.weapons();
-      let buffer = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        if (weapons.length > 0) {
-          const wpnDex = (this._activeWeaponSlot || 0)
-          const weapon = weapons[wpnDex];
-          if (!!weapon) {
-            if (!!weapon.meta) {
-              if (!!weapon.meta[note]) {
-                buffer += eval(weapon.meta[note]);
-              }
-            }
-          }
-        }
-      } else {
-        for (const weapon of weapons) {
-          if (!weapon) continue;
-          if (!weapon.meta) continue;
-          if (!weapon.meta[note]) continue;
-          buffer += eval(weapon.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pRes: {
     get: function() {
       const note = 'Physical Resist';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = this.armors();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mRes: {
     get: function() {
       const note = 'Magical Resist';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = this.armors();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pBuf: {
     get: function() {
       const note = 'Physical Buffer';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mBuf: {
     get: function() {
       const note = 'Magical Buffer';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pEnh: {
     get: function() {
       const note = 'Physical Enhance';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mEnh: {
     get: function() {
       const note = 'Magical Enhance';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, spdBoost: {
     get: function() {
       const note = 'Speed Boost';
-      const user = this;
-      const states = this.states();
-      const equips = this.equips();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, physDmgPlus: {
     get: function() {
       const note = 'Physical Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = this.equips();
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, tekDmgPlus: {
     get: function() {
       const note = 'Techno Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = this.equips();
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, acnDmgPlus: {
     get: function() {
       const note = 'Arcane Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = this.equips();
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, psiDmgPlus: {
     get: function() {
       const note = 'Psionic Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = this.equips();
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, auraDmgPlus: {
     get: function() {
       const note = 'Aura Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = this.equips();
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, domDmgPlus: {
     get: function() {
       const note = 'Domain Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = this.equips();
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }
 });
@@ -959,27 +599,27 @@ Object.defineProperties(Game_Enemy.prototype, {
       let power = 0;
       for (const state of states) {
         if (!state) continue;
-        power = funcLib.State[state.id].unhFloorDamageRate(user);
+        power = funcLib.State[state.id].unhKeyStatBase(user);
       }
       if (power <= 0) {
         if (weapons.length > 0) {
           if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
             const weapon = this.equips()[this._activeWeaponSlot || 0];
             if (DataManager.isWeapon(weapon)) {
-              power = funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
+              power = funcLib.Weapon[weapon.id].unhKeyStatBase(user);
             }
           } else if (weapons.length > 0) {
             const weaponSum = weapons.reduce(function(r, weapon) {
               if (!weapon) return r;
-              return r + funcLib.Weapon[weapon.id].unhFloorDamageRate(user);
+              return r + funcLib.Weapon[weapon.id].unhKeyStatBase(user);
             }, 0);
             power = (weaponSum / weapons.length);
           }
         }
         if (power <= 0) {
-          if (!!curClass) power = funcLib.Class[curClass.id].unhFloorDamageRate(user);
+          if (!!curClass) power = funcLib.Class[curClass.id].unhKeyStatBase(user);
           if (power <= 0) {
-            power = funcLib.Enemy[battler.id].unhFloorDamageRate(user);
+            power = funcLib.Enemy[battler.id].unhKeyStatBase(user);
           }
         }
       }
@@ -997,477 +637,87 @@ Object.defineProperties(Game_Enemy.prototype, {
   }, pArm: {
     get: function() {
       const note = 'Physical Armor';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mArm: {
     get: function() {
       const note = 'Magical Armor';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pBrk: {
     get: function() {
       const note = 'Physical Drop';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const weapons = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.weapons()) : ([]));
-      let buffer = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        if (weapons.length > 0) {
-          const wpnDex = (this._activeWeaponSlot || 0)
-          const weapon = weapons[wpnDex];
-          if (!!weapon) {
-            if (!!weapon.meta) {
-              if (!!weapon.meta[note]) {
-                buffer += eval(weapon.meta[note]);
-              }
-            }
-          }
-        }
-      } else {
-        for (const weapon of weapons) {
-          if (!weapon) continue;
-          if (!weapon.meta) continue;
-          if (!weapon.meta[note]) continue;
-          buffer += eval(weapon.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mBrk: {
     get: function() {
       const note = 'Magical Drop';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const weapons = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.weapons()) : ([]));
-      let buffer = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      if (UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) {
-        if (weapons.length > 0) {
-          const wpnDex = (this._activeWeaponSlot || 0)
-          const weapon = weapons[wpnDex];
-          if (!!weapon) {
-            if (!!weapon.meta) {
-              if (!!weapon.meta[note]) {
-                buffer += eval(weapon.meta[note]);
-              }
-            }
-          }
-        }
-      } else {
-        for (const weapon of weapons) {
-          if (!weapon) continue;
-          if (!weapon.meta) continue;
-          if (!weapon.meta[note]) continue;
-          buffer += eval(weapon.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pRes: {
     get: function() {
       const note = 'Physical Resist';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mRes: {
     get: function() {
       const note = 'Magical Resist';
-      const user = this;
-      const battler = this.object();
-      const states = this.states();
-      const armors = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.armors()) : ([]));
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      for (const equip of armors) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        buffer += eval(equip.meta[note]);
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          buffer += eval(battler.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pBuf: {
     get: function() {
       const note = 'Physical Buffer';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mBuf: {
     get: function() {
       const note = 'Magical Buffer';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, pEnh: {
     get: function() {
       const note = 'Physical Enhance';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, mEnh: {
     get: function() {
       const note = 'Magical Enhance';
-      const user = this;
-      const states = this.states();
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, spdBoost: {
     get: function() {
       const note = 'Speed Boost';
-      const user = this;
-      const states = this.states();
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      let buffer = 0;
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        buffer += eval(state.meta[note]);
-      }
-      if (UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
-        for (const equip of equips) {
-          if (!equip) continue;
-          if (!equip.meta) continue;
-          if (!equip.meta[note]) continue;
-          buffer += eval(equip.meta[note]);
-        }
-      }
-      return buffer;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, physDmgPlus: {
     get: function() {
       const note = 'Physical Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, tekDmgPlus: {
     get: function() {
       const note = 'Techno Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, acnDmgPlus: {
     get: function() {
       const note = 'Arcane Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, psiDmgPlus: {
     get: function() {
       const note = 'Psionic Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, auraDmgPlus: {
     get: function() {
       const note = 'Aura Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }, domDmgPlus: {
     get: function() {
       const note = 'Domain Damage';
-      const user = this;
-      const battler = this.object();
-      const curClass = this.currentClass();
-      const states = this.states();
-      const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
-      let dmg = 0;
-      const isDoublehand = user.unhIsDoublehand();
-      for (const equip of equips) {
-        if (!equip) continue;
-        if (!equip.meta) continue;
-        if (!equip.meta[note]) continue;
-        dmg += eval(equip.meta[note]);
-      }
-      for (const state of states) {
-        if (!state) continue;
-        if (!state.meta) continue;
-        if (!state.meta[note]) continue;
-        dmg += eval(state.meta[note]);
-      }
-      if (!!curClass.meta) {
-        if (!!curClass.meta[note]) {
-          dmg += eval(curClass.meta[note]);
-        }
-      }
-      if (!!battler.meta) {
-        if (!!battler.meta[note]) {
-          dmg += eval(battler.meta[note]);
-        }
-      }
-      return dmg;
+      return UNH_MiscFunc.stateTagCt(this, note);
     }, configurable: true
   }
 });
@@ -1477,66 +727,18 @@ UNH_CustParams.weaponSkill = function(user, wtypeId) {
   const wtypes = $dataSystem.weaponTypes;
   let note = "Unarmed Master";
   if (wtypeId > 0 && wtypeId < wtypes.length) note = wtypes[wtypeId] + " Master";
-  const skillId = 12 + wtypeId;
-  const battler = user.object();
-  const curClass = user.currentClass();
-  const states = user.states();
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    if (!eval(state.meta[note])) continue;
-    return user.unhSkillLevel(skillId);
+  const skillId = UNH_CustParams.WeaponSkills(user, wtypeId);
+  const isMaster = UNH_MiscFunc.isStateTagged(user, note);
+  if (!!isMaster) {
+    user.unhSkillLevel(skillId);
+  } else {
+    return 0;
   }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (!!curClass.meta[note]) {
-        if (!!eval(curClass.meta[note])) {
-          return user.unhSkillLevel(skillId);
-        }
-      }
-    }
-  }
-  if (!!battler.meta) {
-    if (!!battler.meta[note]) {
-      if (!!eval(battler.meta[note])) {
-        return user.unhSkillLevel(skillId);
-      }
-    }
-  }
-  return 0;
 };
 
 Game_Action.prototype.tLv = function(target) {
-  const action = this;
-  const item = this.item();
-  const user = this.subject();
   const note = 'UnhLevelPlus';
-  let actnLv = 0;
-  if (!!item) {
-    if (!!item.meta) {
-      if (!!item.meta[note]) {
-        actnLv = Number(eval(obj.meta[note]));
-        if (isNaN(actnLv)) actnLv = 0;
-      }
-    }
-  }
-  let retAdd;
-  const userLv = user.traitObjects().reduce(function(r, obj) {
-    if (!obj) return r;
-    if (!obj.meta) return r;
-    retAdd = Number(eval(obj.meta[note]));
-    if (isNaN(retAdd)) return r;
-    return r + retAdd;
-  }, user.level);
-  const targLv = target.traitObjects().reduce(function(r, obj) {
-    if (!obj) return r;
-    if (!obj.meta) return r;
-    retAdd = Number(eval(obj.meta[note]));
-    if (isNaN(retAdd)) return r;
-    return r + retAdd;
-  }, target.level);
-  return (actnLv + userLv - targLv);
+  return UNH_MiscFunc.skillTagCt(this, target, note) + UNH_MiscFunc.userTagCt(this, target, note) - UNH_MiscFunc.targetTagCt(this, target, note);
 };
 
 Game_Action.prototype.tLvScl = function(target) {
@@ -1547,18 +749,8 @@ Game_Action.prototype.tLvScl = function(target) {
 };
 
 Game_BattlerBase.prototype.bossScale = function() {
-  const action = this;
-  const item = this.item();
-  const user = this.subject();
   const note = 'UnhLevelPlus';
-  let retAdd;
-  const level = user.traitObjects().reduce(function(r, obj) {
-    if (!obj) return r;
-    if (!obj.meta) return r;
-    retAdd = Number(eval(obj.meta[note]));
-    if (isNaN(retAdd)) return r;
-    return r + retAdd;
-  }, user.level);
+  const level = user.level + UNH_MiscFunc.stateTagCt(this, note);
   return UNH_CustParams.levelScaling(level);
 };
 
@@ -1580,6 +772,7 @@ Game_Action.prototype.wMag = function(target, handDex) {
   if (!!item) {
     if (!!item.meta) {
       if (item.meta[note] !== undefined) {
+        if (item.meta[note] === true) return true;
         if (!!eval(item.meta[note])) return true;
       }
     }
@@ -1595,6 +788,7 @@ Game_Action.prototype.wMag = function(target, handDex) {
     if (DataManager.isWeapon(weapon)) {
       if (!!weapon.meta) {
         if (weapon.meta[note] !== undefined) {
+          if (weapon.meta[note] === true) return true;
           if (!!eval(weapon.meta[note])) return true;
         }
       }
@@ -1604,52 +798,14 @@ Game_Action.prototype.wMag = function(target, handDex) {
     if (!state) return false;
     if (!state.meta) return false;
     if (!state.meta[note]) return false;
+    if (state.meta[note] === true) return true;
     return !!eval(state.meta[note]);
   });
 };
 
 Game_Action.prototype.wPow = function(target, handDex) {
   const note = 'Weapon Power';
-  const action = this;
-  const item = this.item();
-  const user = this.subject();
-  const battler = user.object();
-  const curClass = user.currentClass();
-  const equips = user.equips();
-  const weapons = user.weapons();
-  const armors = user.armors();
-  const states = user.states();
-  if (!!item) {
-    if (!!item.meta) {
-      if (item.meta[note] !== undefined) {
-        if (!!eval(item.meta[note])) return Number(eval(item.meta[note]));
-      }
-    }
-  }
-  if (user.hasNoWeapons()) {
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (state.meta[note] === undefined) continue;
-      const power = eval(state.meta[note]);
-      return power;
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (curClass.meta[note] !== undefined) {
-          const power = eval(curClass.meta[note]);
-          return power;
-        }
-      }
-    }
-    if (!!battler.meta) {
-      if (battler.meta[note] !== undefined) {
-        const power = eval(battler.meta[note]);
-        return power;
-      }
-    }
-    return 0;
-  }
+  const power = Math.max(UNH_MiscFunc.skillTagMax(this, target, note), UNH_MiscFunc.userTagMax(this, target, note));
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
@@ -1665,216 +821,71 @@ Game_Action.prototype.wPow = function(target, handDex) {
   if (handDex < 0) handDex = 0;
   if (handDex >= equips.length) handDex = equips.length - 1;
   const isDoublehand = user.unhIsDoublehand();
-  const isDisarmed = states.some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    return !!state.meta['Disarm State'];
-  });
-  if (!isDisarmed) {
-    const weapon = equips[handDex];
-    if (DataManager.isWeapon(weapon)) {
-      if (!!weapon.meta) {
-        if (weapon.meta[note] !== undefined) {
-          const power = eval(weapon.meta[note]);
-          if (isDoublehand) return (power * 1.5);
-          return (power / Math.pow(2, handDex));
-        }
-      }
-    }
+  if (handDex > 0) {
+    return power / 2;
+  } else {
+    return power;
   }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    const power = eval(state.meta[note]);
-    if (isDoublehand) return (power * 1.5);
-    return (power / Math.pow(2, handDex));
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (curClass.meta[note] !== undefined) {
-        const power = eval(curClass.meta[note]);
-        if (isDoublehand) return (power * 1.5);
-        return (power / Math.pow(2, handDex));
-      }
-    }
-  }
-  if (!!battler.meta) {
-    if (battler.meta[note] !== undefined) {
-      const power = eval(battler.meta[note]);
-      if (isDoublehand) return (power * 1.5);
-      return (power / Math.pow(2, handDex));
-    }
-  }
-  return 0;
 };
 
 Game_BattlerBase.prototype.lgtArmCheck = function() {
   const user = this;
   const note = 'Light Armor';
-  const stateArmor = this.states().some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    if (!state.meta[note]) return false;
-    return !!eval(state.meta[note]);
-  });
-  if (stateArmor) return true;
-  if (this.isActor() || UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
-    return this.armors().some(function(armor) {
-      if (!armor) return false;
-      if (!armor.meta) return false;
-      if (!armor.meta[note]) return false;
-      return !!eval(armor.meta[note]);
-    });
-  } else {
-    return false;
-  }
+  return UNH_MiscFunc.isStateTagged(user, note);
 };
 
 Game_BattlerBase.prototype.medArmCheck = function() {
   const user = this;
   const note = 'Medium Armor';
-  const stateArmor = this.states().some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    if (!state.meta[note]) return false;
-    return !!eval(state.meta[note]);
-  });
-  if (stateArmor) return true;
-  if (this.isActor() || UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
-    return this.armors().some(function(armor) {
-      if (!armor) return false;
-      if (!armor.meta) return false;
-      if (!armor.meta[note]) return false;
-      return !!eval(armor.meta[note]);
-    });
-  } else {
-    return false;
-  }
+  return UNH_MiscFunc.isStateTagged(user, note);
 };
 
 Game_BattlerBase.prototype.hvyArmCheck = function() {
   const user = this;
   const note = 'Heavy Armor';
-  const stateArmor = this.states().some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    if (!state.meta[note]) return false;
-    return !!eval(state.meta[note]);
-  });
-  if (stateArmor) return true;
-  if (this.isActor() || UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
-    return this.armors().some(function(armor) {
-      if (!armor) return false;
-      if (!armor.meta) return false;
-      if (!armor.meta[note]) return false;
-      return !!eval(armor.meta[note]);
-    });
-  } else {
-    return false;
-  }
+  return UNH_MiscFunc.isStateTagged(user, note);
 };
 
 Game_BattlerBase.prototype.nullifyTpGain = function() {
   const user = this;
   const note = 'Unh TP Nullify';
-  const objects = this.traitObjects();
-  const tpGain = this.traitObjects().some(function(obj) {
-   if (!obj) return false;
-   if (!obj.meta) return false;
-   if (!obj.meta[note]) return false;
-   return !!eval(obj.meta[note]);
-  });
-  return tpGain;
+  return UNH_MiscFunc.isStateTagged(user, note);
 };
 
 Game_BattlerBase.prototype.tpHpDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage by HP';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 1;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
-    tpGain *= eval(obj.meta[note]);
-  }
-  return tpGain;
+  return UNH_MiscFunc.stateTagRate(user, note);
 };
 
 Game_BattlerBase.prototype.tpMpDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage by MP';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 1;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
-    tpGain *= eval(obj.meta[note]);
-  }
-  return tpGain;
+  return UNH_MiscFunc.stateTagRate(user, note);
 };
 
 Game_BattlerBase.prototype.tpTakeDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage In';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 1;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
-    tpGain *= eval(obj.meta[note]);
-  }
-  return tpGain;
+  return UNH_MiscFunc.stateTagRate(user, note);
 };
 
 Game_BattlerBase.prototype.tpDealDmgMult = function() {
   const user = this;
   const note = 'Unh TP Damage Out';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 1;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note] && obj.meta[note] !== 0) continue;
-    tpGain *= eval(obj.meta[note]);
-  }
-  return tpGain;
+  return UNH_MiscFunc.stateTagRate(user, note);
 };
 
 Game_BattlerBase.prototype.tpGainRegen = function() {
   const user = this;
   const note = 'Unh TP Regen';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_BattlerBase.prototype.tpGainDeadMembers = function() {
   const user = this;
   const note = 'Unh TP Per Dead Ally';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
+  const tpGain = UNH_MiscFunc.stateTagCt(user, note);
   if (this.isActor()) {
     return Math.round(tpGain * $gameParty.deadMembers().length);
   } else {
@@ -1885,31 +896,13 @@ Game_BattlerBase.prototype.tpGainDeadMembers = function() {
 Game_BattlerBase.prototype.tpGainEvade = function() {
   const user = this;
   const note = 'Unh TP Evasion';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_BattlerBase.prototype.tpGainSolo = function() {
   const user = this;
   const note = 'Unh TP Last Standing';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_Actor.prototype.tpGainSolo = function() {
@@ -1925,31 +918,13 @@ Game_Enemy.prototype.tpGainSolo = function() {
 Game_BattlerBase.prototype.tpGainAllyDeath = function() {
   const user = this;
   const note = 'Unh TP Ally Death';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_BattlerBase.prototype.tpGainEnemyDeath = function() {
   const user = this;
   const note = 'Unh TP Enemy Death';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_BattlerBase.prototype.tpGainSkill = function() {
@@ -1962,23 +937,7 @@ Game_BattlerBase.prototype.tpGainSkill = function() {
   const item = action.item();
   if (item.tpCost !== 0) return 0;
   const note = 'Unh TP Skill';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  if (!!item) {
-    if (!!item.meta) {
-      if (!!item.meta[note]) {
-        tpGain += eval(item.meta[note]);
-      }
-    }
-  }
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_BattlerBase.prototype.tpGainAttack = function() {
@@ -1989,16 +948,7 @@ Game_BattlerBase.prototype.tpGainAttack = function() {
   const item = action.item();
   if (item.tpCost !== 0) return 0;
   const note = 'Unh TP Attack';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_BattlerBase.prototype.tpGainGuard = function() {
@@ -2009,16 +959,7 @@ Game_BattlerBase.prototype.tpGainGuard = function() {
   const item = action.item();
   if (item.tpCost !== 0) return 0;
   const note = 'Unh TP Guard';
-  const objects = this.traitObjects();
-  const max = this.maxTp();
-  let tpGain = 0;
-  for (const obj of objects) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    tpGain += eval(obj.meta[note]);
-  }
-  return Math.round(tpGain);
+  return Math.round(UNH_MiscFunc.stateTagCt(user, note));
 };
 
 Game_BattlerBase.prototype.tpGainSkillType = function() {
@@ -2033,17 +974,10 @@ Game_BattlerBase.prototype.tpGainSkillType = function() {
   let tpGain = this.tpGainSkill();
   const stypes = DataManager.getSkillTypes(item);
   if (stypes.length <= 0) return tpGain;
-  const objects = this.traitObjects();
-  const max = this.maxTp();
   let note;
   for (const stypeId of stypes) {
     note = 'Unh TP %1 Skill Type'.format(stypeId);
-    for (const obj of objects) {
-      if (!obj) continue;
-      if (!obj.meta) continue;
-      if (!obj.meta[note]) continue;
-      tpGain += eval(obj.meta[note]);
-    }
+    tpGain += UNH_MiscFunc.stateTagCt(user, note);
   }
   return Math.round(tpGain);
 };
@@ -2051,11 +985,15 @@ Game_BattlerBase.prototype.tpGainSkillType = function() {
 Game_BattlerBase.prototype.unhProne = function() {
   const user = this;
   const note = 'Prone';
-  return this.states().some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    if (!state.meta[note]) return false;
-    return !!eval(state.meta[note]);
+  return UNH_MiscFunc.isStateTagged(user, note);
+};
+
+Game_BattlerBase.prototype.unhTwoHanding = function() {
+  const user = this;
+  return user.traitObjects().some(function(obj) {
+    if (!obj) return false;
+    if (!obj.note) return false;
+    return obj.note.match(/<(?:TWOHANDED)>/i);
   });
 };
 
@@ -2077,12 +1015,7 @@ Game_BattlerBase.prototype.unhIsDoublehand = function() {
 Game_BattlerBase.prototype.unhIsSkyward = function() {
   const user = this;
   const note = 'unhSkyward';
-  return this.states().some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    if (!state.meta[note]) return false;
-    return !!eval(state.meta[note]);
-  });
+  return UNH_MiscFunc.isStateTagged(user, note);
 };
 
 Game_Action.prototype.isWeapon = function(target) {
@@ -2116,99 +1049,39 @@ Game_BattlerBase.prototype.wpnTr = function(index) {
   return retArr[index];
 };
 
+Game_BattlerBase.prototype.unhNoFist = function() {
+  return UNH_MiscFunc.isStateTagged(this, 'No Fist');
+};
+
 Game_BattlerBase.prototype.unhDblWpn = function(index) {
   const user = this;
-  const note = 'Double Weapon';
-  const statesDouble = this.states().some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    if (!state.meta[note]) return false;
-    return !!eval(state.meta[note]);
-  });
-  if (statesDouble) return true;
-  if (this.hasNoWeapons()) {
-    const statesNoFist = this.states().some(function(state) {
-      if (!state) return false;
-      if (!state.meta) return false;
-      if (!state.meta['No Fist']) return false;
-      return !!eval(state.meta['No Fist']);
-    });
-    if (statesNoFist) return true;
-    const offhand = user.equips()[1];
-    if (!DataManager.isArmor(offhand)) return true;
-    const meta = offhand.meta;
-    if (!meta) return true;
-    return !meta['No Fist'];
+  if (user.isActor() || UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
+    if (user.hasNoWeapons()) {
+      return false;
+    } else {
+      return UNH_MiscFunc.isStateTagged(user, 'Double Weapon');
+    }
+  } else {
+    return UNH_MiscFunc.isStateTagged(user, 'Double Weapon');
   }
-  const weaponsDouble = this.weapons().some(function(weapon) {
-    if (!weapon) return false;
-    if (!weapon.meta) return false;
-    if (!weapon.meta[note]) return false;
-    return !!eval(weapon.meta[note]);
-  });
-  if (index === undefined) return weaponsDouble;
-  if (index === null) return weaponsDouble;
-  if (typeof index !== 'number') return weaponsDouble;
-  if (isNaN(index)) return weaponsDouble;
-  const weapon = this.weapons()[index];
-  if (!weapon) return false;
-  if (!weapon.meta) return false;
-  if (!weapon.meta[note]) return false;
-  return true;
 };
 
 Game_Action.prototype.physBlock = function(target) {
   if (this.isCertainHit()) return false;
-  const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
+  if (!this.isWeapon(target)) return false;
   if (this.isPhysical() && this.wpnMag(target)) return false;
   if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Block';
-  const states = target.states();
-  if (target.unhIsDoublehand()) return false;
-  if (target.weapons().length > 1) return false;
-  const equips = target.equips();
-  const shield = equips[1];
-  if (!shield) return false;
-  if (!shield.meta) return false;
-  if (shield.meta[note] === undefined) return false;
-  let parry = eval(shield.meta[note]);
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    parry += eval(state.meta[note]);
-  }
-  const random = Math.randomInt(10000);
-  return random < parry;
+  return (Math.randomInt(10000) < UNH_MiscFunc.targetTagCt(this, target, note));
 };
 
 Game_Action.prototype.magBlock = function(target) {
   if (this.isCertainHit()) return false;
-  const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
+  if (!this.isWeapon(target)) return false;
   if (this.isPhysical() && !this.wpnMag(target)) return false;
   if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Block';
-  const states = target.states();
-  if (target.unhIsDoublehand()) return false;
-  if (target.weapons().length > 1) return false;
-  const equips = target.equips();
-  const shield = equips[1];
-  if (!shield) return false;
-  if (!shield.meta) return false;
-  if (shield.meta[note] === undefined) return false;
-  let parry = eval(shield.meta[note]);
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    parry += eval(state.meta[note]);
-  }
-  const random = Math.randomInt(10000);
-  return random < parry;
+  return (Math.randomInt(10000) < UNH_MiscFunc.targetTagCt(this, target, note));
 };
 
 Game_Action.prototype.physParry = function(target) {
@@ -2218,47 +1091,57 @@ Game_Action.prototype.physParry = function(target) {
   const user = this.subject();
   if (this.isPhysical() && this.wpnMag(target)) return false;
   if (this.isMagical() && !this.wpnMag(target)) return false;
-  const note = 'Physical Parry';
+  const note1 = 'Physical Parry';
   const note2 = 'Physical Parry Plus';
-  const battler = target.object();
-  const curClass = target.currentClass();
-  const states = target.states();
-  const weapons = target.weapons();
-  const isDoublehand = target.unhIsDoublehand();
+  const note3 = 'Physical Parry Rate';
+  const note4 = 'Physical Parry Flat';
   const wpnPry = [];
+  let prry;
   for (const weapon of weapons) {
-    if (!weapon) continue;
-    if (!weapon.meta) continue;
-    if (weapon.meta[note] === undefined) continue;
-    wpnPry.push(eval(weapon.meta[note]));
+    if (!!weapon) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1]) {
+        prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1](action, target);
+        if (isNaN(prry)) {
+          if (!weapon.meta) continue;
+          if (weapon.meta[note1] === undefined) continue;
+          wpnPry.push(eval(weapon.meta[note1]));
+        } else {
+          wpnPry.push(Number(prry));
+        }
+      } else {
+        if (!weapon.meta) continue;
+        if (weapon.meta[note1] === undefined) continue;
+        wpnPry.push(eval(weapon.meta[note1]));
+      }
+    }
   }
   for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    wpnPry.push(eval(state.meta[note]));
+    if (!!state) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.State[state.id][note1]) {
+        prry = UNH_MiscFunc.tagFuncs.Target.State[state.id][note1](action, target);
+        if (isNaN(prry)) {
+          if (!state.meta) continue;
+          if (state.meta[note1] === undefined) continue;
+          wpnPry.push(eval(state.meta[note1]));
+        } else {
+          wpnPry.push(Number(prry));
+        }
+      } else {
+        if (!state.meta) continue;
+        if (state.meta[note1] === undefined) continue;
+        wpnPry.push(eval(state.meta[note1]));
+      }
+    }
   }
   if (wpnPry.length < 0) return false;
   for (let parry of wpnPry) {
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (state.meta[note2] === undefined) continue;
-      parry += eval(state.meta[note2]);
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (curClass.meta[note2] !== undefined) {
-          parry += eval(curClass.meta[note2]);
-        }
-      }
-    }
-    if (!!battler.meta) {
-      if (battler.meta[note2] !== undefined) {
-        parry += eval(battler.meta[note2]);
-      }
-    }
-    if (isDoublehand) parry = parry * 1.5;
+    parry += UNH_MiscFunc.targetTagCt(action, target, note2);
+  }
+  for (let parry of wpnPry) {
+    parry *= UNH_MiscFunc.targetTagRate(action, target, note3);
+  }
+  for (let parry of wpnPry) {
+    parry += UNH_MiscFunc.targetTagCt(action, target, note4);
   }
   return wpnPry.some(function(pry) {
     const random = Math.randomInt(10000);
@@ -2273,47 +1156,57 @@ Game_Action.prototype.magParry = function(target) {
   const user = this.subject();
   if (this.isPhysical() && !this.wpnMag(target)) return false;
   if (this.isMagical() && this.wpnMag(target)) return false;
-  const note = 'Magical Parry';
+  const note1 = 'Magical Parry';
   const note2 = 'Magical Parry Plus';
-  const battler = target.object();
-  const curClass = target.currentClass();
-  const states = target.states();
-  const weapons = target.weapons();
-  const isDoublehand = target.unhIsDoublehand();
+  const note3 = 'Magical Parry Rate';
+  const note4 = 'Magical Parry Flat';
   const wpnPry = [];
+  let prry;
   for (const weapon of weapons) {
-    if (!weapon) continue;
-    if (!weapon.meta) continue;
-    if (weapon.meta[note] === undefined) continue;
-    wpnPry.push(eval(weapon.meta[note]));
+    if (!!weapon) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1]) {
+        prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1](action, target);
+        if (isNaN(prry)) {
+          if (!weapon.meta) continue;
+          if (weapon.meta[note1] === undefined) continue;
+          wpnPry.push(eval(weapon.meta[note1]));
+        } else {
+          wpnPry.push(Number(prry));
+        }
+      } else {
+        if (!weapon.meta) continue;
+        if (weapon.meta[note1] === undefined) continue;
+        wpnPry.push(eval(weapon.meta[note1]));
+      }
+    }
   }
   for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    wpnPry.push(eval(state.meta[note]));
+    if (!!state) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.State[state.id][note1]) {
+        prry = UNH_MiscFunc.tagFuncs.Target.State[state.id][note1](action, target);
+        if (isNaN(prry)) {
+          if (!state.meta) continue;
+          if (state.meta[note1] === undefined) continue;
+          wpnPry.push(eval(state.meta[note1]));
+        } else {
+          wpnPry.push(Number(prry));
+        }
+      } else {
+        if (!state.meta) continue;
+        if (state.meta[note1] === undefined) continue;
+        wpnPry.push(eval(state.meta[note1]));
+      }
+    }
   }
   if (wpnPry.length < 0) return false;
   for (let parry of wpnPry) {
-    for (const state of states) {
-      if (!state) continue;
-      if (!state.meta) continue;
-      if (state.meta[note2] === undefined) continue;
-      parry += eval(state.meta[note2]);
-    }
-    if (!!curClass) {
-      if (!!curClass.meta) {
-        if (curClass.meta[note2] !== undefined) {
-          parry += eval(curClass.meta[note2]);
-        }
-      }
-    }
-    if (!!battler.meta) {
-      if (battler.meta[note2] !== undefined) {
-        parry += eval(battler.meta[note2]);
-      }
-    }
-    if (isDoublehand) parry = parry * 1.5;
+    parry += UNH_MiscFunc.targetTagCt(action, target, note2);
+  }
+  for (let parry of wpnPry) {
+    parry *= UNH_MiscFunc.targetTagRate(action, target, note3);
+  }
+  for (let parry of wpnPry) {
+    parry += UNH_MiscFunc.targetTagCt(action, target, note4);
   }
   return wpnPry.some(function(pry) {
     const random = Math.randomInt(10000);
@@ -2329,43 +1222,53 @@ Game_Action.prototype.checkPhysBreak = function(target, handDex) {
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
+  if (!this.isWeapon(target)) return false;
   if (this.isPhysical() && this.wpnMag(target)) return false;
   if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Break';
-  const battler = this.object();
-  const curClass = this.currentClass();
-  const states = this.states();
-  const isDoublehand = this.unhIsDoublehand();
+  const otherObjects = this.traitObjects().filter(function(obj) {
+    return !DataManager.isWeapon(obj);
+  });
   let feint = 0;
   if (!this.hasNoWeapons()) {
     const weapon = weapons[handDex];
     if (!!weapon) {
-      if (!!weapon.meta) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!weapon.meta) {
+            if (weapon.meta[note] !== undefined) {
+              feint += eval(weapon.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!weapon.meta) {
         if (weapon.meta[note] !== undefined) {
           feint += eval(weapon.meta[note]);
         }
       }
     }
   }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    feint += eval(state.meta[note]);
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (curClass.meta[note] !== undefined) {
-        feint += eval(curClass.meta[note]);
+  for (const obj of otherObjects) {
+    if (!!obj) {
+      if (!!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!obj.meta) {
+            if (obj.meta[note] !== undefined) {
+              feint += eval(obj.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!obj.meta) {
+        if (obj.meta[note] !== undefined) {
+          feint += eval(obj.meta[note]);
+        }
       }
-    }
-  }
-  if (!!battler.meta) {
-    if (battler.meta[note] !== undefined) {
-      feint += eval(battler.meta[note]);
     }
   }
   const random = Math.randomInt(10000);
@@ -2381,43 +1284,53 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
+  if (!this.isWeapon(target)) return false;
   if (this.isPhysical() && !this.wpnMag(target)) return false;
   if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Break';
-  const battler = this.object();
-  const curClass = this.currentClass();
-  const states = this.states();
-  const isDoublehand = this.unhIsDoublehand();
+  const otherObjects = this.traitObjects().filter(function(obj) {
+    return !DataManager.isWeapon(obj);
+  });
   let feint = 0;
   if (!this.hasNoWeapons()) {
     const weapon = weapons[handDex];
     if (!!weapon) {
-      if (!!weapon.meta) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!weapon.meta) {
+            if (weapon.meta[note] !== undefined) {
+              feint += eval(weapon.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!weapon.meta) {
         if (weapon.meta[note] !== undefined) {
           feint += eval(weapon.meta[note]);
         }
       }
     }
   }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    feint += eval(state.meta[note]);
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (curClass.meta[note] !== undefined) {
-        feint += eval(curClass.meta[note]);
+  for (const obj of otherObjects) {
+    if (!!obj) {
+      if (!!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!obj.meta) {
+            if (obj.meta[note] !== undefined) {
+              feint += eval(obj.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!obj.meta) {
+        if (obj.meta[note] !== undefined) {
+          feint += eval(obj.meta[note]);
+        }
       }
-    }
-  }
-  if (!!battler.meta) {
-    if (battler.meta[note] !== undefined) {
-      feint += eval(battler.meta[note]);
     }
   }
   const random = Math.randomInt(10000);
@@ -2425,15 +1338,9 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
 };
 
 Game_Action.prototype.checkNoFeint = function(target) {
-  const action = this;
-  if (!action) return false;
-  const item = this.item();
-  if (!item) return false;
-  if (!item.meta) return false;
-  const user = this.subject();
+  if (!this) return false;
   const note = 'No Feint';
-  if (obj.meta[note] === undefined) return false;
-  return !!eval(obj.meta[note]);
+  return UNH_MiscFunc.isSkillTagged(this, target, note);
 };
 
 Game_Action.prototype.checkPhysFeint = function(target, handDex) {
@@ -2445,43 +1352,53 @@ Game_Action.prototype.checkPhysFeint = function(target, handDex) {
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
+  if (!this.isWeapon(target)) return false;
   if (this.isPhysical() && this.wpnMag(target)) return false;
   if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Feint';
-  const battler = this.object();
-  const curClass = this.currentClass();
-  const states = this.states();
-  const isDoublehand = this.unhIsDoublehand();
+  const otherObjects = this.traitObjects().filter(function(obj) {
+    return !DataManager.isWeapon(obj);
+  });
   let feint = 0;
   if (!this.hasNoWeapons()) {
     const weapon = weapons[handDex];
     if (!!weapon) {
-      if (!!weapon.meta) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!weapon.meta) {
+            if (weapon.meta[note] !== undefined) {
+              feint += eval(weapon.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!weapon.meta) {
         if (weapon.meta[note] !== undefined) {
           feint += eval(weapon.meta[note]);
         }
       }
     }
   }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    feint += eval(state.meta[note]);
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (curClass.meta[note] !== undefined) {
-        feint += eval(curClass.meta[note]);
+  for (const obj of otherObjects) {
+    if (!!obj) {
+      if (!!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!obj.meta) {
+            if (obj.meta[note] !== undefined) {
+              feint += eval(obj.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!obj.meta) {
+        if (obj.meta[note] !== undefined) {
+          feint += eval(obj.meta[note]);
+        }
       }
-    }
-  }
-  if (!!battler.meta) {
-    if (battler.meta[note] !== undefined) {
-      feint += eval(battler.meta[note]);
     }
   }
   const random = Math.randomInt(10000);
@@ -2497,43 +1414,53 @@ Game_Action.prototype.checkMagFeint = function(target, handDex) {
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
+  if (!this.isWeapon(target)) return false;
   if (this.isPhysical() && !this.wpnMag(target)) return false;
   if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Feint';
-  const battler = this.object();
-  const curClass = this.currentClass();
-  const states = this.states();
-  const isDoublehand = this.unhIsDoublehand();
+  const otherObjects = this.traitObjects().filter(function(obj) {
+    return !DataManager.isWeapon(obj);
+  });
   let feint = 0;
   if (!this.hasNoWeapons()) {
     const weapon = weapons[handDex];
     if (!!weapon) {
-      if (!!weapon.meta) {
+      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!weapon.meta) {
+            if (weapon.meta[note] !== undefined) {
+              feint += eval(weapon.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!weapon.meta) {
         if (weapon.meta[note] !== undefined) {
           feint += eval(weapon.meta[note]);
         }
       }
     }
   }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (state.meta[note] === undefined) continue;
-    feint += eval(state.meta[note]);
-  }
-  if (!!curClass) {
-    if (!!curClass.meta) {
-      if (curClass.meta[note] !== undefined) {
-        feint += eval(curClass.meta[note]);
+  for (const obj of otherObjects) {
+    if (!!obj) {
+      if (!!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note]) {
+        const prry = UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note](this, target);
+        if (isNaN(prry)) {
+          if (!!obj.meta) {
+            if (obj.meta[note] !== undefined) {
+              feint += eval(obj.meta[note]);
+            }
+          }
+        } else {
+          feint += Number(prry);
+        }
+      } else if (!!obj.meta) {
+        if (obj.meta[note] !== undefined) {
+          feint += eval(obj.meta[note]);
+        }
       }
-    }
-  }
-  if (!!battler.meta) {
-    if (battler.meta[note] !== undefined) {
-      feint += eval(battler.meta[note]);
     }
   }
   const random = Math.randomInt(10000);
@@ -2593,54 +1520,24 @@ Game_Action.prototype.feintExec = function(target) {
 };
 
 Game_Action.prototype.advHit = function(target) {
-  const action = this;
-  const user = this.subject();
-  const item = this.item();
   let advLvl = 0;
-  if (!!item) {
-    if (!!item.meta) {
-      if (!!item.meta['Accuracy Advantage']) advLvl += Number(eval(item.meta['Accuracy Advantage']));
-      if (!!item.meta['Accuracy Disadvantage']) advLvl -= Number(eval(item.meta['Accuracy Disadvantage']));
-    }
-  }
-  for (const obj of user.traitObjects()) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!!obj.meta['Accuracy Advantage']) advLvl += Number(eval(obj.meta['Accuracy Advantage']));
-    if (!!obj.meta['Accuracy Disadvantage']) advLvl -= Number(eval(obj.meta['Accuracy Disadvantage']));
-  }
-  for (const obj of target.traitObjects()) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!!obj.meta['Evasion Advantage']) advLvl -= Number(eval(obj.meta['Evasion Advantage']));
-    if (!!obj.meta['Evasion Disadvantage']) advLvl += Number(eval(obj.meta['Evasion Disadvantage']));
-  }
+  advLvl += UNH_MiscFunc.skillTagCt(this, target, 'Accuracy Advantage');
+  advLvl -= UNH_MiscFunc.skillTagCt(this, target, 'Accuracy Disadvantage');
+  advLvl += UNH_MiscFunc.userTagCt(this, target, 'Accuracy Advantage');
+  advLvl -= UNH_MiscFunc.userTagCt(this, target, 'Accuracy Disadvantage');
+  advLvl -= UNH_MiscFunc.targetTagCt(this, target, 'Evasion Advantage');
+  advLvl += UNH_MiscFunc.targetTagCt(action, target, 'Evasion Disadvantage');
   return advLvl;
 };
 
 Game_Action.prototype.advCrit = function(target) {
-  const action = this;
-  const user = this.subject();
-  const item = this.item();
   let advLvl = 0;
-  if (!!item) {
-    if (!!item.meta) {
-      if (!!item.meta['Critrate Advantage']) advLvl += Number(eval(item.meta['Critrate Advantage']));
-      if (!!item.meta['Critrate Disadvantage']) advLvl -= Number(eval(item.meta['Critrate Disadvantage']));
-    }
-  }
-  for (const obj of user.traitObjects()) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!!obj.meta['Critrate Advantage']) advLvl += Number(eval(obj.meta['Critrate Advantage']));
-    if (!!obj.meta['Critrate Disadvantage']) advLvl -= Number(eval(obj.meta['Critrate Disadvantage']));
-  }
-  for (const obj of target.traitObjects()) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!!obj.meta['Critavoid Advantage']) advLvl -= Number(eval(obj.meta['Critavoid Advantage']));
-    if (!!obj.meta['Critavoid Disadvantage']) advLvl += Number(eval(obj.meta['Critavoid Disadvantage']));
-  }
+  advLvl += UNH_MiscFunc.skillTagCt(this, target, 'Critrate Advantage');
+  advLvl -= UNH_MiscFunc.skillTagCt(this, target, 'Critrate Disadvantage');
+  advLvl += UNH_MiscFunc.userTagCt(this, target, 'Critrate Advantage');
+  advLvl -= UNH_MiscFunc.userTagCt(this, target, 'Critrate Disadvantage');
+  advLvl -= UNH_MiscFunc.targetTagCt(this, target, 'Critavoid Advantage');
+  advLvl += UNH_MiscFunc.targetTagCt(this, target, 'Critavoid Disadvantage');
   return advLvl;
 };
 
@@ -2745,30 +1642,14 @@ Game_Action.prototype.gnomeAct = function(target) {
 };
 
 Game_Battler.prototype.unhIsFlashStep = function() {
-  const user = this;
   const note = 'unhFlashStep';
-  for (const obj of user.traitObjects()) {
-    if (!obj) continue;
-    if (!obj.meta) continue;
-    if (!obj.meta[note]) continue;
-    return !!eval(obj.meta[note]);
-  }
-  return false;
+  return UNH_MiscFunc.isStateTagged(this, note);
 };
 
 Game_Action.prototype.unhIsFlashStep = function(target) {
-  const action = this;
-  const user = this.subject();
   const note = 'unhFlashStep';
-  const item = action.item();
-  if (!!item) {
-    if (!!item.meta) {
-      if (!!item.meta[note]) {
-        return !!eval(item.meta[note]);
-      }
-    }
-  }
-  return user.unhIsFlashStep();
+  if (UNH_MiscFunc.isSkillTagged(this, target, note)) return true;
+  return this.subject().unhIsFlashStep();
 };
 
 Game_Battler.prototype.unhIsRanged = function(curWpn) {
@@ -2776,9 +1657,11 @@ Game_Battler.prototype.unhIsRanged = function(curWpn) {
   const note = 'unhRanged';
   const states = user.states();
   const isDoublehand = user.unhIsDoublehand();
-  let isRanged = false;
   for (const state of states) {
     if (!state) continue;
+    if (!!UNH_MiscFunc.tagFuncs.State.State[state.id][note]) {
+      if (!!UNH_MiscFunc.tagFuncs.State.State[state.id][note](this)) return true;
+    }
     if (!state.meta) continue;
     if (!state.meta[note]) continue;
     if (!!eval(state.meta[note])) return true;
@@ -2789,17 +1672,14 @@ Game_Battler.prototype.unhIsRanged = function(curWpn) {
   if (typeof curWpn !== 'number') curWpn = 0;
   if (isNaN(curWpn)) curWpn = 0;
   curWpn = Math.max(curWpn, 0);
-  curWpn = Math.min(curWpn, weapons.length);
+  curWpn = Math.min(curWpn, weapons.length - 1);
   const weapon = weapons[curWpn];
   if (!!weapon) {
-    if (!!weapon.meta) {
+    if (!!UNH_MiscFunc.tagFuncs.State.Weapon[weapon.id][note]) {
+      if (UNH_MiscFunc.tagFuncs.State.Weapon[weapon.id][note](this)) return true;
+    } else if (!!weapon.meta) {
       if (!!weapon.meta[note]) {
-        try {
-          isRanged = eval(weapon.meta[note]);
-          if (isRanged) return true;
-        } catch (e) {
-          return false;
-        }
+        if (!!eval(weapon.meta[note])) return true;
       }
     }
   }
@@ -2814,17 +1694,29 @@ Game_Action.prototype.unhIsRanged = function(target, curWpn) {
   const item = action.item();
   const states = user.states();
   const isDoublehand = user.unhIsDoublehand();
-  let isRanged = false;
   if (!!item) {
-    if (!!item.meta) {
+    if (!!UNH_MiscFunc.tagFuncs.Action.Item[item.id][note]) {
+      if (UNH_MiscFunc.tagFuncs.Action.Item[item.id][note](this)) return true;
+    } else if (!!item.meta) {
       if (!!item.meta[note]) {
-        isRanged = eval(item.meta[note]);
-        if (!!isRanged) return true;
+        if (!!eval(item.meta[note])) return true;
       }
     }
   }
+  return user.unhIsRanged(curWpn);
+};
+
+Game_Battler.prototype.unhIsReach = function(curWpn) {
+  if (this.unhIsRanged(curWpn)) return true;
+  const user = this;
+  const note = 'unhReach';
+  const states = user.states();
+  const isDoublehand = user.unhIsDoublehand();
   for (const state of states) {
     if (!state) continue;
+    if (!!UNH_MiscFunc.tagFuncs.State.State[state.id][note]) {
+      if (!!UNH_MiscFunc.tagFuncs.State.State[state.id][note](this)) return true;
+    }
     if (!state.meta) continue;
     if (!state.meta[note]) continue;
     if (!!eval(state.meta[note])) return true;
@@ -2835,17 +1727,14 @@ Game_Action.prototype.unhIsRanged = function(target, curWpn) {
   if (typeof curWpn !== 'number') curWpn = 0;
   if (isNaN(curWpn)) curWpn = 0;
   curWpn = Math.max(curWpn, 0);
-  curWpn = Math.min(curWpn, weapons.length);
+  curWpn = Math.min(curWpn, weapons.length - 1);
   const weapon = weapons[curWpn];
   if (!!weapon) {
-    if (!!weapon.meta) {
+    if (!!UNH_MiscFunc.tagFuncs.State.Weapon[weapon.id][note]) {
+      if (UNH_MiscFunc.tagFuncs.State.Weapon[weapon.id][note](this)) return true;
+    } else if (!!weapon.meta) {
       if (!!weapon.meta[note]) {
-        try {
-          isRanged = eval(weapon.meta[note]);
-          if (isRanged) return true;
-        } catch (e) {
-          return false;
-        }
+        if (!!eval(weapon.meta[note])) return true;
       }
     }
   }
@@ -2860,17 +1749,29 @@ Game_Action.prototype.unhIsReach = function(target, curWpn) {
   const item = action.item();
   const states = user.states();
   const isDoublehand = user.unhIsDoublehand();
-  let isRanged = false;
   if (!!item) {
-    if (!!item.meta) {
+    if (!!UNH_MiscFunc.tagFuncs.Action.Item[item.id][note]) {
+      if (UNH_MiscFunc.tagFuncs.Action.Item[item.id][note](this)) return true;
+    } else if (!!item.meta) {
       if (!!item.meta[note]) {
-        isRanged = eval(item.meta[note]);
-        if (!!isRanged) return true;
+        if (!!eval(item.meta[note])) return true;
       }
     }
   }
+  return user.unhIsReach(curWpn);
+};
+
+Game_Battler.prototype.unhIsNoContact = function(curWpn) {
+  if (this.unhIsRanged(curWpn)) return true;
+  const user = this;
+  const note = 'unhNoContact';
+  const states = user.states();
+  const isDoublehand = user.unhIsDoublehand();
   for (const state of states) {
     if (!state) continue;
+    if (!!UNH_MiscFunc.tagFuncs.State.State[state.id][note]) {
+      if (!!UNH_MiscFunc.tagFuncs.State.State[state.id][note](this)) return true;
+    }
     if (!state.meta) continue;
     if (!state.meta[note]) continue;
     if (!!eval(state.meta[note])) return true;
@@ -2881,17 +1782,14 @@ Game_Action.prototype.unhIsReach = function(target, curWpn) {
   if (typeof curWpn !== 'number') curWpn = 0;
   if (isNaN(curWpn)) curWpn = 0;
   curWpn = Math.max(curWpn, 0);
-  curWpn = Math.min(curWpn, weapons.length);
+  curWpn = Math.min(curWpn, weapons.length - 1);
   const weapon = weapons[curWpn];
   if (!!weapon) {
-    if (!!weapon.meta) {
+    if (!!UNH_MiscFunc.tagFuncs.State.Weapon[weapon.id][note]) {
+      if (UNH_MiscFunc.tagFuncs.State.Weapon[weapon.id][note](this)) return true;
+    } else if (!!weapon.meta) {
       if (!!weapon.meta[note]) {
-        try {
-          isRanged = eval(weapon.meta[note]);
-          if (isRanged) return true;
-        } catch (e) {
-          return false;
-        }
+        if (!!eval(weapon.meta[note])) return true;
       }
     }
   }
@@ -2906,40 +1804,14 @@ Game_Action.prototype.unhIsNoContact = function(target, curWpn) {
   const item = action.item();
   const states = user.states();
   const isDoublehand = user.unhIsDoublehand();
-  let isRanged = false;
   if (!!item) {
-    if (!!item.meta) {
+    if (!!UNH_MiscFunc.tagFuncs.Action.Item[item.id][note]) {
+      if (UNH_MiscFunc.tagFuncs.Action.Item[item.id][note](this)) return true;
+    } else if (!!item.meta) {
       if (!!item.meta[note]) {
-        isRanged = eval(item.meta[note]);
-        if (!!isRanged) return true;
+        if (!!eval(item.meta[note])) return true;
       }
     }
   }
-  for (const state of states) {
-    if (!state) continue;
-    if (!state.meta) continue;
-    if (!state.meta[note]) continue;
-    if (!!eval(state.meta[note])) return true;
-  }
-  if (user.hasNoWeapons()) return false;
-  const weapons = user.weapons();
-  if (!curWpn) curWpn = 0;
-  if (typeof curWpn !== 'number') curWpn = 0;
-  if (isNaN(curWpn)) curWpn = 0;
-  curWpn = Math.max(curWpn, 0);
-  curWpn = Math.min(curWpn, weapons.length);
-  const weapon = weapons[curWpn];
-  if (!!weapon) {
-    if (!!weapon.meta) {
-      if (!!weapon.meta[note]) {
-        try {
-          isRanged = eval(weapon.meta[note]);
-          if (isRanged) return true;
-        } catch (e) {
-          return false;
-        }
-      }
-    }
-  }
-  return false;
+  return user.unhIsNoContact(curWpn);
 };

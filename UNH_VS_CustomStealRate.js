@@ -16,14 +16,14 @@ var Imported = Imported || {};
  * @param CustomStealRate
  * @text Custom Steal Rate
  * @desc New return value for Steal Rate
- * Variables: action, user, target, note
+ * Variables: action, item, user, target, note
  * @type string
  * @default user.stealRate()
  *
  * @param CustomStealPlus
  * @text Custom Steal Plus
  * @desc New return value for Steal Plus vs Steal Resist
- * Variables: action, user, target, note
+ * Variables: action, item, user, target, note
  * @type string
  * @default user.stealPlus() - target.stealResist()
  *
@@ -34,19 +34,30 @@ var Imported = Imported || {};
 const UNH_VS_CustomStealRate = {};
 UNH_VS_CustomStealRate.pluginName = 'UNH_VS_CustomStealRate';
 UNH_VS_CustomStealRate.parameters = PluginManager.parameters(UNH_VS_CustomStealRate.pluginName);
-UNH_VS_CustomStealRate.CustomStealRate = String(UNH_VS_CustomStealRate.parameters['CustomStealRate'] || "");
-UNH_VS_CustomStealRate.CustomStealPlus = String(UNH_VS_CustomStealRate.parameters['CustomStealPlus'] || "");
+UNH_VS_CustomStealRate.HasCustomStealRate = !!UNH_VS_CustomStealRate.parameters['CustomStealRate'];
+UNH_VS_CustomStealRate.CustomStealRate = 'const item = action.item();\nconst user = action.subject();\nreturn ('
+if (UNH_VS_CustomStealRate.HasCustomStealPlus) {
+  UNH_VS_CustomStealRate.CustomStealRate += String(UNH_VS_CustomStealRate.parameters['CustomStealRate']);
+} else {
+  UNH_VS_CustomStealRate.CustomStealRate += 'user.stealRate()'
+}
+UNH_VS_CustomStealRate.CustomStealRate += ');'
+UNH_VS_CustomStealRate.CustomStealRateFunc = new Function('action', 'target', UNH_VS_CustomStealRate.CustomStealRate);
+UNH_VS_CustomStealRate.HasCustomStealPlus = !!UNH_VS_CustomStealRate.parameters['CustomStealPlus'];
+UNH_VS_CustomStealRate.CustomStealPlus = 'const item = action.item();\nconst user = action.subject();\nreturn ('
+if (UNH_VS_CustomStealRate.HasCustomStealPlus) {
+  UNH_VS_CustomStealRate.CustomStealPlus += String(UNH_VS_CustomStealRate.parameters['CustomStealPlus']);
+} else {
+  UNH_VS_CustomStealRate.CustomStealPlus += 'user.stealPlus() - target.stealResist()'
+}
+UNH_VS_CustomStealRate.CustomStealPlus += ');'
+UNH_VS_CustomStealRate.CustomStealPlusFunc = new Function('action', 'target', UNH_VS_CustomStealRate.CustomStealPlus);
 
 VisuMZ.StealItems.DetermineStealData = function (action, target) {
-  let customStealRate = 'user.stealRate()';
-  if (!!UNH_VS_CustomStealRate.CustomStealRate) customStealRate = UNH_VS_CustomStealRate.CustomStealRate;
-  let customStealPlus = 'user.stealPlus() - target.stealResist()';
-  if (!!UNH_VS_CustomStealRate.CustomStealPlus) customStealPlus = UNH_VS_CustomStealRate.CustomStealPlus;
   const stealObj = VisuMZ.StealItems.RegExp;
   const note = action.item().note;
-  const user = action.subject();
-  const stealRateEval = eval(customStealRate);
-  const stealPlusEval = eval(customStealPlus);
+  const stealRateEval = UNH_VS_CustomStealRate.CustomStealRateFunc(action, target);
+  const stealPlusEval = UNH_VS_CustomStealRate.CustomStealPlusFunc(action, target);
   let types = [];
   let stealRate = {
     'all': stealRateEval,

@@ -77,17 +77,17 @@ var Imported = Imported || {};
  * Notetags
  * ============================================================================
  * 
- * <unhAggroPlus:X>
- * <unhAggroRate:X>
- * <unhAggroFlat:X>
+ * <Unh Aggro Plus: X>
+ * <Unh Aggro Rate: X>
+ * <Unh Aggro Flat: X>
  * - Use for Actors/Skills/Weapons/Armors/Enemies/States
  * - Manipulates TGR changes (X is a Number)
  *   - delta_TGR = ((damage_dealt + unhAggroPlus) * unhAggroRate) + unhAggroFlat
- * <unhAddUserAggro:X>
+ * <Unh Add User Aggro: X>
  * - Use for Skills
  * - Adds X to the user's aggro (X is a JS formula)
  *   - user - the user
- * <unhAddTargetAggro:X>
+ * <Unh Add Target Aggro: X>
  * - Use for Skills
  * - Adds X to the target's aggro (X is a JS formula)
  *   - user - the user
@@ -95,15 +95,15 @@ var Imported = Imported || {};
  * <unhTaunt>
  * - Use for States
  * - Forces all enemy attacks to target the battler afflicted with this state
- * <unhHide>
+ * <Unh Hide>
  * - Use for States
  * - Forces all attacks AWAY from the battler afflicted with this state
  * - Player attacks will not even recognize afflicted battler as a valid target
- * <unhHide:X>
+ * <Unh Hide: X>
  * - Use for States
  * - As <unhHide>, but with boolean condition X (JS Eval)
  *   - Variables: action, item, user, target
- * <unhFilter:X>
+ * <Unh Filter: X>
  * - Use for Skills
  * - Forces this skill to NOT target battlers that satisfy X (JS Eval)
  *   - X should evaluate to a boolean
@@ -179,10 +179,20 @@ UNH_AggroLevels.autoCalc = !!UNH_AggroLevels.parameters['autoCalc'];
 
 UNH_AggroLevels.FilterFunctions = {Actor:{}, Class:{}, Skill:{}, Item:{}, Weapon:{}, Armor:{}, State:{}, Enemy:{}};
 
+UNH_AggroLevels.AggroFunctions = {Actor:{}, Class:{}, Skill:{}, Item:{}, Weapon:{}, Armor:{}, State:{}, Enemy:{}};
+
 UNH_AggroLevels.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
   if (!UNH_AggroLevels.DataManager_isDatabaseLoaded.call(this)) return false;
   if (!UNH_AggroLevels._isLoaded) {
+    DataManager.unhProcessAggroGainNotetags($dataSkills);
+    DataManager.unhProcessAggroGainNotetags($dataItems);
+    DataManager.unhProcessAggroAlterNotetags($dataActors);
+    DataManager.unhProcessAggroAlterNotetags($dataClasses);
+    DataManager.unhProcessAggroAlterNotetags($dataWeapons);
+    DataManager.unhProcessAggroAlterNotetags($dataArmors);
+    DataManager.unhProcessAggroAlterNotetags($dataStates);
+    DataManager.unhProcessAggroAlterNotetags($dataEnemies);
     DataManager.unhProcessAggroFilterNotetags($dataSkills);
     DataManager.unhProcessAggroFilterNotetags($dataItems);
     DataManager.unhProcessAggroHideNotetags($dataActors);
@@ -196,19 +206,218 @@ DataManager.isDatabaseLoaded = function() {
   return true;
 };
 
-DataManager.unhProcessAggroFilterNotetags = function(group) {
+DataManager.unhProcessAggroGainNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataSkills:
+      groupKey = 'Skill';
+      break;
+    case $dataItems:
+      groupKey = 'Item';
+      break;
+  }
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, codePlus, codeRate, codeFlat, codeAddUser, codeAddTarget;
+  const note1 = /<(?:UNH AGGRO PLUS):[ ](.*)>/i;
+  const note2 = /<(?:UNH AGGRO RATE):[ ](.*)>/i;
+  const note3 = /<(?:UNH AGGRO FLAT):[ ](.*)>/i;
+  const note4 = /<(?:UNH ADD USER AGGRO):[ ](.*)>/i;
+  const note5 = /<(?:UNH ADD TARGET AGGRO):[ ](.*)>/i;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_AggroLevels.AggroFunctions[groupKey][obj.id] = UNH_AggroLevels.AggroFunctions[groupKey][obj.id] || {};
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    codePlus = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
+    codeRate = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
+    codeFlat = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
+    codeAddUser = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
+    codeAddTarget = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codePlus += notePre + ';\n';
+        }
+        codePlus += 'return (' + noteRet + ');';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroPlus = new Function('action', 'target', codePlus);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroPlus = function(action, target) {
+          return 0;
+        };
+      }
+      if (line.match(note2)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codeRate += notePre + ';\n';
+        }
+        codeRate += 'return (' + noteRet + ');';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroRate = new Function('action', 'target', codeRate);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroRate = function(action, target, value) {
+          return 1;
+        };
+      }
+      if (line.match(note3)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codeFlat += notePre + ';\n';
+        }
+        codeFlat += 'return (' + noteRet + ');';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroFlat = new Function('action', 'target', codeFlat);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroFlat = function(action, target) {
+          return 0;
+        };
+      }
+      if (line.match(note4)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codeAddUser += notePre + ';\n';
+        }
+        codeAddUser += 'value += (' + noteRet + ');\nreturn value;';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAddUserAggro = new Function('action', 'target', 'value', codeAddUser);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAddUserAggro = function(action, target, value) {
+          return value;
+        };
+      }
+      if (line.match(note5)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codeAddTarget += notePre + ';\n';
+        }
+        codeAddTarget += 'value += (' + noteRet + ');\nreturn value;';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAddTargetAggro = new Function('action', 'target', 'value', codeAddTarget);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAddTargetAggro = function(action, target, value) {
+          return value;
+        };
+      }
+    }
+  }
+};
+
+DataManager.unhProcessAggroAlterNotetags = function(group) {
   let groupKey = '';
   switch (group) {
     case $dataActors:
-      groupKey = 'Skill';
+      groupKey = 'Actor';
       break;
     case $dataClasses:
+      groupKey = 'Class';
+      break;
+    case $dataWeapons:
+      groupKey = 'Weapon';
+      break;
+    case $dataArmors:
+      groupKey = 'Armor';
+      break;
+    case $dataStates:
+      groupKey = 'State';
+      break;
+    case $dataEnemies:
+      groupKey = 'Enemy';
+      break;
+  }
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, codePlus, codeRate, codeFlat;
+  const note1 = /<(?:UNH AGGRO PLUS):[ ](.*)>/i;
+  const note2 = /<(?:UNH AGGRO RATE):[ ](.*)>/i;
+  const note3 = /<(?:UNH AGGRO FLAT):[ ](.*)>/i;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    UNH_AggroLevels.AggroFunctions[groupKey][obj.id] = UNH_AggroLevels.AggroFunctions[groupKey][obj.id] || {};
+    notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    codePlus = '';
+    codeRate = '';
+    codeFlat = '';
+    for (let i = 0; i < notedata.length; i++) {
+      line = notedata[i];
+      if (line.match(note1)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codePlus += notePre + ';\n';
+        }
+        codePlus += 'return (' + noteRet + ');';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroPlus = new Function('user', 'target', codePlus);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroPlus = function(user, target) {
+          return 0;
+        };
+      }
+      if (line.match(note2)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codeRate += notePre + ';\n';
+        }
+        codeRate += 'return (' + noteRet + ');';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroRate = new Function('user', 'target', codeRate);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroRate = function(user, target) {
+          return 1;
+        };
+      }
+      if (line.match(note3)) {
+        noteStr = String(RegExp.$1);
+        noteArr = noteStr.split(';');
+        noteLen = noteArr.length;
+        notePre = noteArr.slice(0, -1).join(';\n');
+        noteRet = noteArr[noteLen - 1];
+        if (notePre.length > 0) {
+          codeFlat += notePre + ';\n';
+        }
+        codeFlat += 'return (' + noteRet + ');';
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroFlat = new Function('user', 'target', codeFlat);
+      } else {
+        UNH_AggroLevels.AggroFunctions[groupKey][obj.id].unhAggroFlat = function(user, target) {
+          return 0;
+        };
+      }
+    }
+  }
+};
+
+DataManager.unhProcessAggroFilterNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataSkills:
+      groupKey = 'Skill';
+      break;
+    case $dataItems:
       groupKey = 'Item';
       break;
   }
   let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
-  const note1 = /<(?:UNH FILTER)>/i;
-  const note2 = /<(?:UNH FILTER):[ ](.*)>/i;
+  const note = /<(?:UNH FILTER):[ ](.*)>/i;
   for (let n = 1; n < group.length; n++) {
     obj = group[n];
     UNH_AggroLevels.FilterFunctions[groupKey][obj.id] = UNH_AggroLevels.FilterFunctions[groupKey][obj.id] || {};
@@ -217,9 +426,7 @@ DataManager.unhProcessAggroFilterNotetags = function(group) {
     code = 'if (!action) return false;\nconst item = action.item();\nconst user = action.subject();\n';
     for (let i = 0; i < notedata.length; i++) {
       line = notedata[i];
-      if (line.match(note1)) {
-        code += 'return true;\n';
-      } else if (line.match(note2)) {
+      if (line.match(note)) {
         noteStr = String(RegExp.$1);
         noteArr = noteStr.split(';');
         noteLen = noteArr.length;
@@ -286,34 +493,65 @@ DataManager.unhProcessAggroHideNotetags = function(group) {
   }
 };
 
-UNH_AggroLevels.isSkillTagged = function(action, target, note) {
-  if (!action) return false;
-  if (!target) return false;
-  const user = action.subject();
-  if (!user) return false;
-  const item = action.item();
-  if (!item) return false;
-  if (!item.meta) return false;
-  if (!item.meta[note]) return false;
-  if (item.meta[note] === true) return true;
-  return !!eval(item.meta[note]);
-};
-
-UNH_AggroLevels.isTargetTagged = function(action, target, note) {
-  if (!action) return false;
-  if (!target) return false;
-  const user = action.subject();
-  if (!user) return false;
-  const item = action.item();
-  if (!item) return false;
-  return target.states().some(function(obj) {
-    if (!obj) return false;
-    if (!obj.meta) return false;
-    if (!obj.meta[note]) return false;
-    if (obj.meta[note] === true) return true;
-    return !!eval(obj.meta[note]);
+UNH_AggroLevels.hasPlugin = function(name) {
+  return $plugins.some(function(plug) {
+    if (!plug) return false;
+    if (!plug.name) return false;
+    if (!plug.status) return false;
+    return plug.name === name;
   });
 };
+
+if (UNH_AggroLevels.hasPlugin('UNH_MiscFunc')) {
+  UNH_AggroLevels.isSkillTagged = UNH_MiscFunc.isSkillTagged;
+  UNH_AggroLevels.isUserTagged = UNH_MiscFunc.isUserTagged;
+  UNH_AggroLevels.isTargetTagged = UNH_MiscFunc.isTargetTagged;
+} else {
+  UNH_AggroLevels.isSkillTagged = function(action, target, note) {
+    if (!action) return false;
+    if (!target) return false;
+    const user = action.subject();
+    if (!user) return false;
+    const item = action.item();
+    if (!item) return false;
+    if (!item.meta) return false;
+    if (!item.meta[note]) return false;
+    if (item.meta[note] === true) return true;
+    return !!eval(item.meta[note]);
+  };
+
+  UNH_AggroLevels.isUserTagged = function(action, target, note) {
+    if (!action) return false;
+    if (!target) return false;
+    const user = action.subject();
+    if (!user) return false;
+    const item = action.item();
+    if (!item) return false;
+    return user.traitObjects().some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta[note]) return false;
+      if (obj.meta[note] === true) return true;
+      return !!eval(obj.meta[note]);
+    });
+  };
+
+  UNH_AggroLevels.isTargetTagged = function(action, target, note) {
+    if (!action) return false;
+    if (!target) return false;
+    const user = action.subject();
+    if (!user) return false;
+    const item = action.item();
+    if (!item) return false;
+    return target.traitObjects().some(function(obj) {
+      if (!obj) return false;
+      if (!obj.meta) return false;
+      if (!obj.meta[note]) return false;
+      if (obj.meta[note] === true) return true;
+      return !!eval(obj.meta[note]);
+    });
+  };
+}
 
 Game_Action.prototype.randomTargets = function (unit) {
   const targets = [];
@@ -604,9 +842,10 @@ Game_BattlerBase.prototype.unhAggroPlus = function(target) {
   const user = this;
   let aggroPlus = 0;
   for (const obj of this.traitObjects()) {
-    if (!obj.meta) continue;
-    if (!obj.meta.unhAggroPlus) continue;
-    aggroPlus += eval(obj.meta.unhAggroPlus);
+    aggroPlus += UNH_AggroLevels.AggroFunctions[obj.groupKey][obj.id].unhAggroPlus(this, target);
+    //if (!obj.meta) continue;
+    //if (!obj.meta.unhAggroPlus) continue;
+    //aggroPlus += eval(obj.meta.unhAggroPlus);
   }
   return aggroPlus;
 };
@@ -615,11 +854,12 @@ Game_Action.prototype.unhAggroPlus = function(target) {
   const user = this.subject();
   let aggroPlus = user.unhAggroPlus(target);
   const item = this.item();
-  if (!!item.meta) {
-    if (!!item.meta.unhAggroPlus) {
-      aggroPlus += eval(item.meta.unhAggroPlus);
-    }
-  }
+  aggroPlus += UNH_AggroLevels.AggroFunctions[item.groupKey][item.id].unhAggroPlus(this, target);
+  //if (!!item.meta) {
+  //  if (!!item.meta.unhAggroPlus) {
+  //    aggroPlus += eval(item.meta.unhAggroPlus);
+  //  }
+  //}
   return aggroPlus;
 };
 
@@ -627,9 +867,10 @@ Game_BattlerBase.prototype.unhAggroRate = function(target) {
   const user = this;
   let aggroRate = 1;
   for (const obj of this.traitObjects()) {
-    if (!obj.meta) continue;
-    if (!obj.meta.unhAggroRate) continue;
-    aggroRate *= eval(obj.meta.unhAggroRate);
+    aggroRate *= UNH_AggroLevels.AggroFunctions[obj.groupKey][obj.id].unhAggroRate(this, target);
+    //if (!obj.meta) continue;
+    //if (!obj.meta.unhAggroRate) continue;
+    //aggroRate *= eval(obj.meta.unhAggroRate);
   }
   return aggroRate;
 };
@@ -638,11 +879,12 @@ Game_Action.prototype.unhAggroRate = function(target) {
   const user = this.subject();
   let aggroRate = user.unhAggroRate(target);
   const item = this.item();
-  if (!!item.meta) {
-    if (!!item.meta.unhAggroRate) {
-      aggroRate *= eval(item.meta.unhAggroRate);
-    }
-  }
+  aggroRate *= UNH_AggroLevels.AggroFunctions[item.groupKey][item.id].unhAggroRate(this, target);
+  //if (!!item.meta) {
+  //  if (!!item.meta.unhAggroRate) {
+  //    aggroRate *= eval(item.meta.unhAggroRate);
+  //  }
+  //}
   return aggroRate;
 };
 
@@ -650,9 +892,10 @@ Game_BattlerBase.prototype.unhAggroFlat = function(target) {
   const user = this;
   let aggroFlat = 0;
   for (const obj of this.traitObjects()) {
-    if (!obj.meta) continue;
-    if (!obj.meta.unhAggroFlat) continue;
-    aggroFlat += eval(obj.meta.unhAggroFlat);
+    aggroFlat += UNH_AggroLevels.AggroFunctions[obj.groupKey][obj.id].unhAggroPlus(this, target);
+    //if (!obj.meta) continue;
+    //if (!obj.meta.unhAggroFlat) continue;
+    //aggroFlat += eval(obj.meta.unhAggroFlat);
   }
   return aggroFlat;
 };
@@ -661,11 +904,12 @@ Game_Action.prototype.unhAggroFlat = function(target) {
   const user = this.subject();
   let aggroFlat = user.unhAggroFlat(target);
   const item = this.item();
-  if (!!item.meta) {
-    if (!!item.meta.unhAggroFlat) {
-      aggroFlat += eval(item.meta.unhAggroFlat);
-    }
-  }
+  aggroFlat += UNH_AggroLevels.AggroFunctions[item.groupKey][item.id].unhAggroPlus(this, target);
+  //if (!!item.meta) {
+  //  if (!!item.meta.unhAggroFlat) {
+  //    aggroFlat += eval(item.meta.unhAggroFlat);
+  //  }
+  //}
   return aggroFlat;
 };
 
@@ -677,7 +921,7 @@ Game_BattlerBase.prototype.unhSetAggro = function(value) {
 
 UNH_AggroLevels.Func_AddAggro = function(user, target, value, ignoreRates) {
   if (value === undefined) value = 0;
-  if (typeof value !== 'number') value = 0;
+  if (isNaN(value)) value = 0;
   if (!ignoreRates) {
     value += this.unhAggroPlus(target);
     value *= this.unhAggroRate(target);
@@ -726,14 +970,16 @@ Game_Action.prototype.apply = function(target) {
   const item = this.item();
   const user = this.subject();
   UNH_AggroLevels.Action_apply.call(this);
-  if (!!item.meta) {
-    if (!!item.meta.unhAddUserAggro) {
-      user.unhAddAggro(target, eval(item.meta.unhAddUserAggro), false);
-    }
-    if (!!item.meta.unhAddTargetAggro) {
-      target.unhAddAggro(target, eval(item.meta.unhAddTargetAggro), false);
-    }
-  }
+  user.unhAddAggro(target, UNH_AggroLevels.AggroFunctions[item.groupKey][item.id].unhAddUserAggro(this, target, 0), false);
+  target.unhAddAggro(target, UNH_AggroLevels.AggroFunctions[item.groupKey][item.id].unhAddTargetAggro(this, target, 0), false);
+  //if (!!item.meta) {
+  //  if (!!item.meta.unhAddUserAggro) {
+  //    user.unhAddAggro(target, eval(item.meta.unhAddUserAggro), false);
+  //  }
+  //  if (!!item.meta.unhAddTargetAggro) {
+  //    target.unhAddAggro(target, eval(item.meta.unhAddTargetAggro), false);
+  //  }
+  //}
 };
 
 UNH_AggroLevels.Action_executeHpDamage = Game_Action.prototype.executeHpDamage;

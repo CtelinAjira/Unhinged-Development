@@ -66,6 +66,7 @@ Game_Action.prototype.unhIsVarMeta = function(note) {
   const action = this;
   const item = this.item();
   const user = this.subject();
+  return UNH_MiscFunc.isStateTagged(user, note);
   let meta;
   return user.traitObjects().some(function(obj) {
     if (!obj) return false;
@@ -91,6 +92,7 @@ Game_Action.prototype.unhRecklessCheck = function() {
   const item = this.item();
   const user = this.subject();
   let meta, noteEval;
+  return UNH_MiscFunc.isStateTagged(user, note);
   return user.traitObjects().some(function(obj) {
     if (!obj) return 0;
     meta = obj.meta;
@@ -129,7 +131,7 @@ Game_Action.prototype.applyVariance = function(damage, variance) {
     }
   } else if (amplifyCheck) {
     for (let i = 0; i < recklessCount; i++) {
-      v = Math.randomInt((2 * amp) + 1) + Math.randomInt((2 * amp) + 1) - amp;
+      v = Math.randomInt((4 * amp) + 1) - amp;
       retArr.push(damage >= 0 ? damage + v : damage - v);
     }
     if (recklessCheck > 0) {
@@ -139,7 +141,7 @@ Game_Action.prototype.applyVariance = function(damage, variance) {
     }
   } else {
     for (let i = 0; i < recklessCount; i++) {
-      v = Math.randomInt(amp + 1) + Math.randomInt(amp + 1) - amp;
+      v = Math.randomInt(2 * amp + 1) - amp;
       retArr.push(damage >= 0 ? damage + v : damage - v);
     }
     if (recklessCheck > 0) {

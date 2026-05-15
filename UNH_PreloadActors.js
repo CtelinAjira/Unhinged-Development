@@ -141,7 +141,7 @@ PluginManager.registerCommand(UNH_PreloadActors.pluginName, "Add_With_Scaling_Ev
   if (!params.ActorId) {
     return;
   }
-  params.ActorId = eval(params.ActorId);
+  params.ActorId = Number(eval(params.ActorId));
   UNH_PreloadActors.addWithScaling(params);
 });
 

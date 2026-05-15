@@ -94,6 +94,91 @@ UNH_MiscFunc.DamageFormula = String(UNH_MiscFunc.parameters['DamageFormula'] || 
 UNH_MiscFunc.ActionStartCode = String(UNH_MiscFunc.parameters['ActionStart'] || "");
 UNH_MiscFunc.ActionStart = new Function('action', 'user', 'targets', 'try {\n' + UNH_MiscFunc.ActionStartCode + '\n} catch (e) {\nreturn;\n}');
 
+UNH_MiscFunc.tagFuncs = {Action:{}, User:{}, Target:{}, State:{}};
+
+UNH_MiscFunc.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
+DataManager.isDatabaseLoaded = function() {
+  if (!UNH_MiscFunc.DataManager_isDatabaseLoaded.call(this)) return false;
+  if (!UNH_MiscFunc._isLoaded) {
+    DataManager.unhInitGroupTags($dataActors);
+    DataManager.unhInitGroupTags($dataClasses);
+    DataManager.unhInitGroupTags($dataSkills);
+    DataManager.unhInitGroupTags($dataItems);
+    DataManager.unhInitGroupTags($dataWeapons);
+    DataManager.unhInitGroupTags($dataArmors);
+    DataManager.unhInitGroupTags($dataEnemies);
+    DataManager.unhInitGroupTags($dataStates);
+    UNH_MiscFunc._isLoaded = true;
+  }
+  return true;
+};
+
+DataManager.unhInitGroupTags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Actor';
+      break;
+    case $dataClasses:
+      groupKey = 'Class';
+      break;
+    case $dataSkills:
+      groupKey = 'Skill';
+      break;
+    case $dataItems:
+      groupKey = 'Item';
+      break;
+    case $dataWeapons:
+      groupKey = 'Weapon';
+      break;
+    case $dataArmors:
+      groupKey = 'Armor';
+      break;
+    case $dataEnemies:
+      groupKey = 'Enemy';
+      break;
+    case $dataStates:
+      groupKey = 'State';
+      break;
+  }
+  let notedata, obj, line, noteStr, noteArr, noteLen, notePre, noteRet, code;
+  for (let n = 1; n < group.length; n++) {
+    obj = group[n];
+    obj.groupKey = groupKey;
+    UNH_MiscFunc.metadataToFunc(obj);
+  }
+};
+
+UNH_MiscFunc.metadataToFunc = function(data) {
+  if (!data) return;
+  if (!data.meta) DataManager.extractMetadata(data);
+  const meta = data.meta;
+  const actCode = 'const item = action.item();\nconst user = action.subject();\nreturn (%1);';
+  const stateCode = 'return (%1);';
+  if (!UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id]) UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id] = {};
+  if (!UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id]) UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id] = {};
+  if (!UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id]) UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id] = {};
+  if (!UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id]) UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id] = {};
+  for (const [key, value] of Object.entries(meta)) {
+    if (value === undefined) {
+      if (!UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format('false'));
+      if (!UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format('false'));
+      if (!UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format('false'));
+      if (!UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id][key] = new Function('user', stateCode.format('false'));
+    } else if (value === true) {
+      if (!UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format('true'));
+      if (!UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format('true'));
+      if (!UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format('true'));
+      if (!UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id][key] = new Function('user', stateCode.format('true'));
+    } else {
+      if (!UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.Action[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format(value));
+      if (!UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.User[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format(value));
+      if (!UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.Target[data.groupKey][data.id][key] = new Function('action', 'target', actCode.format(value));
+      if (!UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id][key]) UNH_MiscFunc.tagFuncs.State[data.groupKey][data.id][key] = new Function('user', stateCode.format(value));
+    }
+  }
+};
+
 UNH_MiscFunc.hasPlugin = function(name) {
   return $plugins.some(function(plug) {
     if (!plug) return false;
@@ -234,8 +319,10 @@ UNH_MiscFunc.isSkillTagged = function(action, target, note) {
   const item = action.item();
   const user = action.subject();
   if (!item) return false;
+  if (!!UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note]) return !!UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note](action, target);
   if (!item.meta) return false;
   if (!item.meta[note]) return false;
+  if (item.meta[note] === true) return true;
   return !!eval(item.meta[note]);
 };
 
@@ -244,8 +331,10 @@ UNH_MiscFunc.isUserTagged = function(action, target, note) {
   const user = action.subject();
   return user.traitObjects().some(function(obj) {
     if (!obj) return false;
+    if (!!UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note]) return !!UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note](action, target);
     if (!obj.meta) return false;
     if (!obj.meta[note]) return false;
+    if (obj.meta[note] === true) return true;
     return !!eval(obj.meta[note]);
   });
 };
@@ -255,30 +344,21 @@ UNH_MiscFunc.isTargetTagged = function(action, target, note) {
   const user = action.subject();
   return target.traitObjects().some(function(obj) {
     if (!obj) return false;
+    if (!!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note]) return !!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note](action, target);
     if (!obj.meta) return false;
     if (!obj.meta[note]) return false;
+    if (obj.meta[note] === true) return true;
     return !!eval(obj.meta[note]);
   });
 };
 
 UNH_MiscFunc.isStateTagged = function(user, note) {
-  if (user.currentAction()) {
-    const action = user.currentAction();
-    const item = action.item();
-    if (!!item) {
-      if (!!item.meta) {
-        if (!!item.meta[note]) {
-          if (!!eval(obj.meta[note])) {
-            return true;
-          }
-        }
-      }
-    }
-  }
   return user.traitObjects().some(function(obj) {
     if (!obj) return false;
+    if (!!UNH_MiscFunc.tagFuncs.State[obj.groupKey][obj.id][note]) return !!UNH_MiscFunc.tagFuncs.State[obj.groupKey][obj.id][note](user);
     if (!obj.meta) return false;
     if (!obj.meta[note]) return false;
+    if (obj.meta[note] === true) return true;
     return !!eval(obj.meta[note]);
   });
 };
@@ -287,8 +367,10 @@ UNH_MiscFunc.skillTagCt = function(action, target, note) {
   const item = action.item();
   const user = action.subject();
   if (!item) return 0;
+  if (!!UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note]) return Number(UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note](action, target));
   if (!item.meta) return 0;
   if (!item.meta[note]) return 0;
+  if (item.meta[note] === true) return 1;
   const num = eval(item.meta[note]);
   if (isNaN(num)) return 0;
   return Number(num);
@@ -299,8 +381,10 @@ UNH_MiscFunc.userTagCt = function(action, target, note) {
   const user = action.subject();
   return user.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note]) return r + Number(UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note](action, target));
     if (!obj.meta) return r;
     if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r + 1;
     const num = eval(obj.meta[note]);
     if (isNaN(num)) return r;
     return r + Number(num);
@@ -312,8 +396,10 @@ UNH_MiscFunc.targetTagCt = function(action, target, note) {
   const user = action.subject();
   return target.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note]) return r + Number(UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note](action, target));
     if (!obj.meta) return r;
     if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r + 1;
     const num = eval(obj.meta[note]);
     if (isNaN(num)) return r;
     return r + Number(num);
@@ -322,27 +408,72 @@ UNH_MiscFunc.targetTagCt = function(action, target, note) {
 
 UNH_MiscFunc.stateTagCt = function(user, note) {
   let base = 0;
-  if (user.currentAction()) {
-    const action = user.currentAction();
-    const item = action.item();
-    if (!!item) {
-      if (!!item.meta) {
-        if (!!item.meta[note]) {
-          const numbase = eval(item.meta[note]);
-          if (!isNaN(numbase)) {
-            base = Number(numbase);
-          }
-        }
-      }
-    }
-  }
   return user.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.State[obj.groupKey][obj.id][note]) return r + Number(UNH_MiscFunc.tagFuncs.State[obj.groupKey][obj.id][note](user));
     if (!obj.meta) return r;
     if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r + 1;
     const num = eval(obj.meta[note]);
     if (isNaN(num)) return r;
     return r + Number(num);
+  }, base);
+};
+
+UNH_MiscFunc.skillTagMax = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  if (!item) return 0;
+  if (!!UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note]) return Number(UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note](action, target));
+  if (!item.meta) return 0;
+  if (!item.meta[note]) return 0;
+  if (item.meta[note] === true) return 1;
+  const num = eval(item.meta[note]);
+  if (isNaN(num)) return 0;
+  return Number(num);
+};
+
+UNH_MiscFunc.userTagMax = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note]) return Math.max(r, Number(UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note](action, target)));
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r + 1;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return Math.max(r, Number(num));
+  }, 0);
+};
+
+UNH_MiscFunc.targetTagMax = function(action, target, note) {
+  const item = action.item();
+  const user = action.subject();
+  return target.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note]) return Math.max(r, Number(UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note](action, target)));
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r + 1;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return Math.max(r, Number(num));
+  }, 0);
+};
+
+UNH_MiscFunc.stateTagMax = function(user, note) {
+  let base = 0;
+  return user.traitObjects().reduce(function(r, obj) {
+    if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note]) return Math.max(r, Number(UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note](action, target)));
+    if (!obj.meta) return r;
+    if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r + 1;
+    const num = eval(obj.meta[note]);
+    if (isNaN(num)) return r;
+    return Math.max(r, Number(num));
   }, base);
 };
 
@@ -350,8 +481,10 @@ UNH_MiscFunc.skillTagRate = function(action, target, note) {
   const item = action.item();
   const user = action.subject();
   if (!item) return 1;
+  if (!!UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note]) return Number(UNH_MiscFunc.tagFuncs.Action[item.groupKey][item.id][note](action, target));
   if (!item.meta) return 1;
   if (!item.meta[note]) return 1;
+  if (item.meta[note] === true) return 1;
   const num = eval(item.meta[note]);
   if (isNaN(num)) return 1;
   return Number(num);
@@ -362,8 +495,10 @@ UNH_MiscFunc.userTagRate = function(action, target, note) {
   const user = action.subject();
   return user.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note]) return r * Number(UNH_MiscFunc.tagFuncs.User[obj.groupKey][obj.id][note](action, target));
     if (!obj.meta) return r;
     if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r;
     const num = eval(obj.meta[note]);
     if (isNaN(num)) return r;
     return r * Number(num);
@@ -375,8 +510,10 @@ UNH_MiscFunc.targetTagRate = function(action, target, note) {
   const user = action.subject();
   return target.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note]) return r * Number(UNH_MiscFunc.tagFuncs.Target[obj.groupKey][obj.id][note](action, target));
     if (!obj.meta) return r;
     if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r;
     const num = eval(obj.meta[note]);
     if (isNaN(num)) return r;
     return r * Number(num);
@@ -385,24 +522,12 @@ UNH_MiscFunc.targetTagRate = function(action, target, note) {
 
 UNH_MiscFunc.stateTagRate = function(user, note) {
   let base = 1;
-  if (user.currentAction()) {
-    const action = user.currentAction();
-    const item = action.item();
-    if (!!item) {
-      if (!!item.meta) {
-        if (!!item.meta[note]) {
-          const numbase = eval(item.meta[note]);
-          if (!isNaN(numbase)) {
-            base = Number(numbase);
-          }
-        }
-      }
-    }
-  }
   return user.traitObjects().reduce(function(r, obj) {
     if (!obj) return r;
+    if (!!UNH_MiscFunc.tagFuncs.State[obj.groupKey][obj.id][note]) return r * Number(UNH_MiscFunc.tagFuncs.State[obj.groupKey][obj.id][note](action, target));
     if (!obj.meta) return r;
     if (!obj.meta[note]) return r;
+    if (obj.meta[note] === true) return r;
     const num = eval(obj.meta[note]);
     if (isNaN(num)) return r;
     return r * Number(num);
@@ -467,6 +592,16 @@ Game_Enemy.prototype.currentClass = function() {
   if (!this.enemy().meta['Unh Enemy Class']) return null;
   if (isNaN(this.enemy().meta['Unh Enemy Class'])) return null;
   return $dataClasses[Number(this.enemy().meta['Unh Enemy Class'])];
+};
+
+UNH_MiscFunc.Enemy_paramBase = Game_Enemy.prototype.paramBase;
+Game_Enemy.prototype.paramBase = function(paramId) {
+  const curClass = this.currentClass();
+  if (!!curClass) {
+    return curClass.params[paramId][this._level];
+  } else {
+    return this.enemy().params[paramId];
+  }
 };
 
 UNH_MiscFunc.Enemy_traitObjects = Game_Enemy.prototype.traitObjects;

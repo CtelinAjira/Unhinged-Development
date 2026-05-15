@@ -35,14 +35,17 @@ Imported.UNH_SummonLevels = true;
  * Notetags
  * ============================================================================
  * 
- * <unhSummon>
+ * <Unh Summon>
+ * - Use for Skills/Items
+ * - Using this skill scales compatible summons to the user's level
+ * <Unh Summon>
  * - Use for Actors
  * - Marks an actor as a summon for the purpose of this plugin
- * <unhActorSummon:X>
+ * <Unh Actor Summon:X>
  * - Use for Actors
  * - Same as <unhSummon>, but also marks actor X (Database ID) as the dedicated 
  *   summoner
- * <unhEnemySummon:X>
+ * <Unh Enemy Summon:X>
  * - Use for Actors
  * - Same as <unhSummon>, but also marks enemy X (Database ID) as the dedicated 
  *   summoner
@@ -52,7 +55,7 @@ Imported.UNH_SummonLevels = true;
  *   - user: the enemy being given a level
  * - Do not use if also using UNH_MiscFunc.js
  * - Do not use if also using VisuMZ_3_EnemyLevels.js
- * <unhSummonId:X>
+ * <Unh Summon ID:X>
  * - Use for Skills/Items
  * - Marks an action to specifically use actor X (JS: Database ID) as the summon
  *   - action: the marked action
@@ -66,6 +69,109 @@ UNH_SummonLevels.pluginName = 'UNH_SummonLevels';
 UNH_SummonLevels.parameters = PluginManager.parameters(UNH_SummonLevels.pluginName);
 UNH_SummonLevels.DefaultLevel = Number(UNH_SummonLevels.parameters['DefaultLevel'] || 0);
 
+UNH_SummonLevels.SkillIsSummon = {
+  Skill:{'0':false},
+  Item:{'0':false}
+};
+
+UNH_SummonLevels.SkillSummonIdGet = {
+  Skill:{'0':new Function('action', 'const item = action.item();\nconst user = action.subject();\nreturn 0;')},
+  Item:{'0':new Function('action', 'const item = action.item();\nconst user = action.subject();\nreturn 0;')}
+};
+
+UNH_SummonLevels.SummonGroups = {
+  Actor:{'0':[]},
+  Enemy:{'0':[]}
+};
+
+UNH_SummonLevels.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
+DataManager.isDatabaseLoaded = function() {
+  if (!UNH_SummonLevels.DataManager_isDatabaseLoaded.call(this)) return false;
+  if (!UNH_SummonLevels._loaded) {
+    this.processUnhSkillSummonIdNotetags($dataSkills);
+    this.processUnhSkillSummonIdNotetags($dataItems);
+    this.processUnhSummonGroupNotetags($dataActors);
+    this.processUnhSummonGroupNotetags($dataEnemies);
+    UNH_SummonLevels._loaded = true;
+  }
+  return true;
+};
+
+DataManager.processUnhSummonGroupNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataActors:
+      groupKey = 'Actor';
+      break;
+    case $dataEnemies:
+      groupKey = 'Enemy';
+      break;
+  }
+  let smnGrp;
+  for (let n = 1; n < group.length; n++) {
+    const obj = group[n];
+    smnGrp = [];
+    obj.groupKey = groupKey;
+    for (const actor of $dataActors) {
+      if (!actor) continue;
+      const note = actor.note;
+      if (note.match(/<(?:UNH SUMMON)>/i)) {
+        smnGrp.push(actor);
+      } else {
+        const notedata = note.split(/[\r\n]+/);
+        for (const line of notedata) {
+          if (line.match(/<(?:UNH ACTOR SUMMON)>/i)) {
+            if (groupKey === 'Actor') smnGrp.push(actor);
+          } else if (line.match(/<(?:UNH ACTOR SUMMON):[ ](\d+)>/i)) {
+            if (obj.id === Number(RegExp.$1) && groupKey === 'Actor') smnGrp.push(actor);
+          }
+          if (line.match(/<(?:UNH ENEMY SUMMON)>/i)) {
+            if (groupKey === 'Enemy') smnGrp.push(actor);
+          } else if (line.match(/<(?:UNH ENEMY SUMMON):[ ](\d+)>/i)) {
+            if (obj.id === Number(RegExp.$1) && groupKey === 'Enemy') smnGrp.push(actor);
+          }
+        }
+      }
+    }
+    UNH_SummonLevels.SummonGroups[groupKey][obj.id] = smnGrp;
+  }
+};
+
+DataManager.processUnhSkillSummonIdNotetags = function(group) {
+  let groupKey = '';
+  switch (group) {
+    case $dataSkills:
+      groupKey = 'Skill';
+      break;
+    case $dataItems:
+      groupKey = 'Item';
+      break;
+  }
+  let unhSummonId, isSmn;
+  for (let n = 1; n < group.length; n++) {
+    isSmn = false;
+    const obj = group[n];
+    const notedata = obj.note.split(/[\r\n]+/);
+    obj.groupKey = groupKey;
+    unhSummonId = 0;
+    for (let i = 0; i < notedata.length; i++) {
+      const line = notedata[i];
+      if (line.match(/<(?:UNH SUMMON)>/i)) {
+        unhSummonId = 0;
+        isSmn = true;
+      } else if (line.match(/<(?:UNH SUMMON ID):[ ](\d+)>/i)) {
+        unhSummonId = parseInt(RegExp.$1);
+        isSmn = true;
+      } else if (line.match(/<(?:UNH SUMMON ID):[ ](*.)>/i)) {
+        unhSummonId = String(RegExp.$1);
+        isSmn = true;
+      }
+    }
+    UNH_SummonLevels.SkillIsSummon[groupKey][n] = true;
+    UNH_SummonLevels.SkillSummonIdGet[groupKey][n] = new Function('action', 'const item = action.item();\nconst user = action.subject();\nreturn (' + unhSummonId + ');');
+  }
+};
+
 UNH_SummonLevels.hasPlugin = function(name) {
   return $plugins.some(function(plug) {
     if (!plug) return false;
@@ -76,7 +182,12 @@ UNH_SummonLevels.hasPlugin = function(name) {
 };
 
 Game_BattlerBase.prototype.summons = function() {
-  return $gameActors.data().filter(function(actor) {
+  let id = ((this.isActor()) ? (this.actorId()) : (this.enemyId));
+  let groupKey = ((this.isActor()) ? ('Actor') : ('Enemy'));
+  return UNH_SummonLevels.SummonGroups[groupKey][id].map(function(id) {
+    return $gameActors.actor(id);
+  });
+  /*return $gameActors.data().filter(function(actor) {
     if (!actor) return false;
     if (actor === this) return false;
     if ($gameParty.members().includes(actor)) return false;
@@ -86,10 +197,10 @@ Game_BattlerBase.prototype.summons = function() {
       return true;
     }
     return false;
-  });
+  });*/
 };
 
-Game_Actor.prototype.summons = function() {
+/*Game_Actor.prototype.summons = function() {
   const summons = Game_BattlerBase.prototype.summons.call(this);
   const user = this;
   for (const actor of $gameActors.data()) {
@@ -112,9 +223,9 @@ Game_Actor.prototype.summons = function() {
     }
   }
   return summons;
-};
+};*/
 
-Game_Enemy.prototype.summons = function() {
+/*Game_Enemy.prototype.summons = function() {
   const summons = Game_BattlerBase.prototype.summons.call(this);
   const user = this;
   for (const actor of $gameActors.data()) {
@@ -137,7 +248,7 @@ Game_Enemy.prototype.summons = function() {
     }
   }
   return summons;
-};
+};*/
 
 UNH_SummonLevels.BattleManager_startAction = BattleManager.startAction;
 BattleManager.startAction = function() {
@@ -147,47 +258,28 @@ BattleManager.startAction = function() {
 };
 
 Game_Action.prototype.unhSummonCalcLevel = function(actorId) {
-  const action = this;
   const item = this.item();
-  const user = this.subject();
-  let meta = null;
-  let metaData = '0';
-  let defSmnId = 0;
-  if (!!item) {
-    meta = item.meta;
-    if (!!meta) {
-      if (!!meta['unhSummonId']) {
-        metaData = meta['unhSummonId'];
-        if (isNaN(metaData)) {
-          const evalData = eval(metaData);
-          if (isNaN(evalData)) {
-            defSmnId = 0;
-          } else {
-            defSmnId = Number(evalData);
-          }
-        } else {
-          defSmnId = Number(metaData);
-        }
+  if (UNH_SummonLevels.SkillIsSummon[item.groupKey][item.id]) {
+    const user = this.subject();
+    const defSmnId = UNH_SummonLevels.SkillSummonIdGet[item.groupKey][item.id](this);
+    const summons = user.summons();
+    const actors = $gameActors.data();
+    if (actorId === undefined) actorId = defSmnId;
+    if (typeof actorId !== 'number') actorId = defSmnId;
+    if (isNaN(actorId)) actorId = defSmnId;
+    if (actorId < 0) actorId = defSmnId;
+    if (actorId >= actors.length) actorId = defSmnId;
+    const temp = ((UNH_SummonLevels.hasPlugin('VisuMZ_3_EnemyLevels')) ? (user.maxLevel()) : (99));
+    const maxLevel = ((user.isActor()) ? (user.maxLevel()) : (temp));
+    const level = user.unhLevel(maxLevel);
+    if (actorId > 0) {
+      const summon = $gameActors.actor(actorId);
+      if (summons.includes(summon)) summon.changeExp(summon.expForLevel(level), false);
+    } else {
+      for (const summon of user.summons()) {
+        if (summon.level === level) continue;
+        summon.changeExp(summon.expForLevel(level), false);
       }
-    }
-  }
-  const summons = user.summons();
-  const actors = $gameActors.data();
-  if (actorId === undefined) actorId = defSmnId;
-  if (typeof actorId !== 'number') actorId = defSmnId;
-  if (isNaN(actorId)) actorId = defSmnId;
-  if (actorId < 0) actorId = defSmnId;
-  if (actorId >= actors.length) actorId = defSmnId;
-  const temp = ((UNH_SummonLevels.hasPlugin('VisuMZ_3_EnemyLevels')) ? (user.maxLevel()) : (99));
-  const maxLevel = ((user.isActor()) ? (user.maxLevel()) : (temp));
-  const level = user.unhLevel(maxLevel);
-  if (actorId > 0) {
-    const summon = $gameActors.actor(actorId);
-    if (summons.includes(summon)) summon.changeExp(summon.expForLevel(level), false);
-  } else {
-    for (const summon of user.summons()) {
-      if (summon.level === level) continue;
-      summon.changeExp(summon.expForLevel(level), false);
     }
   }
 };
