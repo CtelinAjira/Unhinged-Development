@@ -183,6 +183,11 @@ UNH_SkillLevels.MaxLevel = String(UNH_SkillLevels.parameters['MaxLevel'] || '0')
 UNH_SkillLevels.ExpToLevel = String(UNH_SkillLevels.parameters['ExpToLevel'] || '0');
 UNH_SkillLevels.PluginMode = !!UNH_SkillLevels.parameters['PluginMode'];
 
+UNH_SkillLevels.MaxLevelFuncs = [];
+UNH_SkillLevels.MaxLevelFuncs[0] = new Function('user', 'return Math.round(%1);'.format(UNH_SkillLevels.MaxLevel));
+UNH_SkillLevels.ExpToLvlFuncs = [];
+UNH_SkillLevels.ExpToLvlFuncs[0] = new Function('user', 'level', 'return Math.round(%1);'.format(UNH_SkillLevels.ExpToLevel));
+
 UNH_SkillLevels.DataManager_isDatabaseLoaded = DataManager.isDatabaseLoaded;
 DataManager.isDatabaseLoaded = function() {
   if (!UNH_SkillLevels.DataManager_isDatabaseLoaded.call(this)) return false;
@@ -228,9 +233,15 @@ DataManager.processUnhSkillExpNotetags = function(group) {
       const line = notedata[i];
       if (line.match(/<MAX LEVEL:[ ](.+)>/i)) {
         obj.lvlCap = String(RegExp.$1);
+        UNH_SkillLevels.MaxLevelFuncs[n] = new Function('user', 'skill', 'return Math.round(%1);'.format(obj.lvlCap));
+      } else {
+        UNH_SkillLevels.MaxLevelFuncs[n] = new Function('user', 'skill', 'return Math.round(%1);'.format(UNH_SkillLevels.MaxLevel));
       }
       if (line.match(/<EXP TO LEVEL:[ ](.+)>/i)) {
         obj.expCap = String(RegExp.$1);
+        UNH_SkillLevels.ExpToLvlFuncs[n] = new Function('user', 'level', 'skill', 'return Math.round(%1);'.format(obj.expCap));
+      } else {
+        UNH_SkillLevels.ExpToLvlFuncs[n] = new Function('user', 'level', 'skill', 'return Math.round(%1);'.format(UNH_SkillLevels.ExpToLevel));
       }
     }
   }
@@ -347,33 +358,30 @@ Game_Battler.prototype.onBattleStart = function(advantageous) {
 
 Game_BattlerBase.prototype.unhMaxSkillLevel = function(index) {
   const user = this;
-  if (index === undefined) index = 0;
-  if (typeof index !== 'number') return eval(UNH_SkillLevels.MaxLevel);
-  index = index % $dataSkills.length;
-  if (index === 0) return eval(UNH_SkillLevels.MaxLevel);
-  const skill = $dataSkills[index];
-  const lvlCap = skill.lvlCap;
-  return eval(lvlCap);
+  if (index === undefined) return UNH_SkillLevels.MaxLevelFuncs[0](this);
+  if (isNaN(index)) return UNH_SkillLevels.MaxLevelFuncs[0](this);
+  index = Number(index) % $dataSkills.length;
+  if (index === 0) return UNH_SkillLevels.MaxLevelFuncs[0](this);
+  return UNH_SkillLevels.MaxLevelFuncs[index](this, $dataSkills[index]);
 };
 
 Game_BattlerBase.prototype.unhExpToLevel = function(index, level) {
   const user = this;
-  if (index === undefined) index = 0;
   if (level === undefined) level = this.unhSkillLevel(index) + 1;
-  if (typeof index !== 'number') return eval(UNH_SkillLevels.ExpToLevel);
-  index = index % $dataSkills.length;
   level = Math.max(level, 1);
-  if (index === 0) return Math.round(eval(UNH_SkillLevels.ExpToLevel));
-  const skill = $dataSkills[index];
-  const lvlCap = this.unhMaxSkillLevel(index);
-  const expCap = skill.expCap;
-  return Math.round(eval(expCap));
+  if (index === undefined) return UNH_SkillLevels.ExpToLvlFuncs[0](this, level);
+  if (isNaN(index)) return UNH_SkillLevels.ExpToLvlFuncs[0](this, level);
+  index = Number(index) % $dataSkills.length;
+  if (index === 0) return UNH_SkillLevels.ExpToLvlFuncs[0](this, level);
+  return UNH_SkillLevels.ExpToLvlFuncs[index](this, level, $dataSkills[index]);
 };
 
 Game_BattlerBase.prototype.unhInitSkillLevels = function() {
   const isInit = !!this._unhIsSkillInit;
-  if (!isInit) this._unhSkillLevel = [];
-  this._unhIsSkillInit = true;
+  if (!isInit) {
+    this._unhSkillLevel = [];
+    this._unhIsSkillInit = true;
+  }
   return isInit;
 };
 

@@ -404,7 +404,7 @@ Object.defineProperties(Game_Actor.prototype, {
   }, kPar: {
     get: function() {
       const user = this;
-      const battler = this.object();
+      const battler = this.actor();
       const curClass = this.currentClass();
       const equips = this.equips();
       const weapons = this.weapons();
@@ -430,9 +430,15 @@ Object.defineProperties(Game_Actor.prototype, {
           power = (weaponSum / weapons.length);
         }
         if (power <= 0) {
-          power = funcLib.Class[curClass.id].unhKeyStatBase(user);
+          power = armors.reduce(function(r, armor) {
+            if (!armor) return r;
+            return Math.max(r, funcLib.Armor[armor.id].unhKeyStatBase(user));
+          }, 0);
           if (power <= 0) {
-            power = funcLib.Actor[battler.id].unhKeyStatBase(user);
+            power = funcLib.Class[curClass.id].unhKeyStatBase(user);
+            if (power <= 0) {
+              power = funcLib.Actor[battler.id].unhKeyStatBase(user);
+            }
           }
         }
       }
@@ -590,7 +596,7 @@ Object.defineProperties(Game_Enemy.prototype, {
   }, kPar: {
     get: function() {
       const user = this;
-      const battler = this.object();
+      const battler = this.enemy();
       const curClass = ((this.currentClass()) ? (this.currentClass()) : (null));
       const equips = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.equips()) : ([]));
       const weapons = ((UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) ? (this.weapons()) : ([]));
@@ -617,9 +623,15 @@ Object.defineProperties(Game_Enemy.prototype, {
           }
         }
         if (power <= 0) {
-          if (!!curClass) power = funcLib.Class[curClass.id].unhKeyStatBase(user);
+          power = armors.reduce(function(r, armor) {
+            if (!armor) return r;
+            return Math.max(r, funcLib.Armor[armor.id].unhKeyStatBase(user));
+          }, 0);
           if (power <= 0) {
-            power = funcLib.Enemy[battler.id].unhKeyStatBase(user);
+            if (!!curClass) power = funcLib.Class[curClass.id].unhKeyStatBase(user);
+            if (power <= 0) {
+              power = funcLib.Enemy[battler.id].unhKeyStatBase(user);
+            }
           }
         }
       }
@@ -754,53 +766,59 @@ Game_BattlerBase.prototype.bossScale = function() {
   return UNH_CustParams.levelScaling(level);
 };
 
-Game_Action.prototype.wMag = function(target, handDex) {
-  const action = this;
-  const item = this.item();
-  const note = 'Magic Weapon';
-  const user = this.subject();
-  const equips = user.equips();
-  const weapons = user.weapons();
-  const armors = user.armors();
-  const states = user.states();
-  const isDoublehand = user.unhIsDoublehand();
-  const isDisarmed = states.some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    return !!state.meta['Disarm State'];
-  });
-  if (!!item) {
-    if (!!item.meta) {
-      if (item.meta[note] !== undefined) {
-        if (item.meta[note] === true) return true;
-        if (!!eval(item.meta[note])) return true;
-      }
-    }
+UNH_CustParams.Action_isPhysical = Game_Action.prototype.isPhysical;
+Game_Action.prototype.isPhysical = function(origFunc) {
+  if (this.isCertainHit()) return false;
+  const original = UNH_CustParams.Action_isPhysical.call(this);
+  if (!!origFunc) return original;
+  if (UNH_MiscFunc.isSkillTagged(this, target, 'Unh Invert Damage')) return !original;
+  if (UNH_MiscFunc.isUserTagged(this, target, 'Unh Invert Damage')) return !original;
+  return original;
+};
+
+UNH_CustParams.Action_isMagical = Game_Action.prototype.isMagical;
+Game_Action.prototype.isMagical = function(origFunc) {
+  if (this.isCertainHit()) return false;
+  const original = UNH_CustParams.Action_isMagical.call(this);
+  if (!!origFunc) return original;
+  if (UNH_MiscFunc.isSkillTagged(this, target, 'Unh Invert Damage')) return !original;
+  if (UNH_MiscFunc.isUserTagged(this, target, 'Unh Invert Damage')) return !original;
+  return original;
+};
+
+Game_Action.prototype.itemCnt = function(target) {
+  if (this.isPhysical(true) && target.canMove()) {
+    return target.cnt;
+  } else {
+    return 0;
   }
-  if (this.hasNoWeapons()) return false;
-  if (!handDex) handDex = 0;
-  if (typeof handDex !== 'number') handDex = 0;
-  if (isNaN(handDex)) handDex = 0;
-  if (handDex < 0) handDex = 0;
-  if (handDex > equips.length) handDex = equips.length - 1;
-  if (!isDisarmed) {
-    const weapon = equips[handDex];
-    if (DataManager.isWeapon(weapon)) {
-      if (!!weapon.meta) {
-        if (weapon.meta[note] !== undefined) {
-          if (weapon.meta[note] === true) return true;
-          if (!!eval(weapon.meta[note])) return true;
-        }
-      }
-    }
+};
+
+Game_Action.prototype.itemMrf = function(target) {
+  if (this.isMagical(true)) {
+    return target.mrf;
+  } else {
+    return 0;
   }
-  return states.some(function(state) {
-    if (!state) return false;
-    if (!state.meta) return false;
-    if (!state.meta[note]) return false;
-    if (state.meta[note] === true) return true;
-    return !!eval(state.meta[note]);
-  });
+};
+
+Game_Action.prototype.itemHit = function(target) {
+  const successRate = this.item().successRate;
+  if (this.isPhysical(true)) {
+    return successRate * 0.01 * this.subject().hit;
+  } else {
+    return successRate * 0.01;
+  }
+};
+
+Game_Action.prototype.itemEva = function(target) {
+    if (this.isPhysical(true)) {
+        return target.eva;
+    } else if (this.isMagical(true)) {
+        return target.mev;
+    } else {
+        return 0;
+    }
 };
 
 Game_Action.prototype.wPow = function(target, handDex) {
@@ -1030,14 +1048,6 @@ Game_Action.prototype.wpnPow = function(target) {
   return (this.wPow(target, Math.max(Math.min(weaponSlot, 1), 0)) * dblWpn);
 };
 
-Game_Action.prototype.wpnMag = function(target) {
-  if (!this.isWeapon(target)) return false;
-  const user = this.subject();
-  if (!UNH_MiscFunc.hasPlugin('VisuMZ_1_BattleCore')) return (this.wMag(target, 0) || this.wMag(target, 1));
-  const weaponSlot = user._activeWeaponSlot || 0;
-  return this.wMag(target, weaponSlot);
-};
-
 Game_BattlerBase.prototype.wpnTr = function(index) {
   const retArr = $dataSystem.weaponTypes.map(function(wtype, id) {
     return UNH_CustParams.weaponSkill(this, id);
@@ -1067,40 +1077,48 @@ Game_BattlerBase.prototype.unhDblWpn = function(index) {
 };
 
 Game_Action.prototype.physBlock = function(target) {
-  if (this.isCertainHit()) return false;
-  if (!this.isWeapon(target)) return false;
-  if (this.isPhysical() && this.wpnMag(target)) return false;
-  if (this.isMagical() && !this.wpnMag(target)) return false;
+  if (this.isCertainHit() || this.isMagical()) return false;
   const note = 'Physical Block';
   return (Math.randomInt(10000) < UNH_MiscFunc.targetTagCt(this, target, note));
 };
 
 Game_Action.prototype.magBlock = function(target) {
-  if (this.isCertainHit()) return false;
-  if (!this.isWeapon(target)) return false;
-  if (this.isPhysical() && !this.wpnMag(target)) return false;
-  if (this.isMagical() && this.wpnMag(target)) return false;
+  if (this.isCertainHit() || this.isPhysical()) return false;
   const note = 'Magical Block';
   return (Math.randomInt(10000) < UNH_MiscFunc.targetTagCt(this, target, note));
 };
 
 Game_Action.prototype.physParry = function(target) {
-  if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
-  if (this.isPhysical() && this.wpnMag(target)) return false;
-  if (this.isMagical() && !this.wpnMag(target)) return false;
+  if (!action.isAttack(target)) return false;
+  if (action.isCertainHit() || action.isMagical()) return false;
   const note1 = 'Physical Parry';
   const note2 = 'Physical Parry Plus';
   const note3 = 'Physical Parry Rate';
   const note4 = 'Physical Parry Flat';
   const wpnPry = [];
+  let weapons;
+  if (target.isActor()) {
+    if (target.hasNoWeapons()) {
+      weapons = [target.actor()];
+    } else if (target.hasNoWeapons()) {
+      weapons = target.weapons();
+    }
+  } else if (UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
+    if (target.hasNoWeapons()) {
+      weapons = [target.enemy()];
+    } else if (target.hasNoWeapons()) {
+      weapons = target.weapons();
+    }
+  } else {
+    weapons = [target.enemy()];
+  }
+  const states = target.states();
   let prry;
   for (const weapon of weapons) {
     if (!!weapon) {
-      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1]) {
-        prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1](action, target);
+      if (!!UNH_MiscFunc.tagFuncs.Target[weapon.groupKey][weapon.id][note1]) {
+        prry = UNH_MiscFunc.tagFuncs.Target[weapon.groupKey][weapon.id][note1](action, target);
         if (isNaN(prry)) {
           if (!weapon.meta) continue;
           if (weapon.meta[note1] === undefined) continue;
@@ -1150,22 +1168,36 @@ Game_Action.prototype.physParry = function(target) {
 };
 
 Game_Action.prototype.magParry = function(target) {
-  if (this.isCertainHit()) return false;
   const action = this;
-  if (!action.isWeapon(target)) return false;
-  const user = this.subject();
-  if (this.isPhysical() && !this.wpnMag(target)) return false;
-  if (this.isMagical() && this.wpnMag(target)) return false;
+  if (!action.isAttack(target)) return false;
+  if (action.isCertainHit() || action.isPhysical()) return false;
   const note1 = 'Magical Parry';
   const note2 = 'Magical Parry Plus';
   const note3 = 'Magical Parry Rate';
   const note4 = 'Magical Parry Flat';
   const wpnPry = [];
+  let weapons;
+  if (target.isActor()) {
+    if (target.hasNoWeapons()) {
+      weapons = [target.actor()];
+    } else if (target.hasNoWeapons()) {
+      weapons = target.weapons();
+    }
+  } else if (UNH_MiscFunc.hasPlugin('UNH_VS_EnemyWeapons')) {
+    if (target.hasNoWeapons()) {
+      weapons = [target.enemy()];
+    } else if (target.hasNoWeapons()) {
+      weapons = target.weapons();
+    }
+  } else {
+    weapons = [target.enemy()];
+  }
+  const states = target.states();
   let prry;
   for (const weapon of weapons) {
     if (!!weapon) {
-      if (!!UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1]) {
-        prry = UNH_MiscFunc.tagFuncs.Target.Weapon[weapon.id][note1](action, target);
+      if (!!UNH_MiscFunc.tagFuncs.Target[weapon.groupKey][weapon.id][note1]) {
+        prry = UNH_MiscFunc.tagFuncs.Target[weapon.groupKey][weapon.id][note1](action, target);
         if (isNaN(prry)) {
           if (!weapon.meta) continue;
           if (weapon.meta[note1] === undefined) continue;
@@ -1215,16 +1247,13 @@ Game_Action.prototype.magParry = function(target) {
 };
 
 Game_Action.prototype.checkPhysBreak = function(target, handDex) {
-  if (this.isCertainHit()) return false;
+  if (this.isCertainHit() || this.isMagical()) return false;
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  if (!this.isWeapon(target)) return false;
-  if (this.isPhysical() && this.wpnMag(target)) return false;
-  if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Break';
   const otherObjects = this.traitObjects().filter(function(obj) {
     return !DataManager.isWeapon(obj);
@@ -1276,17 +1305,13 @@ Game_Action.prototype.checkPhysBreak = function(target, handDex) {
 };
 
 Game_Action.prototype.checkMagBreak = function(target, handDex) {
-  if (this.isCertainHit()) return false;
-  if (!this.isPhysical()) return false;
+  if (this.isCertainHit() || this.isPhysical()) return false;
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  if (!this.isWeapon(target)) return false;
-  if (this.isPhysical() && !this.wpnMag(target)) return false;
-  if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Break';
   const otherObjects = this.traitObjects().filter(function(obj) {
     return !DataManager.isWeapon(obj);
@@ -1339,22 +1364,22 @@ Game_Action.prototype.checkMagBreak = function(target, handDex) {
 
 Game_Action.prototype.checkNoFeint = function(target) {
   if (!this) return false;
-  const note = 'No Feint';
-  return UNH_MiscFunc.isSkillTagged(this, target, note);
+  if (UNH_MiscFunc.isSkillTagged(this, target, 'No Feint')) return true;
+  if (UNH_MiscFunc.isUserTagged(this, target, 'Cannot Feint')) return true;
+  if (UNH_MiscFunc.isTargetTagged(this, target, 'Foresee Feint')) return true;
+  return false;
 };
 
 Game_Action.prototype.checkPhysFeint = function(target, handDex) {
   if (this.checkNoFeint()) return false;
-  if (this.isCertainHit()) return false;
+  if (!this.isAttack(target)) return false;
+  if (this.isCertainHit() || this.isMagical()) return false;
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  if (!this.isWeapon(target)) return false;
-  if (this.isPhysical() && this.wpnMag(target)) return false;
-  if (this.isMagical() && !this.wpnMag(target)) return false;
   const note = 'Physical Feint';
   const otherObjects = this.traitObjects().filter(function(obj) {
     return !DataManager.isWeapon(obj);
@@ -1407,16 +1432,14 @@ Game_Action.prototype.checkPhysFeint = function(target, handDex) {
 
 Game_Action.prototype.checkMagFeint = function(target, handDex) {
   if (this.checkNoFeint()) return false;
-  if (this.isCertainHit()) return false;
+  if (!this.isAttack(target)) return false;
+  if (this.isCertainHit() || this.isPhysical()) return false;
   if (!handDex) handDex = 0;
   if (typeof handDex !== 'number') handDex = 0;
   if (isNaN(handDex)) handDex = 0;
   if (handDex < 0) handDex = 0;
   const weapons = this.weapons();
   if (handDex > weapons.length) handDex = weapons.length - 1;
-  if (!this.isWeapon(target)) return false;
-  if (this.isPhysical() && !this.wpnMag(target)) return false;
-  if (this.isMagical() && this.wpnMag(target)) return false;
   const note = 'Magical Feint';
   const otherObjects = this.traitObjects().filter(function(obj) {
     return !DataManager.isWeapon(obj);
@@ -1687,7 +1710,7 @@ Game_Battler.prototype.unhIsRanged = function(curWpn) {
 };
 
 Game_Action.prototype.unhIsRanged = function(target, curWpn) {
-  if (this.isMagical()) return true;
+  if (this.isMagical(true)) return true;
   const action = this;
   const user = this.subject();
   const note = 'unhRanged';

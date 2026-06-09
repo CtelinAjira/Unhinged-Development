@@ -96,9 +96,9 @@ DataManager.processUnhFreeMoveNotetags = function(group) {
       if (line.match(/<FREE MOVE>/i)) {
         code = 'return true;';
       } else if (line.match(/<FREE MOVE:[ ](\d+)([%％])>/i)) {
-        code = 'return ((Math.random() * 100) >= (' + String(parseInt(RegExp.$1)) + '));';
+        code = 'return ((Math.random() * 100) < (' + String(parseInt(RegExp.$1)) + '));';
       } else if (line.match(/<FREE MOVE:[ ](\d+).(\d+)([%％])>/i)) {
-        code = 'return ((Math.random() * 100) >= (' + String(parseInt(RegExp.$1)) + '.' + String(parseInt(RegExp.$2)) + '));';
+        code = 'return ((Math.random() * 100) < (' + String(parseInt(RegExp.$1)) + '.' + String(parseInt(RegExp.$2)) + '));';
       } else if (line.match(/<FREE MOVE:[ ](.*)>/i)) {
         code = 'const item = action.item();\nconst user = action.subject();\nreturn (' + String(RegExp.$1) + ');';
       } else {
@@ -116,7 +116,7 @@ Game_Battler.prototype.isNoGridMove = function() {
   if (!action) return false;
   const target = this;
   return target.traitObjects().some(function(obj) {
-    return UNH_VS_FreeMove.FreeMoveFuncs[groupKey][n](action, target);
+    return UNH_VS_FreeMove.FreeMoveFuncs[obj.groupKey][obj.id](action, target);
   });
 };
 

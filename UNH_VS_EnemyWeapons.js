@@ -164,6 +164,7 @@ Game_Actor.prototype.equips = function() {
 };
 
 Game_Enemy.prototype.unhIsDualWield = function() {
+  return UNH_MiscFunc.isStateTagged(this, 'Dual Wield');
   const user = this;
   const object = this.enemy();
   if (!object) return false;
@@ -183,6 +184,7 @@ Game_Enemy.prototype.isDualWield = function() {
 
 if (!!Ramza.DW) {
   Game_Actor.prototype.unhStartsDualWield = function() {
+    return UNH_MiscFunc.isStateTagged(this, 'Starts as Dual Wield');
     const user = this;
     const object = this.actor();
     if (!object) return false;
@@ -204,6 +206,7 @@ UNH_VS_EnemyWeapons.Actor_equipSlots = Game_Actor.prototype.equipSlots;
 }
 
 Game_BattlerBase.prototype.isDisarmed = function() {
+  return UNH_MiscFunc.isStateTagged(this, 'Disarm State');
   return this.states().some(function(state) {
     if (!state) return false;
     if (!state.meta) return false;

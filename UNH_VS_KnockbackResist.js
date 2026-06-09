@@ -95,12 +95,12 @@ DataManager.processUnhResistKnockbackNotetags = function(group) {
       const line = notedata[i];
       if (line.match(/<RESIST KNOCKBACK>/i)) {
         code = 'return true;';
-      } else if (line.match(/<RESIST KNOCKBACK:[ ](\d+)([%％])>/i)) {
-        code = 'return ((Math.random() * 100) >= (' + String(parseInt(RegExp.$1)) + '));';
-      } else if (line.match(/<RESIST KNOCKBACK:[ ](\d+).(\d+)([%％])>/i)) {
-        code = 'return ((Math.random() * 100) >= (' + String(parseInt(RegExp.$1)) + '.' + String(parseInt(RegExp.$2)) + '));';
       } else if (line.match(/<RESIST KNOCKBACK:[ ](.*)>/i)) {
         code = 'const item = action.item();\nconst user = action.subject();\nreturn (' + String(RegExp.$1) + ');';
+      } else if (line.match(/<RESIST KNOCKBACK:[ ](\d+)([%％])>/i)) {
+        code = 'return ((Math.random() * 100) < (' + String(parseInt(RegExp.$1)) + '));';
+      } else if (line.match(/<RESIST KNOCKBACK:[ ](\d+).(\d+)([%％])>/i)) {
+        code = 'return ((Math.random() * 100) < (' + String(parseInt(RegExp.$1)) + '.' + String(parseInt(RegExp.$2)) + '));';
       } else {
         code = 'return false;';
       }

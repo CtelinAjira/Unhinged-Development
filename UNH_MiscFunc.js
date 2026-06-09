@@ -534,6 +534,22 @@ UNH_MiscFunc.stateTagRate = function(user, note) {
   }, base);
 };
 
+UNH_MiscFunc.setFieldSwitches = function(firstSwitchId, tagArray) {
+  if (isNaN(firstSwitchId)) return;
+  if (!Array.isArray(tagArray)) return;
+  tagArray = tagArray.filter(function(tag) {
+    return !!tag;
+  });
+  if (tagArray.length <= 0) return;
+  firstSwitchId = Number(firstSwitchId);
+  tagArray.forEach(function(tag, dex) {
+    const hasPassive = $gameParty.some(function(member) {
+      return UNH_MiscFunc.isStateTagged(member, tag);
+    });
+    $gameSwitches.setValue(firstSwitchId + dex, hasPassive);
+  });
+};
+
 UNH_MiscFunc.Action_isMagicSkill = Game_Action.prototype.isMagicSkill;
 Game_Action.prototype.isMagicSkill = function() {
   if (UNH_MiscFunc.isStateTagged(this.subject(), 'Sign Language')) return false;
